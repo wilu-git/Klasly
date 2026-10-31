@@ -1,0 +1,290 @@
+// =====================================================================
+// Klasly — Smart Campus Attendance and Academic Monitoring
+// ERD for dbdiagram.io (DBML) · Target DB: Microsoft SQL Server
+// All datetime2 columns are stored in UTC; displayed as Asia/Manila (UTC+08:00)
+// Team: Venalouie Cruz · Matt Linux Bondoc
+// =====================================================================
+
+Project Klasly {
+  database_type: 'SQLServer'
+  Note: 'Smart Campus Attendance and Academic Monitoring — ELECT3 / MobDev final project'
+}
+
+// ---------- Enums ----------
+Enum user_role {
+  Admin
+  Teacher
+  Student
+  Parent
+}
+
+Enum session_status {
+  Scheduled
+  Open
+  Closed
+  Finalized
+  Cancelled
+}
+
+Enum attendance_status {
+  Present
+  Late
+  Absent
+  Excused
+}
+
+Enum attendance_source {
+  Scan
+  Auto [note: 'Marked Absent by the Console worker']
+  Manual [note: 'Corrected by a teacher']
+}
+
+Enum notification_channel {
+  Push
+  Email
+}
+
+Enum notification_status {
+  Pending
+  Accepted
+  Failed
+}
+
+Enum request_status {
+  Pending
+  Approved
+  Rejected
+}
+
+// ---------- Accounts & people ----------
+Table Users [headercolor: #5B2BD6] {
+  UserId int [pk, increment]
+  FullName nvarchar(150) [not null]
+  Email nvarchar(256) [not null, unique]
+  PasswordHash nvarchar(500) [not null, note: 'ASP.NET Core Identity hasher — never plaintext']
+  Role user_role [not null]
+  FcmToken nvarchar(500) [null]
+  RegisteredDeviceId nvarchar(200) [null, note: 'One registered phone per student account']
+  IsActive bit [not null, default: 1]
+  CreatedAt datetime2 [not null, note: 'UTC']
+  UpdatedAt datetime2 [null, note: 'UTC']
+  Note: 'All login accounts for the 4 roles'
+}
+
+Table Students [headercolor: #15803D] {
+  StudentId int [pk, increment]
+  UserId int [not null, unique, ref: - Users.UserId]
+  StudentNumber nvarchar(20) [not null, unique]
+  YearLevel int [not null]
+  Program nvarchar(50) [not null, note: 'e.g. BSCpE']
+  Note: 'Student profile'
+}
+
+Table Teachers [headercolor: #15803D] {
+  TeacherId int [pk, increment]
+  UserId int [not null, unique, ref: - Users.UserId]
+  EmployeeNo nvarchar(20) [not null, unique]
+  Department nvarchar(100)
+  Note: 'Teacher profile — one teacher can handle many classes/sections'
+}
+
+Table Guardians [headercolor: #15803D] {
+  GuardianId int [pk, increment]
+  UserId int [not null, unique, ref: - Users.UserId]
+  ContactEmail nvarchar(256) [not null, note: 'Brevo alert recipient']
+  ContactNumber nvarchar(20)
+  Note: 'Parent / guardian profile'
+}
+
+Table StudentGuardians [headercolor: #15803D] {
+  StudentId int [not null, ref: > Students.StudentId]
+  GuardianId int [not null, ref: > Guardians.GuardianId]
+  Relationship nvarchar(30) [note: 'Mother, Father, Guardian…']
+  ReceivesAlerts bit [not null, default: 1]
+
+  indexes {
+    (StudentId, GuardianId) [pk]
+  }
+  Note: 'M:N — a student can have 2 parents; a parent can have siblings enrolled'
+}
+
+// ---------- Academic structure ----------
+Table AcademicTerms [headercolor: #1D4ED8] {
+  TermId int [pk, increment]
+  Name nvarchar(50) [not null, note: 'e.g. 1st Sem 2026–27']
+  StartDate date [not null]
+  EndDate date [not null]
+  IsActive bit [not null, default: 0]
+  Note: 'Groups classes by semester'
+}
+
+Table Subjects [headercolor: #1D4ED8] {
+  SubjectId int [pk, increment]
+  Code nvarchar(20) [not null, unique, note: 'e.g. ELECT3']
+  Title nvarchar(150) [not null]
+  Units int [not null]
+  Note: 'Course catalog'
+}
+
+Table Classes [headercolor: #1D4ED8] {
+  ClassId int [pk, increment]
+  SubjectId int [not null, ref: > Subjects.SubjectId]
+  TeacherId int [not null, ref: > Teachers.TeacherId]
+  TermId int [not null, ref: > AcademicTerms.TermId]
+  Section nvarchar(30) [not null, note: 'e.g. BSCpE 3-A']
+  Schedule nvarchar(100) [note: 'e.g. MWF 07:30–09:00 (PH time)']
+  Room nvarchar(30)
+
+  indexes {
+    (SubjectId, Section, TermId) [unique]
+  }
+  Note: 'One subject offering for one section in one term'
+}
+
+Table Enrollments [headercolor: #1D4ED8] {
+  EnrollmentId int [pk, increment]
+  ClassId int [not null, ref: > Classes.ClassId]
+  StudentId int [not null, ref: > Students.StudentId]
+  Status nvarchar(20) [not null, default: 'Active', note: 'Active / Dropped']
+
+  indexes {
+    (ClassId, StudentId) [unique]
+  }
+  Note: 'Student ↔ Class (M:N)'
+}
+
+// ---------- Attendance ----------
+Table ClassSessions [headercolor: #A16207] {
+  SessionId int [pk, increment]
+  ClassId int [not null, ref: > Classes.ClassId]
+  StartTime datetime2 [not null, note: 'UTC']
+  EndTime datetime2 [not null, note: 'UTC']
+  LateAfterMinutes int [not null, default: 15]
+  QrNonce nvarchar(64) [not null, note: 'Per-session random value. HMAC signing key lives in app config, NOT here']
+  Status session_status [not null, default: 'Scheduled']
+  ClosedAt datetime2 [null, note: 'UTC']
+  Note: 'One class meeting; source of the rotating 30-second QR token'
+}
+
+Table AttendanceRecords [headercolor: #A16207] {
+  AttendanceId int [pk, increment]
+  SessionId int [not null, ref: > ClassSessions.SessionId]
+  StudentId int [not null, ref: > Students.StudentId]
+  Status attendance_status [not null]
+  ScannedAt datetime2 [null, note: 'UTC — null when auto/manual']
+  MarkedAt datetime2 [not null, note: 'UTC']
+  Source attendance_source [not null]
+  MarkedBy int [null, ref: > Users.UserId, note: 'Teacher who corrected it']
+
+  indexes {
+    (SessionId, StudentId) [unique, note: 'Blocks duplicate scans']
+  }
+  Note: 'One attendance result per student per session'
+}
+
+Table ExcuseRequests [headercolor: #A16207] {
+  ExcuseId int [pk, increment]
+  AttendanceId int [not null, unique, ref: - AttendanceRecords.AttendanceId]
+  Reason nvarchar(500) [not null]
+  AttachmentPath nvarchar(300)
+  Status request_status [not null, default: 'Pending']
+  ReviewedBy int [null, ref: > Users.UserId]
+  ReviewedAt datetime2 [null, note: 'UTC']
+  Note: 'Nice-to-have — approved request turns the record into Excused'
+}
+
+// ---------- Grades & risk ----------
+Table Assessments [headercolor: #B91C1C] {
+  AssessmentId int [pk, increment]
+  ClassId int [not null, ref: > Classes.ClassId]
+  Title nvarchar(100) [not null, note: 'e.g. Quiz 1, Midterm Exam']
+  Type nvarchar(30) [not null]
+  MaxScore decimal(6,2) [not null]
+  WeightPercent decimal(5,2) [not null, note: 'Per class should total 100%']
+  DatePosted datetime2 [note: 'UTC']
+  Note: 'Graded activity of a class'
+}
+
+Table Grades [headercolor: #B91C1C] {
+  GradeId int [pk, increment]
+  AssessmentId int [not null, ref: > Assessments.AssessmentId]
+  StudentId int [not null, ref: > Students.StudentId]
+  Score decimal(6,2) [not null, note: '0 ≤ Score ≤ MaxScore']
+  PostedAt datetime2 [not null, note: 'UTC — triggers FCM push']
+  UpdatedAt datetime2 [null, note: 'UTC']
+
+  indexes {
+    (AssessmentId, StudentId) [unique]
+  }
+  Note: 'One current score per student per assessment'
+}
+
+Table RiskFlags [headercolor: #B91C1C] {
+  RiskFlagId int [pk, increment]
+  EnrollmentId int [not null, ref: > Enrollments.EnrollmentId]
+  AbsenceRate decimal(5,4) [not null, note: 'Absent ÷ finalized sessions (Excused excluded)']
+  WeightedAverage decimal(5,2) [null, note: 'Over posted assessments only']
+  IsAtRisk bit [not null, note: 'AbsenceRate ≥ 0.20 OR WeightedAverage < 75']
+  ComputedAt datetime2 [not null, note: 'UTC']
+  Note: 'Snapshot written by the Console worker; dashboards read the latest'
+}
+
+// ---------- Notifications & settings ----------
+Table Notifications [headercolor: #EA580C] {
+  NotificationId int [pk, increment]
+  UserId int [not null, ref: > Users.UserId, note: 'Recipient']
+  Channel notification_channel [not null]
+  Type nvarchar(30) [not null, note: 'Absence / AtRisk / GradePosted']
+  Subject nvarchar(200)
+  Body nvarchar(max)
+  Status notification_status [not null, default: 'Pending']
+  Attempts int [not null, default: 0]
+  NextAttemptAt datetime2 [null, note: 'UTC — backoff + jitter']
+  LastError nvarchar(500)
+  DedupKey nvarchar(150) [not null, unique, note: 'e.g. absent:{SessionId}:{StudentId}:{GuardianId}']
+  ExternalMessageId nvarchar(200) [note: 'Brevo messageId']
+  CreatedAt datetime2 [not null, note: 'UTC']
+  Note: 'Outbox + log for push and email (Brevo)'
+}
+
+Table SystemSettings [headercolor: #334155] {
+  Key nvarchar(50) [pk]
+  Value nvarchar(200) [not null]
+  UpdatedBy int [null, ref: > Users.UserId]
+  UpdatedAt datetime2 [note: 'UTC']
+  Note: '''AbsenceThreshold=0.20, PassingGrade=75, QrStepSeconds=30,
+MaxEmailAttempts=5, TimeZoneId=Asia/Manila'''
+}
+
+// ---------- Visual grouping ----------
+TableGroup Accounts {
+  Users
+  Students
+  Teachers
+  Guardians
+  StudentGuardians
+}
+
+TableGroup Academics {
+  AcademicTerms
+  Subjects
+  Classes
+  Enrollments
+}
+
+TableGroup Attendance {
+  ClassSessions
+  AttendanceRecords
+  ExcuseRequests
+}
+
+TableGroup Grading_and_Risk {
+  Assessments
+  Grades
+  RiskFlags
+}
+
+TableGroup System {
+  Notifications
+  SystemSettings
+}
