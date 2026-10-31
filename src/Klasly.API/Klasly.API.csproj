@@ -15,4 +15,10 @@
     <ProjectReference Include="..\Klasly.Infrastructure\Klasly.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controllers\" />
+    <Folder Include="Middleware\" />
+    <Folder Include="Extensions\" />
+  </ItemGroup>
+
 </Project>

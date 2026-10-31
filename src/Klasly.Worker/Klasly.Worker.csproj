@@ -15,4 +15,8 @@
     <ProjectReference Include="..\Klasly.Core\Klasly.Core.csproj" />
     <ProjectReference Include="..\Klasly.Infrastructure\Klasly.Infrastructure.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Jobs\" />
+  </ItemGroup>
 </Project>
