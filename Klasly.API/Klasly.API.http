@@ -1,0 +1,6 @@
+@Klasly.API_HostAddress = http://localhost:5043
+
+GET {{Klasly.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
