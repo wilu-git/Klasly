@@ -1,4 +1,4 @@
-@Klasly.API_HostAddress = http://localhost:5043
+@Klasly.API_HostAddress = http://localhost:5201
 
 GET {{Klasly.API_HostAddress}}/weatherforecast/
 Accept: application/json
