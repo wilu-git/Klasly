@@ -1,3 +1,9 @@
 <Solution>
-  <Project Path="Klasly.API/Klasly.API.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/Klasly.API/Klasly.API.csproj" />
+    <Project Path="src/Klasly.Core/Klasly.Core.csproj" />
+    <Project Path="src/Klasly.Infrastructure/Klasly.Infrastructure.csproj" />
+    <Project Path="src/Klasly.Web/Klasly.Web.csproj" />
+    <Project Path="src/Klasly.Worker/Klasly.Worker.csproj" />
+  </Folder>
 </Solution>
