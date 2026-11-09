@@ -11,14 +11,14 @@
 **Description:** The pieces every later task needs: two more exception mappings, a 401 body the app can show, and a startup check for the QR signing key.
 
 **Acceptance criteria:**
-- [ ] `ForbiddenException` (new) → `403`, and `UnauthorizedAccessException` → `401` in `ApiExceptionHandler`.
-- [ ] JWT `OnChallenge` writes problem-details `{ status: 401, detail: "Session expired – please log in" }`.
-- [ ] The API refuses to start when `Qr:SigningKey` is missing or shorter than 32 characters, and the message names the `dotnet user-secrets set` command.
+- [x] `ForbiddenException` (new) → `403`, and `UnauthorizedAccessException` → `401` in `ApiExceptionHandler`.
+- [x] JWT `OnChallenge` writes problem-details `{ status: 401, detail: "Session expired – please log in" }`.
+- [x] The API refuses to start when `Qr:SigningKey` is missing or shorter than 32 characters, and the message names the `dotnet user-secrets set` command.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] No token on `GET /api/classes` → `401` with the message
-- [ ] Step 14 (start without the key → refused)
+- [x] Build succeeds
+- [x] No token on `GET /api/classes` → `401` with the message
+- [x] Step 14 (start without the key → refused)
 
 **Dependencies:** None
 

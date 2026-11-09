@@ -55,7 +55,7 @@ All tasks touch `Program.cs` or `DependencyInjection.cs`, so they run one after 
 ## Task list
 
 ### Phase 1: Foundation
-- [ ] Task 1: Error plumbing and secrets check (S)
+- [x] Task 1: Error plumbing and secrets check (S)
 - [ ] Task 2: QR token service (S–M)
 
 ### Checkpoint A — after Tasks 1–2
