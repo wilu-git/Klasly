@@ -75,12 +75,12 @@ Tasks 4 and 5 both depend only on Task 3. They touch the same controller and vie
 
 ### Phase 3: Live, then finish
 - [x] Task 6: Polling script (5 s, reconnect, auto-stop, login redirect)
-- [ ] Task 7: Accessibility + `/impeccable` + full smoke test + reports
+- [x] Task 7: Accessibility + `/impeccable` + full smoke test + reports
 
 ### Checkpoint C (complete)
-- [ ] All 12 smoke-test steps and every success criterion in SPEC.md are met
-- [ ] `dotnet list package`: QRCoder is the only new package; no Microsoft package below 10.x
-- [ ] Reports written, `docs/reports/INDEX.md` updated, ready for review
+- [x] All 12 smoke-test steps and every success criterion in SPEC.md are met
+- [x] `dotnet list package`: QRCoder is the only new package; no Microsoft package below 10.x
+- [x] Reports written, `docs/reports/INDEX.md` updated, ready for review
 
 ## Risks and mitigations
 

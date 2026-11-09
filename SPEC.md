@@ -1,6 +1,6 @@
 # Spec: Milestone 7 — Web MVC Teacher session page (rotating QR + live attendance)
 
-> Status: **Draft — waiting for approval** (2026-11-09). Answer the 3 open questions at the bottom, or approve them as recommended. Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "QR attendance check-in") → `CLAUDE.md` (§3.4 Web MVC) → this spec.
+> Status: **Approved and built** (2026-11-09): open questions 1–3 approved as recommended (approval given by asking to build through Checkpoint C). Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "QR attendance check-in") → `CLAUDE.md` (§3.4 Web MVC) → this spec.
 > Milestone 6's spec (Web API sessions) is in git history (commit `479dcc6`) and in `docs/reports/2026-11-09-2144-milestone-6-api-sessions/`.
 
 ## Assumptions (correct these before we build)
@@ -162,13 +162,13 @@ public async Task<SessionLiveViewModel> GetLiveAsync(int sessionId, Cancellation
 
 ## Success criteria
 
-- [ ] All 12 smoke-test steps behave as written.
-- [ ] A teacher can go from login to a scannable, rotating QR in three clicks (class → Start session → page).
-- [ ] A scan shows on the teacher's roster within 5 s, with no page reload.
-- [ ] The page stops polling on its own when the session is closed or past its end.
-- [ ] Only the class's own teacher can see or control its sessions (the API enforces it; the website shows Access denied).
-- [ ] No API or database change; only the QRCoder package added (if Q1 approved); every Microsoft package is 10.x.
-- [ ] Reports written; `docs/reports/INDEX.md` updated.
+- [x] All 12 smoke-test steps behave as written.
+- [x] A teacher can go from login to a scannable, rotating QR in three clicks (class → Start session → page).
+- [x] A scan shows on the teacher's roster within 5 s, with no page reload.
+- [x] The page stops polling on its own when the session is closed or past its end.
+- [x] Only the class's own teacher can see or control its sessions (the API enforces it; the website shows Access denied).
+- [x] No API or database change; only the QRCoder package added (if Q1 approved); every Microsoft package is 10.x.
+- [x] Reports written; `docs/reports/INDEX.md` updated.
 
 ## Open questions (my recommendation first)
 

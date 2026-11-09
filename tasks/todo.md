@@ -172,14 +172,14 @@
 **Description:** Run `/impeccable` on the four Teacher views and fix what it finds. Check keyboard and screen-reader behaviour. Run all 12 smoke-test steps from SPEC.md. Write the three reports and the INDEX line.
 
 **Acceptance criteria:**
-- [ ] Keyboard only: tab to Start session, Open and End session. A screen reader announces summary changes, not the whole table. The QR is readable in light and dark mode.
-- [ ] `/impeccable` findings are fixed, or listed in the report with the reason they were not fixed.
-- [ ] All 12 smoke steps pass. `Klasly.Web.csproj` still has no EF Core package and no `Klasly.Core` / `Klasly.Infrastructure` reference.
+- [x] Keyboard only: tab to Start session, Open and End session. A screen reader announces summary changes, not the whole table. The QR is readable in light and dark mode.
+- [x] `/impeccable` findings are fixed, or listed in the report with the reason they were not fixed.
+- [x] All 12 smoke steps pass. `Klasly.Web.csproj` still has no EF Core package and no `Klasly.Core` / `Klasly.Infrastructure` reference.
 
 **Verification:**
-- [ ] Build succeeds: `dotnet build Klasly.slnx`; `dotnet list Klasly.slnx package` shows no Microsoft package below 10.x
-- [ ] Manual check: smoke steps 11–12, plus a quick re-run of steps 1–10
-- [ ] Reports in `docs/reports/<yyyy-MM-dd-HHmm>-milestone-7-teacher-session-page/`, one line added to `docs/reports/INDEX.md`
+- [x] Build succeeds: `dotnet build Klasly.slnx`; `dotnet list Klasly.slnx package` shows no Microsoft package below 10.x
+- [x] Manual check: smoke steps 11–12, plus a quick re-run of steps 1–10
+- [x] Reports in `docs/reports/<yyyy-MM-dd-HHmm>-milestone-7-teacher-session-page/`, one line added to `docs/reports/INDEX.md`
 
 **Dependencies:** Task 6
 
@@ -190,6 +190,6 @@
 **Estimated scope:** Medium
 
 ### Checkpoint C: complete
-- [ ] Every success criterion in SPEC.md is met
-- [ ] No API or database change; QRCoder is the only new package
-- [ ] Ready for `/review`
+- [x] Every success criterion in SPEC.md is met
+- [x] No API or database change; QRCoder is the only new package
+- [x] Ready for `/review`

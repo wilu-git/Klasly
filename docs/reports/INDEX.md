@@ -9,3 +9,4 @@
 - 2026-11-09 21:01 — Milestone 5 Tasks 2–9: Web MVC Admin portal (terms, subjects, accounts + parent links, classes + enrollments) — [folder](./2026-11-09-2101-milestone-5-web-admin/)
 - 2026-11-09 21:44 — Milestone 6: Web API sessions, rotating QR token, device registration, scan check-in — [folder](./2026-11-09-2144-milestone-6-api-sessions/)
 - 2026-11-09 22:50 — Milestone 7 Task 1: Teacher area + My classes page (Web MVC) — [folder](./2026-11-09-2250-milestone-7-task-1-teacher-classes/)
+- 2026-11-09 23:54 — Milestone 7 Tasks 2–7: Teacher session page, rotating QR, live roster with 5-second polling (Web MVC) — [folder](./2026-11-09-2354-milestone-7-teacher-session-page/)
