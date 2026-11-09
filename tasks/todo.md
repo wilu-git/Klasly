@@ -1,258 +1,269 @@
-# Milestone 4 — Task list
+# Milestone 5 — Task list
 
 > Plan: [`plan.md`](./plan.md) · Spec: [`SPEC.md`](../SPEC.md)
-> Build command for every task: `dotnet build Klasly.slnx`. No test project yet, so verification is by build plus a manual check with `src/Klasly.API/Klasly.API.http` (admin token from `admin@klasly.test` / `Klasly@123`).
-> Every new controller gets `[Authorize(Policy = "AdminOnly")]` on the class. Every task adds its `.http` samples.
+> Build command for every task: `dotnet build Klasly.slnx`. No test project, so each task is checked in the browser: API on `https://localhost:7256` (`dotnet run --project src/Klasly.API --launch-profile https`), website on `https://localhost:7144` (`dotnet run --project src/Klasly.Web --launch-profile https`). Seed logins: `admin@klasly.test` / `Klasly@123` (teachers, students and parents use the same password).
+> "Step N" means smoke-test step N in SPEC.md → Testing strategy.
+> Every POST action gets `[ValidateAntiForgeryToken]`. Every Admin controller gets `[Area("Admin"), Authorize(Roles = "Admin")]`.
 
 ---
 
-## Task 1: Error handling — `ConflictException` + `ApiExceptionHandler`
+## Task 1: Login and logout end to end
 
-**Description:** One place that turns service exceptions into problem-details, so services can just throw and controllers stay one line. `KeyNotFoundException` → 404, `System.ComponentModel.DataAnnotations.ValidationException` → 400, `ConflictException` → 409, `DbUpdateException` from a unique index (SQL 2601/2627) → 409. Anything else stays a 500 and is logged.
+**Description:** Anyone with a web role can log in through the API and log out. The JWT is kept inside the HttpOnly auth cookie. This also sets up the API error helper that every later task uses.
 
 **Acceptance criteria:**
-- [x] `ConflictException(string message)` exists. `ApiExceptionHandler : IExceptionHandler` writes problem-details with the exception's message as `detail` for the three known types, and a generic "That value is already used." for the unique-index backstop.
-- [x] `Program.cs` has `AddExceptionHandler<ApiExceptionHandler>()` and `app.UseExceptionHandler()`. Login (`/api/auth/login`) still behaves exactly as before.
-- [x] Unknown exceptions keep the default 500 problem-details with no stack trace or SQL text in the body.
+- [ ] `Api:BaseUrl` = `https://localhost:7256/` in `appsettings.Development.json`. `Models/Api/LoginDtos.cs` (`LoginRequest`, `LoginResponse`) and `Models/Api/ProblemDetailsDto.cs` (`Title`, `Detail`, `Errors`).
+- [ ] `ApiException(int StatusCode, string Message, IDictionary<string,string[]> Errors)` with `IsFormError` (400 or 409). `ApiResponse.ReadAsync<T>` / `EnsureAsync` throw it on any non-success.
+- [ ] `AuthRepository.LoginAsync` returns `null` on `401` and throws `ApiException` on anything else that isn't a success.
+- [ ] `AuthService.LoginAsync` returns the principal + properties (claims NameIdentifier / Name / Role, `ExpiresUtc = ExpiresAtUtc`, `IsPersistent = false`, JWT stored as `access_token`), or an error message: "Invalid email or password." / "Students use the Klasly mobile app."
+- [ ] Cookie auth in `Program.cs` with the cookie options from the plan; `UseAuthentication()` before `UseAuthorization()`.
+- [ ] `AccountController`: `Login` GET/POST (keeps the typed email on failure; follows `returnUrl` only when `Url.IsLocalUrl`, else Admin → `/Admin`, others → `/`), `Logout` POST, `AccessDenied` GET. `LoginViewModel` with `[Required, EmailAddress]` email and `[Required]` password.
+- [ ] `HomeController.Index`: anonymous → login; Admin → `/Admin`; Teacher/Parent → welcome page "Hi, {name}. Your {role} pages are coming soon." Privacy action and view deleted.
+- [ ] `_Layout`: brand "Klasly", the user's name + Logout button when signed in, `_Alerts` partial for TempData `Success` / `Error`. No Privacy links.
+- [ ] The TempData message "Your session ended, please log in again." shows on the login page when present (the filter in Task 2 sets it).
 
 **Verification:**
-- [x] Build succeeds
-- [x] Manual: login 200 / wrong password 401 unchanged. Real 404/400/409 cases are checked in Task 2.
+- [ ] Build succeeds
+- [ ] Step 1 (wrong password, admin login, name in the top bar, logout). `/Admin` gives 404 for now (Task 2 adds it).
+- [ ] Step 2 (teacher and parent → welcome; student → blocked and not signed in)
+- [ ] Step 4 (cookie flags; `document.cookie` doesn't show `Klasly.Auth`)
 
 **Dependencies:** None
 
 **Files likely touched:**
-- `src/Klasly.API/ConflictException.cs` (new)
-- `src/Klasly.API/ApiExceptionHandler.cs` (new)
-- `src/Klasly.API/Program.cs`
+- `src/Klasly.Web/Program.cs`, `appsettings.Development.json`
+- `src/Klasly.Web/Models/Api/LoginDtos.cs`, `Models/Api/ProblemDetailsDto.cs` (new)
+- `src/Klasly.Web/Infrastructure/ApiException.cs`, `Infrastructure/ApiResponse.cs` (new)
+- `src/Klasly.Web/Repositories/AuthRepository.cs` + `Interfaces/IAuthRepository.cs`, `Services/AuthService.cs` + `Interfaces/IAuthService.cs` (new)
+- `src/Klasly.Web/Controllers/AccountController.cs` (new), `Controllers/HomeController.cs`
+- `src/Klasly.Web/ViewModels/LoginViewModel.cs` (new)
+- `src/Klasly.Web/Views/Account/Login.cshtml`, `AccessDenied.cshtml`, `Views/Shared/_Alerts.cshtml` (new); `Views/Shared/_Layout.cshtml`, `Views/Home/Index.cshtml`; `Views/Home/Privacy.cshtml` (deleted)
 
-**Estimated scope:** S (3 files)
+**Estimated scope:** M (about 15 files, most of them small)
 
 ---
 
-## Task 2: Subjects slice
+## Task 2: Authenticated API plumbing + Admin home + Terms
 
-**Description:** `GET /api/subjects`, `GET /api/subjects/{id}`, `POST`, `PUT`. The first full slice, which sets the pattern the other resources copy.
+**Description:** Calls that carry the JWT, the single place that handles 401 / 403 / 404 / API down, and the first Admin slice. Terms sets the pattern every other resource copies.
 
 **Acceptance criteria:**
-- [x] `SubjectRequest { Code [Required, ≤20], Title [Required, ≤150], Units [Range 1–10] }` and `SubjectResponse { SubjectId, Code, Title, Units }`. List sorted by `Code`.
-- [x] Duplicate code on create, or on update to another subject's code → `409` "Subject code 'X' is already used." Updating a subject to its own code is allowed. Unknown id → `404`.
-- [x] `POST` returns `201` with a `Location` header (`CreatedAtAction` → `GET {id}`).
+- [ ] `BearerTokenHandler` adds `Authorization: Bearer <access_token>` when the user is signed in. Registered as transient, with `AddHttpContextAccessor()`.
+- [ ] A local helper in `Program.cs` registers typed clients with base address `Api:BaseUrl`, a 15 s timeout and the bearer handler. Terms is the first client to use it.
+- [ ] `ApiExceptionFilter` registered globally: `401` → sign out + TempData message + redirect to login (with `returnUrl` on GET only); `403` → AccessDenied; `404` → `NotFound()`; `HttpRequestException` / `TaskCanceledException` → logged + `Views/Shared/ApiUnavailable.cshtml` ("Klasly can't reach the server right now. Try again in a minute.").
+- [ ] `ModelStateExtensions.AddApiErrors` puts each `errors` entry on its key and `detail` on `""`.
+- [ ] Area route mapped before the default route. `Areas/Admin/Controllers/HomeController` + view: four links (Terms, Subjects, Accounts, Classes) with one-line descriptions. Layout shows the Admin nav for the Admin role. `Areas/Admin/Views/_ViewImports.cshtml` + `_ViewStart.cshtml`.
+- [ ] `Models/Api/TermDtos.cs` (`TermRequest` with `DateOnly?` dates, `TermResponse`); `ITermRepository` / `TermRepository` (list, get, create, update, activate, deactivate); `ITermService` / `TermService`.
+- [ ] `TermsController`: `Index`, `Create` GET/POST, `Edit` GET/POST, `Activate` POST, `Deactivate` POST (with `confirm()`). Success → redirect to Index with a TempData message.
+- [ ] `TermFormViewModel` (`Id?`, `Name` [Required, StringLength 50], `StartDate`, `EndDate` [Required]); `Index.cshtml` (table with an Active badge and buttons) + `Form.cshtml` (validation summary + field messages).
 
 **Verification:**
-- [x] Build succeeds
-- [x] Manual: list shows ELECT3 and IT302; create → 201; duplicate `ELECT3` → 409; units 11 → 400; `GET /api/subjects/999` → 404; student token → 403; no token → 401
+- [ ] Build succeeds
+- [ ] Step 3 (teacher → Access denied; logged out → login → back to the page)
+- [ ] Step 5 (create, edit, activate; end before start → message)
+- [ ] Key mapping check: turn client validation off (remove `_ValidationScriptsPartial` for the check, or post with dev tools) and submit a blank name → the API's `Name` message shows **next to the field**, not only in the summary
+- [ ] Step 11 (stop the API → friendly page)
+- [ ] Step 12 (1-minute JWT → "session ended" on the login page)
 
 **Dependencies:** Task 1
 
 **Files likely touched:**
-- `src/Klasly.Core/DTOs/SubjectRequest.cs`, `SubjectResponse.cs` (new)
-- `src/Klasly.Core/Interfaces/ISubjectRepository.cs` (new) + `src/Klasly.Infrastructure/Repositories/SubjectRepository.cs` (new) + `DependencyInjection.cs`
-- `src/Klasly.API/Services/Interfaces/ISubjectService.cs`, `Services/SubjectService.cs` (new) + `Program.cs`
-- `src/Klasly.API/Controllers/SubjectsController.cs` (new)
-- `src/Klasly.API/Klasly.API.http`
+- `src/Klasly.Web/Program.cs`
+- `src/Klasly.Web/Infrastructure/BearerTokenHandler.cs`, `ApiExceptionFilter.cs`, `ModelStateExtensions.cs` (new)
+- `src/Klasly.Web/Models/Api/TermDtos.cs`, `Repositories/TermRepository.cs` + interface, `Services/TermService.cs` + interface (new)
+- `src/Klasly.Web/Areas/Admin/Controllers/HomeController.cs`, `TermsController.cs` (new)
+- `src/Klasly.Web/ViewModels/TermFormViewModel.cs` (new)
+- `src/Klasly.Web/Areas/Admin/Views/` `_ViewImports`, `_ViewStart`, `Home/Index`, `Terms/Index`, `Terms/Form` (new); `Views/Shared/ApiUnavailable.cshtml` (new); `Views/Shared/_Layout.cshtml`
 
-**Estimated scope:** M (one slice; small files)
+**Estimated scope:** M–L (the biggest task; it creates the pattern, so it's worth doing slowly)
 
 ---
 
-## Task 3: Terms slice with activate
+## Task 3: Subjects
 
-**Description:** `GET /api/terms`, `GET {id}`, `POST`, `PUT`, `POST {id}/activate`, `DELETE {id}` (soft: `IsActive = false`). Activate makes this term the only active one.
+**Description:** Copy the Terms pattern for the subject catalog.
 
 **Acceptance criteria:**
-- [x] `TermRequest { Name [Required, ≤50], StartDate, EndDate }` (`DateOnly`); `EndDate <= StartDate` → `400` "End date must be after start date." New terms start with `IsActive = false`. List sorted newest `StartDate` first. Duplicate name → `409`.
-- [x] Activate clears every other active term with `ExecuteUpdateAsync`, then sets this one, inside one transaction. Activating the already-active term is a harmless `200`.
-- [x] `DELETE` sets `IsActive = false` and returns `204`; the row stays.
+- [ ] `Models/Api/SubjectDtos.cs`; repository (list, get, create, update); service; one more client registration.
+- [ ] `SubjectsController`: `Index`, `Create` GET/POST, `Edit` GET/POST. No delete (Milestone 4 decision 3).
+- [ ] `SubjectFormViewModel` (`Code` [Required, StringLength 20], `Title` [Required, StringLength 150], `Units` [Range 1–10]); `Index` (table sorted by code, as the API returns it) + `Form`.
 
 **Verification:**
-- [x] Build succeeds
-- [x] Manual: create "2nd Sem 2026-27" → activate it → list shows only it active → activate "1st Sem 2026-27" again → only that one active (no 500 either time); bad dates → 400; delete → 204 and the term is still in the list with `isActive: false`
+- [ ] Build succeeds
+- [ ] Step 6 (create; duplicate code → API message, form still filled in)
 
-**Dependencies:** Task 1
+**Dependencies:** Task 2
 
 **Files likely touched:**
-- `src/Klasly.Core/DTOs/TermRequest.cs`, `TermResponse.cs` (new)
-- `src/Klasly.Core/Interfaces/ITermRepository.cs` + `src/Klasly.Infrastructure/Repositories/TermRepository.cs` (new) + `DependencyInjection.cs`
-- `src/Klasly.API/Services/Interfaces/ITermService.cs`, `Services/TermService.cs` (new) + `Program.cs`
-- `src/Klasly.API/Controllers/TermsController.cs` (new)
-- `src/Klasly.API/Klasly.API.http`
+- `src/Klasly.Web/Models/Api/SubjectDtos.cs`, `Repositories/SubjectRepository.cs` + interface, `Services/SubjectService.cs` + interface (new)
+- `src/Klasly.Web/Areas/Admin/Controllers/SubjectsController.cs`, `ViewModels/SubjectFormViewModel.cs` (new)
+- `src/Klasly.Web/Areas/Admin/Views/Subjects/Index.cshtml`, `Form.cshtml` (new); `Program.cs`
 
-**Estimated scope:** M
+**Estimated scope:** S
 
 ---
 
 ## Checkpoint A — after Tasks 1–3
-- [x] `dotnet build Klasly.slnx` → 0 errors, no new warnings
-- [x] SPEC smoke steps 2, 3, 4, 10 pass for subjects and terms
-- [x] Every duplicate gives `409` with a message, never `500`
+- [ ] `dotnet build Klasly.slnx` → 0 errors, no new warnings
+- [ ] Steps 1–6, 11 and 12 pass
+- [ ] Team looks at the layout and form style before more pages copy it
 
 ---
 
-## Task 4: Accounts — list, get, create
+## Task 4: Accounts — list + create
 
-**Description:** `GET /api/accounts?role=`, `GET /api/accounts/{userId}`, `POST /api/accounts`. Create inserts the user and its role profile together. Also adds the teacher/student lookups that Tasks 6–8 reuse.
+**Description:** The admin sees all accounts filtered by role and creates an account showing only the chosen role's fields.
 
 **Acceptance criteria:**
-- [x] `CreateAccountRequest` (flat, per spec) with annotations; the service checks role-specific fields (Teacher: `employeeNo`; Student: `studentNumber`, `yearLevel` 1–6, `program`; Parent: `contactEmail` defaults to `email`; Admin: none) → `400` naming the missing field. Password hashed with `PasswordHasher<User>`. One `SaveChangesAsync`.
-- [x] Duplicate email / student number / employee no. → `409` naming the value. `?role=` with an unknown value → `400`.
-- [x] `AccountResponse` is flat with nullable profile fields and has **no** `PasswordHash`, `FcmToken`, `RegisteredDeviceId`. `IUserRepository` gains `ListAsync(role?)`, `GetByIdAsync(userId)` (tracked, includes profiles), `AddAsync`, `SaveChangesAsync`, the three "exists" checks, `GetTeacherAsync(teacherId)` and `GetStudentAsync(studentId)`.
+- [ ] `Models/Api/AccountDtos.cs` (`CreateAccountRequest`, `UpdateAccountRequest`, `AccountResponse` with `string Role`); repository (list `?role=`, get, create); service; client registration.
+- [ ] `AccountsController.Index(string? role)`: tabs All / Admin / Teacher / Student / Parent; table with name, email, role, ID no. (student number or employee no.), Active/Inactive badge, Edit button; a "New {role}" button for each role.
+- [ ] `Create(string role)` GET/POST: an unknown role → `400`/back to the list. `AccountFormViewModel` holds the common fields + every role field with the API's limits (name 150, email 256, password min 8, student number 20, year level 1–6, program 50, employee no. 20, department 100, contact email 256, contact number 20). `Role` is a hidden field; the view shows only that role's block.
+- [ ] Required-per-role rules come from the API (`400` detail shown in the summary). The view model doesn't repeat them.
 
 **Verification:**
-- [x] Build succeeds
-- [x] Manual: create one Teacher, Student, Parent → 201 each; new student logs in → 200; student without `studentNumber` → 400; duplicate email → 409; duplicate student number → 409 **and** no new `Users` row (check `GET /api/accounts`); `?role=Teacher` lists 2 seeded + 1 new
+- [ ] Build succeeds
+- [ ] Step 7, first half: create one of each role (each form shows only its fields); student without student number → message; duplicate email → `409` message, form still filled in
 
-**Dependencies:** Task 1
+**Dependencies:** Task 2
 
 **Files likely touched:**
-- `src/Klasly.Core/DTOs/CreateAccountRequest.cs`, `AccountResponse.cs` (new)
-- `src/Klasly.Core/Interfaces/IUserRepository.cs` + `src/Klasly.Infrastructure/Repositories/UserRepository.cs`
-- `src/Klasly.API/Services/Interfaces/IAccountService.cs`, `Services/AccountService.cs` (new) + `Program.cs`
-- `src/Klasly.API/Controllers/AccountsController.cs` (new)
-- `src/Klasly.API/Klasly.API.http`
+- `src/Klasly.Web/Models/Api/AccountDtos.cs`, `Repositories/AccountRepository.cs` + interface, `Services/AccountService.cs` + interface (new)
+- `src/Klasly.Web/Areas/Admin/Controllers/AccountsController.cs`, `ViewModels/AccountFormViewModel.cs` (new)
+- `src/Klasly.Web/Areas/Admin/Views/Accounts/Index.cshtml`, `Form.cshtml` (new); `Program.cs`
 
 **Estimated scope:** M
 
 ---
 
-## Task 5: Accounts — update, deactivate, password reset
+## Task 5: Accounts — edit, deactivate, password reset
 
-**Description:** `PUT /api/accounts/{userId}` and `DELETE /api/accounts/{userId}`. Update edits name, email, `isActive` and the profile fields for the account's role, and replaces the password hash when `newPassword` is given.
+**Description:** Edit profile fields, turn an account off and on, and set a new password.
 
 **Acceptance criteria:**
-- [x] `UpdateAccountRequest` per spec (no `role`/`password`; `isActive`; optional `newPassword` min 8). Sets `UpdatedAt = DateTime.UtcNow`. Duplicate checks exclude the account itself.
-- [x] `DELETE` → `IsActive = false`, `204`. Deactivating **your own** account (via `DELETE`, or `PUT` with `isActive: false`) → `400` "You cannot deactivate your own account."
-- [x] `PUT` with `isActive: true` turns a deactivated account back on.
+- [ ] Repository update (`PUT`) and deactivate (`DELETE`).
+- [ ] `Edit` GET/POST reuses `Form.cshtml`: no role or password fields; an `IsActive` checkbox; an optional "New password" box (blank → `null` → unchanged, min 8 when filled).
+- [ ] `Deactivate` POST with `confirm()`. The button is hidden when the account's `userId` equals the signed-in NameIdentifier claim (the API also refuses with `400`).
 
 **Verification:**
-- [x] Build succeeds
-- [x] Manual: deactivate the new student → their login 401; reactivate → login 200; reset password → new one works, old one 401; admin deletes self → 400
+- [ ] Build succeeds
+- [ ] Step 7, second half: deactivate the new teacher → their login fails; reactivate + reset password → login works with the new password; your own account has no Deactivate button
 
 **Dependencies:** Task 4
 
 **Files likely touched:**
-- `src/Klasly.Core/DTOs/UpdateAccountRequest.cs` (new)
-- `src/Klasly.API/Services/Interfaces/IAccountService.cs`, `Services/AccountService.cs`
-- `src/Klasly.API/Controllers/AccountsController.cs`
-- `src/Klasly.API/Klasly.API.http`
+- `src/Klasly.Web/Repositories/AccountRepository.cs` + interface, `Services/AccountService.cs` + interface
+- `src/Klasly.Web/Areas/Admin/Controllers/AccountsController.cs`, `ViewModels/AccountFormViewModel.cs`
+- `src/Klasly.Web/Areas/Admin/Views/Accounts/Form.cshtml`
 
-**Estimated scope:** S (4 files)
+**Estimated scope:** S
 
 ---
 
-## Task 6: Guardian links — list, link, unlink
+## Task 6: Parent links
 
-**Description:** `GET`, `POST /api/accounts/{userId}/students` and `DELETE /api/accounts/{userId}/students/{studentId}` for Parent accounts. Unlink is the one approved hard delete.
+**Description:** On a parent's Edit page, list their linked children, link a new one, and unlink.
 
 **Acceptance criteria:**
-- [x] `LinkStudentRequest { StudentId, Relationship? [≤30], ReceivesAlerts = true }`, `LinkedStudentResponse { StudentId, StudentNumber, StudentName, Relationship, ReceivesAlerts }`.
-- [x] `userId` not a Parent account → `404`. Unknown `studentId` in the body → `400`. Already linked → `409`. Unlinking a pair that isn't linked → `404`.
-- [x] Unlink removes only the `StudentGuardians` row; the student and parent accounts are untouched.
+- [ ] `Models/Api/AccountDtos.cs` gains `LinkStudentRequest`, `LinkedStudentResponse`. Repository: list / link / unlink.
+- [ ] `AccountService.GetEditAsync` returns the account plus, for Parents only, the linked students and a dropdown of active students (`GET /api/accounts?role=Student`, by `studentId`) not already linked.
+- [ ] `_ParentLinks.cshtml` partial on Edit: table (student no., name, relationship, receives alerts, Unlink button with `confirm()`) + a "Link a student" form (student dropdown, relationship [StringLength 30], receives alerts checkbox, on by default).
+- [ ] `LinkStudent` / `UnlinkStudent` POSTs redirect back to Edit with a TempData message. A `409` shows as a TempData error on the Edit page.
 
 **Verification:**
-- [x] Build succeeds
-- [x] Manual: list a seeded parent's children; link the new parent to student 1 → 201; again → 409; unlink → 204; again → 404; `GET /api/accounts/1/students` (the admin) → 404
+- [ ] Build succeeds
+- [ ] Step 8 (link → appears; link again → message; unlink → gone)
 
-**Dependencies:** Task 4
+**Dependencies:** Task 5
 
 **Files likely touched:**
-- `src/Klasly.Core/DTOs/LinkStudentRequest.cs`, `LinkedStudentResponse.cs` (new)
-- `src/Klasly.Core/Interfaces/IUserRepository.cs` + `src/Klasly.Infrastructure/Repositories/UserRepository.cs`
-- `src/Klasly.API/Services/AccountService.cs` (+ interface)
-- `src/Klasly.API/Controllers/AccountsController.cs`
-- `src/Klasly.API/Klasly.API.http`
+- `src/Klasly.Web/Models/Api/AccountDtos.cs`, `Repositories/AccountRepository.cs` + interface, `Services/AccountService.cs` + interface
+- `src/Klasly.Web/Areas/Admin/Controllers/AccountsController.cs`
+- `src/Klasly.Web/Areas/Admin/Views/Accounts/_ParentLinks.cshtml` (new), `Form.cshtml`
 
-**Estimated scope:** S–M
+**Estimated scope:** S
 
 ---
 
 ## Checkpoint B — after Tasks 4–6
-- [x] SPEC smoke steps 5, 6, 7 pass
-- [x] No account response body contains `passwordHash`, `fcmToken` or `registeredDeviceId`
-- [x] Team review before classes and enrollments
+- [ ] Steps 7 and 8 pass
+- [ ] No page ever shows raw JSON or a stack trace
 
 ---
 
-## Task 7: Classes slice
+## Task 7: Classes — list + create/edit
 
-**Description:** `GET /api/classes?termId=`, `GET {id}`, `POST`, `PUT`. Responses carry subject, teacher and term names plus the active enrollment count.
+**Description:** Class list filtered by term; create and edit with subject, teacher and term dropdowns.
 
 **Acceptance criteria:**
-- [x] `ClassRequest { SubjectId, TeacherId, TermId, Section [Required, ≤30], Schedule? [≤100], Room? [≤30] }`. Subject/teacher/term id that doesn't exist, or a teacher whose account is inactive → `400` naming it.
-- [x] Same subject + section + term (excluding itself on update) → `409`. List sorted by subject code, then section; `?termId=` filters.
-- [x] `ClassResponse` per spec, including `teacherName` and `activeEnrollmentCount` (Active only, Dropped not counted).
+- [ ] `Models/Api/ClassDtos.cs`; repository (list `?termId=`, get, create, update); client registration.
+- [ ] `ClassService.GetListAsync(int? termId)`: `null` → the active term (all terms if none is active); `0` → all terms. Returns the classes + the term dropdown.
+- [ ] `ClassService.GetFormAsync`: subjects, **active** teachers (`?role=Teacher`, value = `teacherId`), terms.
+- [ ] `ClassesController`: `Index(int? termId)` (term dropdown with an "All terms" option; table: subject code + title, section, teacher, schedule, room, enrolled count; Edit / Students buttons), `Create` / `Edit` GET/POST. On a failed post, the dropdowns are rebuilt before returning the view.
+- [ ] `ClassFormViewModel` (`SubjectId`, `TeacherId`, `TermId` required, `Section` [Required, StringLength 30], `Schedule` [StringLength 100], `Room` [StringLength 30], plus the `SelectList`s).
 
 **Verification:**
-- [x] Build succeeds
-- [x] Manual: list shows the 2 seeded classes with the right enrollment counts; create → 201; duplicate → 409; `teacherId: 999` → 400; `?termId=1` filters
+- [ ] Build succeeds
+- [ ] Step 9 (create with dropdowns; duplicate subject + section + term → message; the term filter changes the list)
 
 **Dependencies:** Tasks 2, 3, 4
 
 **Files likely touched:**
-- `src/Klasly.Core/DTOs/ClassRequest.cs`, `ClassResponse.cs` (new)
-- `src/Klasly.Core/Interfaces/IClassRepository.cs` + `src/Klasly.Infrastructure/Repositories/ClassRepository.cs` (new) + `DependencyInjection.cs`
-- `src/Klasly.API/Services/Interfaces/IClassService.cs`, `Services/ClassService.cs` (new) + `Program.cs`
-- `src/Klasly.API/Controllers/ClassesController.cs` (new)
-- `src/Klasly.API/Klasly.API.http`
+- `src/Klasly.Web/Models/Api/ClassDtos.cs`, `Repositories/ClassRepository.cs` + interface, `Services/ClassService.cs` + interface (new)
+- `src/Klasly.Web/Areas/Admin/Controllers/ClassesController.cs`, `ViewModels/ClassFormViewModel.cs` (new)
+- `src/Klasly.Web/Areas/Admin/Views/Classes/Index.cshtml`, `Form.cshtml` (new); `Program.cs`
 
 **Estimated scope:** M
 
 ---
 
-## Task 8: Enrollments slice
+## Task 8: Class details — enroll, drop
 
-**Description:** `GET /api/classes/{classId}/enrollments`, `POST /api/enrollments`, `DELETE /api/enrollments/{id}` (soft: `Status = Dropped`). Enrolling a dropped student reactivates the old row.
+**Description:** One page per class showing who is enrolled, with enroll and drop.
 
 **Acceptance criteria:**
-- [x] `EnrollmentRequest { ClassId, StudentId }`, `EnrollmentResponse { EnrollmentId, ClassId, StudentId, StudentNumber, StudentName, Status }`. Unknown class/student, or inactive student account → `400`. Already Active → `409`.
-- [x] New pair → `201`; existing Dropped pair → set `Active`, return `200`. `DELETE` → `Status = Dropped`, `204`.
-- [x] `GET /api/classes/{classId}/enrollments` lists Active and Dropped, sorted by student name; unknown class → `404`.
+- [ ] `Models/Api/EnrollmentDtos.cs` (`EnrollmentRequest`, `EnrollmentResponse` with `string Status`); `ClassRepository` gains list-enrollments / enroll / drop (enrollments belong to the class page, so no separate repository).
+- [ ] `ClassService.GetDetailsAsync(id)`: class + enrollments + a dropdown of active students who are not **Active** in this class (Dropped students can be picked again).
+- [ ] `ClassDetailsViewModel`; `Details.cshtml`: class header, enrollment table (student no., name, Active/Dropped badge, Drop button with `confirm()` on Active rows), "Enroll a student" form.
+- [ ] `Enroll` POST (`201` new or `200` re-enrolled; both → "Enrolled.") and `Drop` POST redirect back to Details. A `409` shows as a TempData error.
 
 **Verification:**
-- [x] Build succeeds
-- [x] Manual: enroll the new student → 201; again → 409; drop → 204; enroll again → 200 `status: Active`; class enrollment count in `GET /api/classes` matches
+- [ ] Build succeeds
+- [ ] Step 10 (enroll → Active; drop → Dropped; enroll again → Active, same row)
 
-**Dependencies:** Tasks 4, 7
+**Dependencies:** Task 7
 
 **Files likely touched:**
-- `src/Klasly.Core/DTOs/EnrollmentRequest.cs`, `EnrollmentResponse.cs` (new)
-- `src/Klasly.Core/Interfaces/IEnrollmentRepository.cs` + `src/Klasly.Infrastructure/Repositories/EnrollmentRepository.cs` (new) + `DependencyInjection.cs`
-- `src/Klasly.API/Services/Interfaces/IEnrollmentService.cs`, `Services/EnrollmentService.cs` (new) + `Program.cs`
-- `src/Klasly.API/Controllers/EnrollmentsController.cs` (new; the class-scoped list route lives here too)
-- `src/Klasly.API/Klasly.API.http`
+- `src/Klasly.Web/Models/Api/EnrollmentDtos.cs` (new), `Repositories/ClassRepository.cs` + interface, `Services/ClassService.cs` + interface
+- `src/Klasly.Web/Areas/Admin/Controllers/ClassesController.cs`, `ViewModels/ClassDetailsViewModel.cs` (new)
+- `src/Klasly.Web/Areas/Admin/Views/Classes/Details.cshtml` (new)
 
 **Estimated scope:** S–M
 
 ---
 
 ## Checkpoint C — after Tasks 7–8
-- [x] SPEC smoke steps 8, 9 pass
+- [ ] Steps 9 and 10 pass
 
 ---
 
-## Task 9: Full smoke test, package check, reports, commit
+## Task 9: `/impeccable`, full smoke test, package check, reports, commit
 
-**Description:** Run all 10 SPEC smoke steps from a fresh database, confirm package versions, write the three reports (CLAUDE.md §5), mark the spec Done, and commit to `dev`.
+**Description:** Polish, prove everything works together, document it, commit.
 
 **Acceptance criteria:**
-- [x] All 10 SPEC smoke steps pass; row counts in Users, AcademicTerms, Subjects, Classes, Enrollments only went up. `dotnet list Klasly.slnx package` shows no Microsoft package below 10.x and no new packages.
-- [x] `docs/reports/<yyyy-MM-dd-HHmm>-milestone-4-admin-crud/` has `DEVELOPER-DOCS.md`, `HOW-TO-USE.md`, `FLOWCHARTS.md`; `docs/reports/INDEX.md` has a new line.
-- [x] Committed to `dev`, with no secrets in the diff.
+- [ ] `/impeccable` run on every view; findings fixed or listed in the report.
+- [ ] All 12 smoke steps pass in one run.
+- [ ] `dotnet list Klasly.slnx package` → no Microsoft package below 10.x. `Klasly.Web.csproj` has no EF Core package and no `Klasly.Core` / `Klasly.Infrastructure` reference. No secret or connection string in `Klasly.Web`.
+- [ ] `docs/reports/<yyyy-MM-dd-HHmm>-milestone-5-web-admin/` with DEVELOPER-DOCS.md, HOW-TO-USE.md (including `dotnet dev-certs https --trust`), FLOWCHARTS.md (login flow + MVC → API sequence; no erDiagram, since there are no database changes). One line in `INDEX.md`.
+- [ ] SPEC.md success criteria ticked, status "Done"; tasks ticked in `plan.md` and this file.
+- [ ] Committed to `dev`.
 
 **Verification:**
-- [x] `git diff --cached` checked for keys before committing
-- [x] Build succeeds
+- [ ] `dotnet build Klasly.slnx` → 0 errors, no new warnings
+- [ ] Every SPEC success criterion ticked
 
 **Dependencies:** Tasks 1–8
 
-**Files likely touched:**
-- `docs/reports/<folder>/*.md` (3 new), `docs/reports/INDEX.md`
-- `SPEC.md`, `tasks/plan.md`, `tasks/todo.md` (status ticks)
+**Files likely touched:** views (polish), `docs/reports/…` (new), `docs/reports/INDEX.md`, `SPEC.md`, `tasks/plan.md`, `tasks/todo.md`
 
 **Estimated scope:** S
-
----
-
-## Checkpoint D — complete
-- [x] Every SPEC.md success criterion ticked
-- [x] Ready for `/review` and for Milestone 5 (MVC login + Admin pages call these endpoints)
