@@ -9,7 +9,12 @@ namespace Klasly.API.Services;
 
 /// <summary>Session rules: only the class's own teacher manages its sessions; the end is after the start and in the future.</summary>
 public class SessionService(
-    ISessionRepository sessions, IClassRepository classes, IUserRepository users, IQrTokenService qr) : ISessionService
+    ISessionRepository sessions,
+    IClassRepository classes,
+    IUserRepository users,
+    IEnrollmentRepository enrollments,
+    IAttendanceRepository attendance,
+    IQrTokenService qr) : ISessionService
 {
     /// <summary>
     /// Open and not past its end time. Until the Worker closes ended sessions (Milestone 9),
@@ -83,6 +88,22 @@ public class SessionService(
             qr.Create(session.SessionId, step, session.QrNonce),
             DateTimeOffset.FromUnixTimeSeconds((step + 1) * stepSeconds).UtcDateTime, // end of the current step
             stepSeconds);
+    }
+
+    public async Task<List<SessionAttendanceRow>> GetAttendanceAsync(int sessionId, int userId, CancellationToken ct)
+    {
+        var session = await GetOwnSessionAsync(sessionId, userId, ct);
+        var records = (await attendance.ListBySessionAsync(sessionId, ct)).ToDictionary(a => a.StudentId);
+        return (await enrollments.ListByClassAsync(session.ClassId, ct)) // already sorted by name
+            .Where(e => e.Status == EnrollmentStatus.Active)
+            .Select(e =>
+            {
+                var record = records.GetValueOrDefault(e.StudentId);
+                return new SessionAttendanceRow(
+                    e.StudentId, e.Student.StudentNumber, e.Student.User.FullName,
+                    record?.Status, record?.ScannedAt is { } scanned ? Utc(scanned) : null, record?.Source);
+            })
+            .ToList();
     }
 
     private async Task<int> TeacherIdAsync(int userId, CancellationToken ct) =>

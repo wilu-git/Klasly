@@ -72,10 +72,10 @@ All tasks touch `Program.cs` or `DependencyInjection.cs`, so they run one after 
 ### Phase 3: Device, scan, roster
 - [x] Task 5: Register and reset a student's device (S)
 - [x] Task 6: Scan endpoint with the 7 checks (M)
-- [ ] Task 7: Live attendance roster (S)
+- [x] Task 7: Live attendance roster (S)
 
 ### Checkpoint C — after Tasks 5–7
-- [ ] SPEC smoke steps 4–15 pass
+- [x] SPEC smoke steps 4–15 pass
 
 ### Phase 4: Wrap-up
 - [ ] Task 8: Package check, reports, spec tick, commit (S)

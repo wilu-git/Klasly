@@ -149,12 +149,12 @@
 **Description:** The teacher sees every Active student of the class with their scan result so far.
 
 **Acceptance criteria:**
-- [ ] `GET api/sessions/{id}/attendance` → one row per Active enrollment, by name: `{ studentId, studentNumber, fullName, status, scannedAtUtc, source }`; `status: null` = not scanned yet.
-- [ ] Owner only (`403` / `404` as the other session routes).
+- [x] `GET api/sessions/{id}/attendance` → one row per Active enrollment, by name: `{ studentId, studentNumber, fullName, status, scannedAtUtc, source }`; `status: null` = not scanned yet.
+- [x] Owner only (`403` / `404` as the other session routes).
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Step 4 (roster part)
+- [x] Build succeeds
+- [x] Step 4 (roster part)
 
 **Dependencies:** Task 6
 
@@ -165,7 +165,7 @@
 ---
 
 ## Checkpoint C — after Tasks 5–7
-- [ ] Steps 4–15 pass
+- [x] Steps 4–15 pass
 
 ---
 

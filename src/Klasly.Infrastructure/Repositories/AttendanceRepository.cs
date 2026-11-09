@@ -12,6 +12,9 @@ public class AttendanceRepository(KlaslyDbContext context) : IAttendanceReposito
     public Task<bool> ExistsAsync(int sessionId, int studentId, CancellationToken ct) =>
         context.AttendanceRecords.AnyAsync(a => a.SessionId == sessionId && a.StudentId == studentId, ct);
 
+    public Task<List<AttendanceRecord>> ListBySessionAsync(int sessionId, CancellationToken ct) =>
+        context.AttendanceRecords.AsNoTracking().Where(a => a.SessionId == sessionId).ToListAsync(ct);
+
     public async Task<bool> TryAddAsync(AttendanceRecord record, CancellationToken ct)
     {
         context.AttendanceRecords.Add(record);

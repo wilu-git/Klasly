@@ -13,4 +13,7 @@ public interface ISessionService
 
     /// <summary>The current QR token; only while the session is open and not past its end time.</summary>
     Task<QrTokenResponse> GetQrAsync(int sessionId, int userId, CancellationToken ct);
+
+    /// <summary>Every actively enrolled student with their result so far, by name.</summary>
+    Task<List<SessionAttendanceRow>> GetAttendanceAsync(int sessionId, int userId, CancellationToken ct);
 }

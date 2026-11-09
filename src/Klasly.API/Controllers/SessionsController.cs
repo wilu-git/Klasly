@@ -44,6 +44,11 @@ public class SessionsController(ISessionService sessionService, IClassService cl
     [HttpGet("api/sessions/{id:int}/qr")]
     public Task<QrTokenResponse> Qr(int id, CancellationToken ct) => sessionService.GetQrAsync(id, CurrentUserId, ct);
 
+    /// <summary>Live roster: every enrolled student, status null until they scan.</summary>
+    [HttpGet("api/sessions/{id:int}/attendance")]
+    public Task<List<SessionAttendanceRow>> Attendance(int id, CancellationToken ct) =>
+        sessionService.GetAttendanceAsync(id, CurrentUserId, ct);
+
     // The TeacherOnly policy guarantees a valid token here.
     private int CurrentUserId => int.Parse(User.FindFirstValue("sub")!);
 }
