@@ -9,4 +9,6 @@ namespace Klasly.Web.Areas.Teacher.Controllers;
 public class ClassesController(ISessionService sessions) : Controller
 {
     public async Task<IActionResult> Index(CancellationToken ct) => View(await sessions.GetMyClassesAsync(ct));
+
+    public async Task<IActionResult> Details(int id, CancellationToken ct) => View(await sessions.GetClassAsync(id, ct));
 }

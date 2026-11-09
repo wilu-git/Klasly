@@ -2,8 +2,9 @@ using Klasly.Web.Models.Api;
 
 namespace Klasly.Web.Repositories.Interfaces;
 
-/// <summary>The teacher's API calls: own classes, and (from Task 2 on) their sessions, QR and roster.</summary>
+/// <summary>The teacher's API calls: own classes, their sessions, the QR token and the live roster.</summary>
 public interface ISessionRepository
 {
     Task<List<ClassResponse>> ListMyClassesAsync(CancellationToken ct);
+    Task<List<SessionResponse>> ListByClassAsync(int classId, CancellationToken ct);
 }

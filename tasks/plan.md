@@ -57,11 +57,11 @@ Tasks 4 and 5 both depend only on Task 3. They touch the same controller and vie
 
 ### Phase 1: Teacher can find their sessions
 - [x] Task 1: Teacher area + My classes page
-- [ ] Task 2: Class details with the session list (Manila times)
+- [x] Task 2: Class details with the session list (Manila times)
 
 ### Checkpoint A (after Tasks 1–2)
-- [ ] `dotnet build Klasly.slnx` clean
-- [ ] Smoke steps 1–2 pass (role routing, Access denied, Manila times)
+- [x] `dotnet build Klasly.slnx` clean
+- [x] Smoke steps 1–2 pass (role routing, Access denied, Manila times)
 
 ### Phase 2: Vertical slice, no live updates yet
 - [ ] Task 3: Start session (create + open) → session page

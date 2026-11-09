@@ -36,13 +36,13 @@
 **Description:** `Classes/Details/{id}` shows the class header and the class's sessions, newest first: date, start–end in Manila time, a status badge and a link. The header comes from the teacher's class list (a class not in it → 404). Add the session DTOs and the `ManilaTime` helper.
 
 **Acceptance criteria:**
-- [ ] The sessions created in Milestone 6 appear newest first, with Manila times such as "Nov 10, 9:00 AM – 10:30 AM" and a badge for each status (Scheduled / Open / Closed / Finalized / Cancelled).
-- [ ] Another teacher's class id → 404 or Access denied (from `GET api/classes/{id}/sessions` → 403). It never shows that class's data.
-- [ ] `ManilaTime.ToLocal` and `ToOffset` round-trip: 01:00 UTC ↔ 09:00 Manila (+08:00).
+- [x] The sessions created in Milestone 6 appear newest first, with Manila times such as "Nov 10, 9:00 AM – 10:30 AM" and a badge for each status (Scheduled / Open / Closed / Finalized / Cancelled).
+- [x] Another teacher's class id → 404 or Access denied (from `GET api/classes/{id}/sessions` → 403). It never shows that class's data.
+- [x] `ManilaTime.ToLocal` and `ToOffset` round-trip: 01:00 UTC ↔ 09:00 Manila (+08:00).
 
 **Verification:**
-- [ ] Build succeeds: `dotnet build Klasly.slnx`
-- [ ] Manual check: smoke step 2. Compare one session's time with the UTC value from Swagger (`GET /api/sessions/{id}`).
+- [x] Build succeeds: `dotnet build Klasly.slnx`
+- [x] Manual check: smoke step 2. Compare one session's time with the UTC value from Swagger (`GET /api/sessions/{id}`).
 
 **Dependencies:** Task 1
 
@@ -55,9 +55,9 @@
 **Estimated scope:** Medium (4–5 files)
 
 ### Checkpoint A: after Tasks 1–2
-- [ ] `dotnet build Klasly.slnx`: 0 errors, no new warnings
-- [ ] Smoke steps 1–2 pass
-- [ ] Review with the team before continuing
+- [x] `dotnet build Klasly.slnx`: 0 errors, no new warnings
+- [x] Smoke steps 1–2 pass
+- [x] Review with the team before continuing
 
 ---
 
