@@ -12,21 +12,21 @@
 **Description:** Anyone with a web role can log in through the API and log out. The JWT is kept inside the HttpOnly auth cookie. This also sets up the API error helper that every later task uses.
 
 **Acceptance criteria:**
-- [ ] `Api:BaseUrl` = `https://localhost:7256/` in `appsettings.Development.json`. `Models/Api/LoginDtos.cs` (`LoginRequest`, `LoginResponse`) and `Models/Api/ProblemDetailsDto.cs` (`Title`, `Detail`, `Errors`).
-- [ ] `ApiException(int StatusCode, string Message, IDictionary<string,string[]> Errors)` with `IsFormError` (400 or 409). `ApiResponse.ReadAsync<T>` / `EnsureAsync` throw it on any non-success.
-- [ ] `AuthRepository.LoginAsync` returns `null` on `401` and throws `ApiException` on anything else that isn't a success.
-- [ ] `AuthService.LoginAsync` returns the principal + properties (claims NameIdentifier / Name / Role, `ExpiresUtc = ExpiresAtUtc`, `IsPersistent = false`, JWT stored as `access_token`), or an error message: "Invalid email or password." / "Students use the Klasly mobile app."
-- [ ] Cookie auth in `Program.cs` with the cookie options from the plan; `UseAuthentication()` before `UseAuthorization()`.
-- [ ] `AccountController`: `Login` GET/POST (keeps the typed email on failure; follows `returnUrl` only when `Url.IsLocalUrl`, else Admin → `/Admin`, others → `/`), `Logout` POST, `AccessDenied` GET. `LoginViewModel` with `[Required, EmailAddress]` email and `[Required]` password.
-- [ ] `HomeController.Index`: anonymous → login; Admin → `/Admin`; Teacher/Parent → welcome page "Hi, {name}. Your {role} pages are coming soon." Privacy action and view deleted.
-- [ ] `_Layout`: brand "Klasly", the user's name + Logout button when signed in, `_Alerts` partial for TempData `Success` / `Error`. No Privacy links.
-- [ ] The TempData message "Your session ended, please log in again." shows on the login page when present (the filter in Task 2 sets it).
+- [x] `Api:BaseUrl` = `https://localhost:7256/` in `appsettings.Development.json`. `Models/Api/LoginDtos.cs` (`LoginRequest`, `LoginResponse`) and `Models/Api/ProblemDetailsDto.cs` (`Title`, `Detail`, `Errors`).
+- [x] `ApiException(int StatusCode, string Message, IDictionary<string,string[]> Errors)` with `IsFormError` (400 or 409). `ApiResponse.ReadAsync<T>` / `EnsureAsync` throw it on any non-success.
+- [x] `AuthRepository.LoginAsync` returns `null` on `401` and throws `ApiException` on anything else that isn't a success.
+- [x] `AuthService.LoginAsync` returns the principal + properties (claims NameIdentifier / Name / Role, `ExpiresUtc = ExpiresAtUtc`, `IsPersistent = false`, JWT stored as `access_token`), or an error message: "Invalid email or password." / "Students use the Klasly mobile app."
+- [x] Cookie auth in `Program.cs` with the cookie options from the plan; `UseAuthentication()` before `UseAuthorization()`.
+- [x] `AccountController`: `Login` GET/POST (keeps the typed email on failure; follows `returnUrl` only when `Url.IsLocalUrl`, else Admin → `/Admin`, others → `/`), `Logout` POST, `AccessDenied` GET. `LoginViewModel` with `[Required, EmailAddress]` email and `[Required]` password.
+- [x] `HomeController.Index`: anonymous → login; Admin → `/Admin`; Teacher/Parent → welcome page "Hi, {name}. Your {role} pages are coming soon." Privacy action and view deleted.
+- [x] `_Layout`: brand "Klasly", the user's name + Logout button when signed in, `_Alerts` partial for TempData `Success` / `Error`. No Privacy links.
+- [x] The TempData message "Your session ended, please log in again." shows on the login page when present (the filter in Task 2 sets it).
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Step 1 (wrong password, admin login, name in the top bar, logout). `/Admin` gives 404 for now (Task 2 adds it).
-- [ ] Step 2 (teacher and parent → welcome; student → blocked and not signed in)
-- [ ] Step 4 (cookie flags; `document.cookie` doesn't show `Klasly.Auth`)
+- [x] Build succeeds
+- [x] Step 1 (wrong password, admin login, name in the top bar, logout). `/Admin` gives 404 for now (Task 2 adds it).
+- [x] Step 2 (teacher and parent → welcome; student → blocked and not signed in)
+- [x] Step 4 (cookie flags; `document.cookie` doesn't show `Klasly.Auth`)
 
 **Dependencies:** None
 

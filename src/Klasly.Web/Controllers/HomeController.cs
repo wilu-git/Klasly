@@ -1,20 +1,15 @@
 using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 using Klasly.Web.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Klasly.Web.Controllers;
 
 public class HomeController : Controller
 {
-    public IActionResult Index()
-    {
-        return View();
-    }
-
-    public IActionResult Privacy()
-    {
-        return View();
-    }
+    /// <summary>Sends each role to its portal. Not logged in → the cookie handler redirects to the login page.</summary>
+    [Authorize]
+    public IActionResult Index() => User.IsInRole("Admin") ? LocalRedirect("/Admin") : View();
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
