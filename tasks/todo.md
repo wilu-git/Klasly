@@ -128,13 +128,13 @@
 **Description:** `POST /api/attendance/scan` runs the guide's checks in order and records Present or Late.
 
 **Acceptance criteria:**
-- [ ] `IAttendanceRepository` / `AttendanceRepository` (`ExistsAsync`, `AddAsync`, `ListBySessionAsync`), registered.
-- [ ] `ScanRequest` / `ScanResponse`. Checks 1–7 in order with the guide's exact codes and messages; check 6 only compares (null → 403).
-- [ ] Insert `Status` Present (≤ Start + Late minutes) or Late, `Source = Scan`, `ScannedAt = MarkedAt = UtcNow`. A lost race → `409 "Already checked in"`.
+- [x] `IAttendanceRepository` / `AttendanceRepository` (`ExistsAsync`, `TryAddAsync` = false on a lost unique-index race), registered. `ListBySessionAsync` comes with Task 7.
+- [x] `ScanRequest` / `ScanResponse`. Checks 1–7 in order with the guide's exact codes and messages; check 6 only compares (null → 403).
+- [x] Insert `Status` Present (≤ Start + Late minutes) or Late, `Source = Scan`, `ScannedAt = MarkedAt = UtcNow`. A lost race → `409 "Already checked in"`.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Steps 4–13 (scan parts)
+- [x] Build succeeds
+- [x] Steps 4–13 (scan parts)
 
 **Dependencies:** Tasks 2, 4, 5
 

@@ -71,7 +71,7 @@ All tasks touch `Program.cs` or `DependencyInjection.cs`, so they run one after 
 
 ### Phase 3: Device, scan, roster
 - [x] Task 5: Register and reset a student's device (S)
-- [ ] Task 6: Scan endpoint with the 7 checks (M)
+- [x] Task 6: Scan endpoint with the 7 checks (M)
 - [ ] Task 7: Live attendance roster (S)
 
 ### Checkpoint C — after Tasks 5–7
