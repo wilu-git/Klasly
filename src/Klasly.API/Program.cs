@@ -1,6 +1,10 @@
 using System.Text;
+using Klasly.API.Services;
+using Klasly.API.Services.Interfaces;
+using Klasly.Core.Entities;
 using Klasly.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,6 +45,9 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("TeacherOnly", p => p.RequireRole("Teacher"))
     .AddPolicy("StudentOnly", p => p.RequireRole("Student"))
     .AddPolicy("ParentOnly", p => p.RequireRole("Parent"));
+
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
