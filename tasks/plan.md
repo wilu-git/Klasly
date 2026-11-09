@@ -46,29 +46,29 @@ Task 5 depends only on Task 1, so it could run alongside Tasks 2–4. All six ar
 ## Task list
 
 ### Phase 1: Foundation
-- [ ] Task 1: JWT authentication + role policies wiring (XS–S)
-- [ ] Task 2: User lookup repository (S)
+- [x] Task 1: JWT authentication + role policies wiring (XS–S)
+- [x] Task 2: User lookup repository (S)
 
 ### Checkpoint A — after Tasks 1–2
-- [ ] `dotnet build Klasly.slnx` → 0 errors
-- [ ] The API starts with the key set and fails clearly without it
+- [x] `dotnet build Klasly.slnx` → 0 errors
+- [x] The API starts with the key set and fails clearly without it
 
 ### Phase 2: Core feature
-- [ ] Task 3: `POST /api/auth/login` (M)
-- [ ] Task 4: `GET /api/auth/me` + `.http` samples (S)
+- [x] Task 3: `POST /api/auth/login` (M)
+- [x] Task 4: `GET /api/auth/me` + `.http` samples (S)
 
 ### Checkpoint B — after Tasks 3–4
-- [ ] Smoke steps 1–6 from SPEC.md pass against LocalDB
-- [ ] Review with the team before Swagger and reports
+- [x] Smoke steps 1–6 from SPEC.md pass against LocalDB
+- [x] Review with the team before Swagger and reports
 
 ### Phase 3: Developer experience + wrap-up
-- [ ] Task 5: Swagger UI + Bearer Authorize (S)
-- [ ] Task 6: Full smoke test, package check, reports, commit (S)
+- [x] Task 5: Swagger UI + Bearer Authorize (S)
+- [x] Task 6: Full smoke test, package check, reports, commit (S)
 
 ### Checkpoint C — complete
-- [ ] All SPEC.md success criteria checked
-- [ ] `dotnet list package` shows no Microsoft package below 10.x
-- [ ] Reports in `docs/reports/`, `INDEX.md` updated, committed to `dev`
+- [x] All SPEC.md success criteria checked
+- [x] `dotnet list package` shows no Microsoft package below 10.x
+- [x] Reports in `docs/reports/`, `INDEX.md` updated, committed to `dev`
 
 ## Risks and mitigations
 

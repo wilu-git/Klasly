@@ -10,13 +10,13 @@
 **Description:** Give the API what it needs to trust tokens: a JWT key stored in user-secrets, issuer/audience/expiry in config, JwtBearer authentication, the four role policies and problem-details errors. Delete the template `WeatherForecast` code. No endpoints yet.
 
 **Acceptance criteria:**
-- [ ] `Klasly.API.csproj` has `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.14 and a `UserSecretsId`. `appsettings.json` has `Jwt:Issuer`, `Jwt:Audience` and `Jwt:ExpiryMinutes = 60`, and no key.
-- [ ] `Program.cs` registers JwtBearer (issuer, audience, lifetime and key checks; `ClockSkew` 30 s; `MapInboundClaims = false`; `role`/`name` claim types), the policies `AdminOnly`, `TeacherOnly`, `StudentOnly`, `ParentOnly`, `AddProblemDetails()`, `UseAuthentication()` / `UseAuthorization()`, and `MapControllers()`.
-- [ ] Startup throws a clear error if `Jwt:Key` is missing or shorter than 32 characters.
+- [x] `Klasly.API.csproj` has `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.14 and a `UserSecretsId`. `appsettings.json` has `Jwt:Issuer`, `Jwt:Audience` and `Jwt:ExpiryMinutes = 60`, and no key.
+- [x] `Program.cs` registers JwtBearer (issuer, audience, lifetime and key checks; `ClockSkew` 30 s; `MapInboundClaims = false`; `role`/`name` claim types), the policies `AdminOnly`, `TeacherOnly`, `StudentOnly`, `ParentOnly`, `AddProblemDetails()`, `UseAuthentication()` / `UseAuthorization()`, and `MapControllers()`.
+- [x] Startup throws a clear error if `Jwt:Key` is missing or shorter than 32 characters.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Manual: `dotnet run` with the key set → starts. With the key removed → fails with the message that names the `user-secrets` command.
+- [x] Build succeeds
+- [x] Manual: `dotnet run` with the key set → starts. With the key removed → fails with the message that names the `user-secrets` command.
 
 **Dependencies:** None
 
@@ -34,13 +34,13 @@
 **Description:** Add the data-access piece login needs: find a user by email. The interface goes in Core and the EF Core implementation in Infrastructure, registered by `AddInfrastructure()`.
 
 **Acceptance criteria:**
-- [ ] `IUserRepository.GetByEmailAsync(string email, CancellationToken ct)` returns `Task<User?>`.
-- [ ] `UserRepository` uses `AsNoTracking()` and `FirstOrDefaultAsync` on `Users` by `Email`. It applies no business rules (the `IsActive` check belongs in the service).
-- [ ] `AddInfrastructure()` registers `IUserRepository → UserRepository` as scoped.
+- [x] `IUserRepository.GetByEmailAsync(string email, CancellationToken ct)` returns `Task<User?>`.
+- [x] `UserRepository` uses `AsNoTracking()` and `FirstOrDefaultAsync` on `Users` by `Email`. It applies no business rules (the `IsActive` check belongs in the service).
+- [x] `AddInfrastructure()` registers `IUserRepository → UserRepository` as scoped.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Manual: none on its own. Checked by Task 3's login.
+- [x] Build succeeds
+- [x] Manual: none on its own. Checked by Task 3's login.
 
 **Dependencies:** None (it can be done before or after Task 1)
 
@@ -54,8 +54,8 @@
 ---
 
 ## Checkpoint A — after Tasks 1–2
-- [ ] `dotnet build Klasly.slnx` → 0 errors, no new warnings
-- [ ] The API starts with the key and fails clearly without it
+- [x] `dotnet build Klasly.slnx` → 0 errors, no new warnings
+- [x] The API starts with the key and fails clearly without it
 
 ---
 
@@ -64,14 +64,14 @@
 **Description:** The main feature. Check the password with `PasswordHasher<User>`, refuse deactivated accounts, and issue the JWT (`sub`, `email`, `name`, `role`, `iss`, `aud`, `exp`). Every failure returns the same 401.
 
 **Acceptance criteria:**
-- [ ] A seed admin login with `Klasly@123` → `200` with `token`, `expiresAtUtc` (UTC, now + 60 min), `userId`, `fullName`, `role`.
-- [ ] Wrong password, unknown email or `IsActive = false` → `401` problem-details, `detail: "Invalid email or password."` (same for all three). Blank or badly formatted fields → `400`.
-- [ ] Nothing sensitive in the token or the response (no hash, device ID or FCM token). Passwords and tokens are never logged.
+- [x] A seed admin login with `Klasly@123` → `200` with `token`, `expiresAtUtc` (UTC, now + 60 min), `userId`, `fullName`, `role`.
+- [x] Wrong password, unknown email or `IsActive = false` → `401` problem-details, `detail: "Invalid email or password."` (same for all three). Blank or badly formatted fields → `400`.
+- [x] Nothing sensitive in the token or the response (no hash, device ID or FCM token). Passwords and tokens are never logged.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Manual (API running, LocalDB seeded): admin login 200; student `aira.mendoza@klasly.test` login 200 with `role = Student`; wrong password 401; unknown email 401; blank password 400
-- [ ] Manual: decode the test token at jwt.io and confirm the claims
+- [x] Build succeeds
+- [x] Manual (API running, LocalDB seeded): admin login 200; student `aira.mendoza@klasly.test` login 200 with `role = Student`; wrong password 401; unknown email 401; blank password 400
+- [x] Manual: decode the test token at jwt.io and confirm the claims
 
 **Dependencies:** Tasks 1, 2
 
@@ -91,13 +91,13 @@
 **Description:** A protected endpoint that returns the caller's claims, proving tokens are checked end to end. Replace the template request in `Klasly.API.http` with login and `/me` samples.
 
 **Acceptance criteria:**
-- [ ] `GET /api/auth/me` has `[Authorize]` and returns `{ userId, email, fullName, role }` read from the token's claims.
-- [ ] No token, a tampered token or an expired token → `401`.
-- [ ] `Klasly.API.http` has: admin login, student login, wrong password, blank password, `/me` with no token, and `/me` with a token captured from the login response.
+- [x] `GET /api/auth/me` has `[Authorize]` and returns `{ userId, email, fullName, role }` read from the token's claims.
+- [x] No token, a tampered token or an expired token → `401`.
+- [x] `Klasly.API.http` has: admin login, student login, wrong password, blank password, `/me` with no token, and `/me` with a token captured from the login response.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Manual: run every request in `Klasly.API.http` and get the expected status codes
+- [x] Build succeeds
+- [x] Manual: run every request in `Klasly.API.http` and get the expected status codes
 
 **Dependencies:** Task 3
 
@@ -110,8 +110,8 @@
 ---
 
 ## Checkpoint B — after Tasks 3–4
-- [ ] Smoke steps 1–6 from SPEC.md pass
-- [ ] Team review before continuing
+- [x] Smoke steps 1–6 from SPEC.md pass
+- [x] Team review before continuing
 
 ---
 
@@ -120,13 +120,13 @@
 **Description:** Show the OpenAPI document in Swagger UI at `/swagger`, in Development only, and add a Bearer security scheme so the Authorize button lets us call `/me`.
 
 **Acceptance criteria:**
-- [ ] `Swashbuckle.AspNetCore.SwaggerUI` 10.3.1 added. `UseSwaggerUI(o => o.SwaggerEndpoint("/openapi/v1.json", "Klasly API v1"))` sits inside the `IsDevelopment()` block.
-- [ ] An OpenAPI document transformer adds a `Bearer` (HTTP, JWT) security scheme, so the Authorize button appears.
-- [ ] In Production (`ASPNETCORE_ENVIRONMENT=Production`), `/swagger` and `/openapi/v1.json` return 404.
+- [x] `Swashbuckle.AspNetCore.SwaggerUI` 10.3.1 added. `UseSwaggerUI(o => o.SwaggerEndpoint("/openapi/v1.json", "Klasly API v1"))` sits inside the `IsDevelopment()` block.
+- [x] An OpenAPI document transformer adds a `Bearer` (HTTP, JWT) security scheme, so the Authorize button appears.
+- [x] In Production (`ASPNETCORE_ENVIRONMENT=Production`), `/swagger` and `/openapi/v1.json` return 404.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Manual: open `https://localhost:7256/swagger`, run login, Authorize with the token, run `/me` → 200
+- [x] Build succeeds
+- [x] Manual: open `https://localhost:7256/swagger`, run login, Authorize with the token, run `/me` → 200
 
 **Dependencies:** Task 1 (it works best after Task 4, which gives `/me` to try)
 
@@ -143,13 +143,13 @@
 **Description:** Run the full SPEC.md checklist, confirm package versions, write the three reports required by CLAUDE.md §5, mark the spec Approved/Done, and commit to `dev`.
 
 **Acceptance criteria:**
-- [ ] All 7 SPEC.md smoke steps pass. `dotnet list Klasly.slnx package` shows no Microsoft package below 10.x.
-- [ ] `docs/reports/<yyyy-MM-dd-HHmm>-milestone-3-auth/` has `DEVELOPER-DOCS.md`, `HOW-TO-USE.md` and `FLOWCHARTS.md`. `docs/reports/INDEX.md` has a new line.
-- [ ] One commit on `dev`, with no secrets in the diff.
+- [x] All 7 SPEC.md smoke steps pass. `dotnet list Klasly.slnx package` shows no Microsoft package below 10.x.
+- [x] `docs/reports/<yyyy-MM-dd-HHmm>-milestone-3-auth/` has `DEVELOPER-DOCS.md`, `HOW-TO-USE.md` and `FLOWCHARTS.md`. `docs/reports/INDEX.md` has a new line.
+- [x] One commit on `dev`, with no secrets in the diff.
 
 **Verification:**
-- [ ] `git diff --cached` checked for keys before committing
-- [ ] Build succeeds
+- [x] `git diff --cached` checked for keys before committing
+- [x] Build succeeds
 
 **Dependencies:** Tasks 1–5
 
@@ -163,5 +163,5 @@
 ---
 
 ## Checkpoint C — complete
-- [ ] Every SPEC.md success criterion ticked
-- [ ] Ready for `/review` and for Milestone 4 (admin CRUD uses `AdminOnly`)
+- [x] Every SPEC.md success criterion ticked
+- [x] Ready for `/review` and for Milestone 4 (admin CRUD uses `AdminOnly`)

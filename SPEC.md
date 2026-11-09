@@ -1,6 +1,6 @@
 # Spec: Milestone 3 — Web API authentication
 
-> Status: **Draft — waiting for team approval.** Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` → `CLAUDE.md` → this spec.
+> Status: **Done — built 2026-11-09** (defaults taken: 60-min token, no test project). Report: `docs/reports/2026-11-09-1906-milestone-3-auth/`. Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` → `CLAUDE.md` → this spec.
 
 ## Assumptions (correct these before we build)
 
@@ -153,12 +153,12 @@ public class AuthService(IUserRepository users, IPasswordHasher<User> hasher, IC
 
 ## Success criteria
 
-- [ ] All 7 smoke-test steps above give the expected status codes.
-- [ ] A token decoded at jwt.io (test token only) shows `sub`, `email`, `name`, `role`, `iss`, `aud`, `exp`, and nothing sensitive.
-- [ ] The API refuses to start with a clear error if `Jwt:Key` is missing or shorter than 32 characters.
-- [ ] Four role policies are registered and ready for Milestone 4.
-- [ ] `WeatherForecast` template code is gone.
-- [ ] Reports written; `docs/reports/INDEX.md` updated.
+- [x] All 7 smoke-test steps above give the expected status codes.
+- [x] A token decoded at jwt.io (test token only) shows `sub`, `email`, `name`, `role`, `iss`, `aud`, `exp`, and nothing sensitive.
+- [x] The API refuses to start with a clear error if `Jwt:Key` is missing or shorter than 32 characters.
+- [x] Four role policies are registered and ready for Milestone 4.
+- [x] `WeatherForecast` template code is gone.
+- [x] Reports written; `docs/reports/INDEX.md` updated.
 
 ## Open questions
 
