@@ -33,13 +33,13 @@
 **Description:** Create and verify the rotating QR token. Pure HMAC code plus one settings read.
 
 **Acceptance criteria:**
-- [ ] `ISystemSettingRepository.GetIntAsync(key)` + EF implementation, registered in `AddInfrastructure`.
-- [ ] `IQrTokenService`: `StepSecondsAsync`, `CurrentStep(stepSeconds)`, `Create(sessionId, step, nonce)`, `TryParse(token, out sessionId, out step)`, `HasValidSignature(token, nonce)`.
-- [ ] HMACSHA256 over `"{sessionId}|{step}|{nonce}"`, Base64Url, `FixedTimeEquals`; the key comes from `Qr:SigningKey`.
+- [x] `ISystemSettingRepository.GetValueAsync(key)` + EF implementation, registered in `AddInfrastructure`.
+- [x] `IQrTokenService`: `StepSecondsAsync`, `CurrentStep(stepSeconds)`, `Create(sessionId, step, nonce)`, `TryParse(token, out sessionId, out step)`, `HasValidSignature(token, nonce)`.
+- [x] HMACSHA256 over `"{sessionId}|{step}|{nonce}"`, Base64Url, `FixedTimeEquals`; the key comes from `Qr:SigningKey`.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Behaviour checked through Tasks 4 and 6 (steps 3, 9, 10)
+- [x] Build succeeds
+- [x] Behaviour checked through Tasks 4 and 6 (steps 3, 9, 10)
 
 **Dependencies:** Task 1
 
@@ -50,8 +50,8 @@
 ---
 
 ## Checkpoint A — after Tasks 1–2
-- [ ] `dotnet build Klasly.slnx` → 0 errors, no new warnings
-- [ ] 401 body and missing-key startup error behave as specified
+- [x] `dotnet build Klasly.slnx` → 0 errors, no new warnings
+- [x] 401 body and missing-key startup error behave as specified
 
 ---
 

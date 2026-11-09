@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<ITermRepository, TermRepository>();
         services.AddScoped<IClassRepository, ClassRepository>();
         services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+        services.AddScoped<ISystemSettingRepository, SystemSettingRepository>();
         return services;
     }
 }

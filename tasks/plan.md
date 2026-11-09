@@ -56,11 +56,11 @@ All tasks touch `Program.cs` or `DependencyInjection.cs`, so they run one after 
 
 ### Phase 1: Foundation
 - [x] Task 1: Error plumbing and secrets check (S)
-- [ ] Task 2: QR token service (S–M)
+- [x] Task 2: QR token service (S–M)
 
 ### Checkpoint A — after Tasks 1–2
-- [ ] `dotnet build Klasly.slnx` → 0 errors, no new warnings
-- [ ] No token → 401 with the message; the API refuses to start without `Qr:SigningKey`
+- [x] `dotnet build Klasly.slnx` → 0 errors, no new warnings
+- [x] No token → 401 with the message; the API refuses to start without `Qr:SigningKey`
 
 ### Phase 2: Teacher session slice
 - [ ] Task 3: Create and read sessions, list my classes (M)
