@@ -1,72 +1,87 @@
-# Implementation Plan: Milestone 3 — Web API authentication
+# Implementation Plan: Milestone 4 — Web API admin CRUD
 
-> Built from [`SPEC.md`](../SPEC.md). Task details, acceptance criteria and verification steps are in [`todo.md`](./todo.md).
-> Spec open questions are taken as their defaults: **60-minute token**, **no test project** (Milestone 14). If either is wrong, change the spec first, then this plan.
+> Built from [`SPEC.md`](../SPEC.md) (approved 2026-11-09 with the recommended answers to the 3 open questions). Task details, acceptance criteria and verification steps are in [`todo.md`](./todo.md).
 
 ## Overview
 
-Add login to `Klasly.API`. A user posts email + password and gets back a signed JWT carrying their role. Every later endpoint can then require a token, or a specific role, with one attribute. Swagger UI, Development only, lets the team try all of this in a browser. There are no database changes: the Milestone 2 seed users and their `Klasly@123` hash are used as they are.
+Add admin-only REST endpoints to `Klasly.API` for terms, subjects, accounts (with guardian links), classes and enrollments. Each resource is one **vertical slice**: DTOs → repository → service → controller → `.http` samples, so after every task there is something you can call and check. There are no database changes: everything runs on the Milestone 2 seed (1 active term, 2 subjects, 2 teachers, 6 students, 3 parents, 2 classes).
 
 ## Dependency graph
 
 ```
-Task 1  JWT + policies wiring (Program.cs, config, secret)
+Task 1  Error handling (ConflictException + ApiExceptionHandler)
    │
-   ├── Task 2  User lookup (Core interface → Infrastructure repository)
+   ├── Task 2  Subjects slice ─────────────┐
+   ├── Task 3  Terms slice (+ activate) ───┤
+   │                                       │
+   ├── Task 4  Accounts: list / get / create
    │      │
-   │      └── Task 3  Login endpoint (DTOs → AuthService → AuthController)
-   │                │
-   │                └── Task 4  /api/auth/me + .http samples
-   │
-   └── Task 5  Swagger UI + Bearer "Authorize" button
-                    │
-                    └── Task 6  Smoke test, reports, commit
+   │      ├── Task 5  Accounts: update / deactivate / password reset
+   │      └── Task 6  Guardian links (list / link / unlink)
+   │                                       │
+   └── Task 7  Classes slice  ◄── needs Subjects (2), Terms (3), teacher lookup (4)
+          │
+          └── Task 8  Enrollments slice  ◄── needs student lookup (4)
+                 │
+                 └── Task 9  Full smoke test, reports, commit
 ```
 
-Task 5 depends only on Task 1, so it could run alongside Tasks 2–4. All six are small and touch `Program.cs` or `Klasly.API.csproj`, so we build them **one after another** in a single session.
+Tasks 2, 3 and 4 depend only on Task 1. They all edit `DependencyInjection.cs`, `Program.cs` and `Klasly.API.http`, so we build them **one after another** in one session, not in parallel.
 
 ## Architecture decisions
 
 | Decision | Why |
 |---|---|
-| Layer flow `AuthController → IAuthService → IUserRepository → EF Core` | Guide §2. The controller holds no logic, and the repository holds no rules. |
-| `IUserRepository` in `Klasly.Core/Interfaces`, `UserRepository` in `Klasly.Infrastructure/Repositories` | CLAUDE.md §3.2. The Worker can reuse it later. |
-| DTOs in `Klasly.Core/DTOs` | CLAUDE.md §3.2 and guide §1. Android will mirror these shapes. |
-| `IAuthService` / `AuthService` in `Klasly.API/Services` | Guide §24. Business rules live in the API, not in Core. |
-| `PasswordHasher<User>` from the ASP.NET Core shared framework | Guide §27.5. It reads the seeded Identity v3 hash, and needs no package. |
-| `JsonWebTokenHandler` creates the token (not the older `JwtSecurityTokenHandler`) | The current .NET 10 API, and it comes with the JwtBearer package. |
-| Token validation: issuer, audience, lifetime and signing key all checked; `ClockSkew` = 30 s | The default 5-minute skew would quietly stretch a 60-minute token. |
-| Inbound claim mapping off (`MapInboundClaims = false`), `RoleClaimType = "role"`, `NameClaimType = "name"` | Claims keep their short JWT names (`sub`, `role`), so `/me` and policies read exactly what was issued. |
-| Policies via `AddAuthorizationBuilder().AddPolicy("AdminOnly", p => p.RequireRole("Admin"))` and three more | Spec "role policies". The .NET 10 builder style. |
-| Startup fails if `Jwt:Key` is missing or < 32 chars | HS256 needs ≥ 256-bit keys. A clear startup error beats a confusing 500 on first login. |
-| `AddProblemDetails()`, and the controller returns `Problem(statusCode: 401, detail: ...)` | One error format, which CLAUDE.md §3.3 asks for. `[ApiController]` already gives 400 validation problem-details. |
-| Swagger UI is mapped inside `if (IsDevelopment())` together with `MapOpenApi()` | CLAUDE.md §3.3. |
-| Bearer scheme added with an OpenAPI **document transformer** | The .NET 10 way (Microsoft.OpenApi 2.x). It makes the Authorize button work. |
+| Layer flow `XController → IXService → IXRepository → EF Core` for every resource | Guide §2 and §21. No generic repository, no AutoMapper. |
+| Repository interfaces in `Klasly.Core/Interfaces`, EF Core implementations in `Klasly.Infrastructure/Repositories`, services in `Klasly.API/Services` | Same places as Milestone 3 (CLAUDE.md §3.2). |
+| DTOs in `Klasly.Core/DTOs`, one record per file | Matches `LoginRequest.cs` / `LoginResponse.cs`. Android and MVC will mirror these shapes. |
+| Request validation with data annotations on the request records (`[Required]`, `[StringLength]`, `[Range]`, `[EmailAddress]`, `[MinLength(8)]`) | `[ApiController]` already turns them into `400` validation problem-details. Lengths match `Klasly_Schema.sql`. |
+| Rules that need the database (duplicates, "does this id exist", one active term, self-deactivation) live in the **services** | Guide §3: business rules in services; repositories hold no rules. |
+| Services **throw**: `KeyNotFoundException` → 404, `ValidationException` → 400, `ConflictException` → 409. One `ApiExceptionHandler : IExceptionHandler` turns them into problem-details | Guide §3 example already throws `KeyNotFoundException` / `ValidationException`. `IExceptionHandler` is built into ASP.NET Core 10, so controllers stay one line per action. Only `ConflictException` is a new class. |
+| The handler also maps `DbUpdateException` with SQL error 2601/2627 (unique index) → 409 | Backstop if two admins save the same value at once. The service's own check gives the nicer message. |
+| Repositories: `ListAsync` uses `AsNoTracking()`; `GetByIdAsync` returns a **tracked** entity; the service changes properties then calls `SaveChangesAsync()` | Guide §7: no `Update()` / `Attach()` on entities the context already tracks. |
+| Entity → response mapping is a `private static ToResponse(...)` inside each service | Guide §3 ("services transform data"). One place per resource, no mapper library. |
+| Class and enrollment queries use `Include` for subject / teacher / term / student names; `activeEnrollmentCount` uses a filtered include | One query per list; spec wants names in the response. |
+| Term activate = `ExecuteUpdateAsync` to clear every other active term, then set this one, inside one transaction | The filtered unique index allows one `IsActive = 1`. A single `SaveChanges` with two updates can run "set true" first and break the index. Clearing first avoids that. |
+| Create account = add `User` **with** its profile (`Student`/`Teacher`/`Guardian`) as a navigation property, one `SaveChangesAsync()` | EF inserts both in one transaction: no half-created account. |
+| Self-deactivation check: controller reads `sub` from the token and passes it to the service | Same claim `/api/auth/me` already reads. The rule itself stays in the service. |
+| Teacher / student lookups (`GetTeacherAsync`, `GetStudentAsync`) live on `IUserRepository` | Classes, enrollments and guardian links all need them. One place instead of three. Guardian link methods live there too (links belong to accounts in the spec). |
+| `[Authorize(Policy = "AdminOnly")]` on each new **controller class** | One attribute per controller; no route can be forgotten. |
 
 ## Task list
 
-### Phase 1: Foundation
-- [x] Task 1: JWT authentication + role policies wiring (XS–S)
-- [x] Task 2: User lookup repository (S)
+### Phase 1: Foundation and simple slices
+- [x] Task 1: Error handling — `ConflictException` + `ApiExceptionHandler` (S)
+- [x] Task 2: Subjects slice (M)
+- [x] Task 3: Terms slice with activate (M)
 
-### Checkpoint A — after Tasks 1–2
-- [x] `dotnet build Klasly.slnx` → 0 errors
-- [x] The API starts with the key set and fails clearly without it
+### Checkpoint A — after Tasks 1–3
+- [x] `dotnet build Klasly.slnx` → 0 errors, no new warnings
+- [x] SPEC smoke steps 2, 3, 4 and 10 pass for subjects and terms
+- [x] A duplicate gives `409` with the message, never `500`
 
-### Phase 2: Core feature
-- [x] Task 3: `POST /api/auth/login` (M)
-- [x] Task 4: `GET /api/auth/me` + `.http` samples (S)
+### Phase 2: Accounts
+- [x] Task 4: Accounts — list, get, create (M)
+- [x] Task 5: Accounts — update, deactivate, password reset (S)
+- [x] Task 6: Guardian links — list, link, unlink (S)
 
-### Checkpoint B — after Tasks 3–4
-- [x] Smoke steps 1–6 from SPEC.md pass against LocalDB
-- [x] Review with the team before Swagger and reports
+### Checkpoint B — after Tasks 4–6
+- [x] SPEC smoke steps 5, 6 and 7 pass
+- [x] No response contains `passwordHash`, `fcmToken` or `registeredDeviceId`
+- [x] Team review before classes and enrollments
 
-### Phase 3: Developer experience + wrap-up
-- [x] Task 5: Swagger UI + Bearer Authorize (S)
-- [x] Task 6: Full smoke test, package check, reports, commit (S)
+### Phase 3: Classes and enrollments
+- [x] Task 7: Classes slice (M)
+- [x] Task 8: Enrollments slice (S–M)
 
-### Checkpoint C — complete
-- [x] All SPEC.md success criteria checked
+### Checkpoint C — after Tasks 7–8
+- [x] SPEC smoke steps 8 and 9 pass
+
+### Phase 4: Wrap-up
+- [x] Task 9: Full smoke test, package check, reports, commit (S)
+
+### Checkpoint D — complete
+- [x] Every SPEC.md success criterion ticked
 - [x] `dotnet list package` shows no Microsoft package below 10.x
 - [x] Reports in `docs/reports/`, `INDEX.md` updated, committed to `dev`
 
@@ -74,16 +89,17 @@ Task 5 depends only on Task 1, so it could run alongside Tasks 2–4. All six ar
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| The seeded hash doesn't verify with `PasswordHasher<User>` | High: nobody can log in | Task 3 tests a real seed login first. If it fails, stop and check the hash format (Identity v3, PBKDF2-SHA512 100k). Do **not** change the seed without asking, because that would need a migration. |
-| `Jwt:Key` not set on a teammate's machine | Med: API won't start | Startup error message names the exact `dotnet user-secrets set` command. HOW-TO-USE.md repeats it. |
-| Role claim not recognised, so policies always fail | Med | Set `RoleClaimType = "role"` explicitly. Task 4's `/me` shows the claims for proof. Real policy use is checked in Milestone 4. |
-| Swashbuckle UI 10.x vs Microsoft.OpenApi 2.x API differences in the transformer | Low | Use only the OpenApi document transformer from `Microsoft.AspNetCore.OpenApi`. Swashbuckle UI just displays the JSON. |
-| Database not created / LocalDB not running | Low | `dotnet ef database update` from Milestone 2. Covered in Troubleshooting. |
+| Activating a term trips `UX_AcademicTerms_OneActive` | High: 500 on a core admin action | Clear the others with `ExecuteUpdateAsync` first, in one transaction (decision above). Task 3 tests activating twice in a row and switching between two terms. |
+| Account + profile saved separately, leaving a `User` with no profile | High: a student who can log in but has no `StudentId` | Single `SaveChangesAsync` via navigation property. Task 4 checks a forced duplicate student number leaves **no** new `Users` row. |
+| A `DbUpdateException` from a CHECK constraint (not a unique index) leaks as 500 | Med | Request annotations cover every CHECK (units 1–10, year 1–6, dates). The handler maps only 2601/2627 to 409; anything else stays a 500 and is logged, so we notice it. |
+| Leaking `PasswordHash` through a response | High: security | Responses are hand-written records with no hash field. Checkpoint B greps a response body for `passwordHash`. |
+| Filtered include for `activeEnrollmentCount` combined with `AsNoTracking` behaves unexpectedly | Low | Checked in Task 7 against the seed (each seeded class has a known enrollment count). If it misbehaves, count with a projection in the repository instead. |
+| `DependencyInjection.cs` / `Program.cs` edited by every task → merge mess if split across sessions | Low | Build the tasks in order in one session. |
 
 ## Out of scope (from SPEC.md)
 
-Refresh tokens, lockout/rate limiting, device registration, Serilog, CORS, test project, any MVC or Android login UI (Milestones 5 and 8).
+Paging and search, delete for Subjects and Classes, changing an account's role, teacher/student/parent read endpoints (Milestones 7 and 13), MVC admin pages (Milestone 5), test project (Milestone 14), Serilog.
 
 ## Open questions
 
-None blocking. The token lifetime and the test project use the spec defaults (see top).
+None. The three spec questions were answered on 2026-11-09 (see SPEC.md "Decisions").

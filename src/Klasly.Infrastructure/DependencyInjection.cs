@@ -13,6 +13,10 @@ public static class DependencyInjection
     {
         services.AddDbContext<KlaslyDbContext>(options => options.UseSqlServer(connectionString));
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ISubjectRepository, SubjectRepository>();
+        services.AddScoped<ITermRepository, TermRepository>();
+        services.AddScoped<IClassRepository, ClassRepository>();
+        services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
         return services;
     }
 }

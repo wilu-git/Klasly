@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json.Serialization;
+using Klasly.API.Middleware;
 using Klasly.API.Services;
 using Klasly.API.Services.Interfaces;
 using Klasly.Core.Entities;
@@ -10,8 +12,11 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+// Enums travel as names ("Student", "Dropped"), the same strings the database stores; numbers are rejected.
+builder.Services.AddControllers().AddJsonOptions(options =>
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)));
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
 {
     // Bearer scheme so Swagger UI shows an "Authorize" button and sends the JWT on every call.
@@ -59,8 +64,15 @@ builder.Services.AddAuthorizationBuilder()
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<ITermService, TermService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IClassService, ClassService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
