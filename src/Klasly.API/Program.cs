@@ -6,12 +6,23 @@ using Klasly.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
+{
+    // Bearer scheme so Swagger UI shows an "Authorize" button and sends the JWT on every call.
+    document.Components ??= new OpenApiComponents();
+    document.Components.SecuritySchemes = new Dictionary<string, IOpenApiSecurityScheme>
+    {
+        ["Bearer"] = new OpenApiSecurityScheme { Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT" }
+    };
+    document.Security = [new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("Bearer", document)] = [] }];
+    return Task.CompletedTask;
+}));
 
 // EF Core context; also the design-time target of dotnet ef migrations.
 builder.Services.AddInfrastructure(
@@ -54,6 +65,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "Klasly API v1"));
 }
 
 app.UseHttpsRedirection();
