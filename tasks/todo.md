@@ -115,14 +115,14 @@
 **Description:** The admin sees all accounts filtered by role and creates an account showing only the chosen role's fields.
 
 **Acceptance criteria:**
-- [ ] `Models/Api/AccountDtos.cs` (`CreateAccountRequest`, `UpdateAccountRequest`, `AccountResponse` with `string Role`); repository (list `?role=`, get, create); service; client registration.
-- [ ] `AccountsController.Index(string? role)`: tabs All / Admin / Teacher / Student / Parent; table with name, email, role, ID no. (student number or employee no.), Active/Inactive badge, Edit button; a "New {role}" button for each role.
-- [ ] `Create(string role)` GET/POST: an unknown role → `400`/back to the list. `AccountFormViewModel` holds the common fields + every role field with the API's limits (name 150, email 256, password min 8, student number 20, year level 1–6, program 50, employee no. 20, department 100, contact email 256, contact number 20). `Role` is a hidden field; the view shows only that role's block.
-- [ ] Required-per-role rules come from the API (`400` detail shown in the summary). The view model doesn't repeat them.
+- [x] `Models/Api/AccountDtos.cs` (`CreateAccountRequest`, `UpdateAccountRequest`, `AccountResponse` with `string Role`); repository (list `?role=`, get, create); service; client registration.
+- [x] `AccountsController.Index(string? role)`: tabs All / Admin / Teacher / Student / Parent; table with name, email, role, ID no. (student number or employee no.), Active/Inactive badge, Edit button; a "New {role}" button for each role.
+- [x] `Create(string role)` GET/POST: an unknown role → `400`/back to the list. `AccountFormViewModel` holds the common fields + every role field with the API's limits (name 150, email 256, password min 8, student number 20, year level 1–6, program 50, employee no. 20, department 100, contact email 256, contact number 20). `Role` is a hidden field; the view shows only that role's block.
+- [x] Required-per-role rules come from the API (`400` detail shown in the summary). The view model doesn't repeat them.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Step 7, first half: create one of each role (each form shows only its fields); student without student number → message; duplicate email → `409` message, form still filled in
+- [x] Build succeeds
+- [x] Step 7, first half: create one of each role (each form shows only its fields); student without student number → message; duplicate email → `409` message, form still filled in
 
 **Dependencies:** Task 2
 
@@ -140,13 +140,13 @@
 **Description:** Edit profile fields, turn an account off and on, and set a new password.
 
 **Acceptance criteria:**
-- [ ] Repository update (`PUT`) and deactivate (`DELETE`).
-- [ ] `Edit` GET/POST reuses `Form.cshtml`: no role or password fields; an `IsActive` checkbox; an optional "New password" box (blank → `null` → unchanged, min 8 when filled).
-- [ ] `Deactivate` POST with `confirm()`. The button is hidden when the account's `userId` equals the signed-in NameIdentifier claim (the API also refuses with `400`).
+- [x] Repository update (`PUT`) and deactivate (`DELETE`).
+- [x] `Edit` GET/POST reuses `Form.cshtml`: no role or password fields; an `IsActive` checkbox; an optional "New password" box (blank → `null` → unchanged, min 8 when filled).
+- [x] `Deactivate` POST with `confirm()`. The button is hidden when the account's `userId` equals the signed-in NameIdentifier claim (the API also refuses with `400`).
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Step 7, second half: deactivate the new teacher → their login fails; reactivate + reset password → login works with the new password; your own account has no Deactivate button
+- [x] Build succeeds
+- [x] Step 7, second half: deactivate the new teacher → their login fails; reactivate + reset password → login works with the new password; your own account has no Deactivate button
 
 **Dependencies:** Task 4
 
@@ -164,14 +164,14 @@
 **Description:** On a parent's Edit page, list their linked children, link a new one, and unlink.
 
 **Acceptance criteria:**
-- [ ] `Models/Api/AccountDtos.cs` gains `LinkStudentRequest`, `LinkedStudentResponse`. Repository: list / link / unlink.
-- [ ] `AccountService.GetEditAsync` returns the account plus, for Parents only, the linked students and a dropdown of active students (`GET /api/accounts?role=Student`, by `studentId`) not already linked.
-- [ ] `_ParentLinks.cshtml` partial on Edit: table (student no., name, relationship, receives alerts, Unlink button with `confirm()`) + a "Link a student" form (student dropdown, relationship [StringLength 30], receives alerts checkbox, on by default).
-- [ ] `LinkStudent` / `UnlinkStudent` POSTs redirect back to Edit with a TempData message. A `409` shows as a TempData error on the Edit page.
+- [x] `Models/Api/AccountDtos.cs` gains `LinkStudentRequest`, `LinkedStudentResponse`. Repository: list / link / unlink.
+- [x] `AccountService.GetEditAsync` returns the account plus, for Parents only, the linked students and a dropdown of active students (`GET /api/accounts?role=Student`, by `studentId`) not already linked.
+- [x] `_ParentLinks.cshtml` partial on Edit: table (student no., name, relationship, receives alerts, Unlink button with `confirm()`) + a "Link a student" form (student dropdown, relationship [StringLength 30], receives alerts checkbox, on by default).
+- [x] `LinkStudent` / `UnlinkStudent` POSTs redirect back to Edit with a TempData message. A `409` shows as a TempData error on the Edit page.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Step 8 (link → appears; link again → message; unlink → gone)
+- [x] Build succeeds
+- [x] Step 8 (link → appears; link again → message; unlink → gone)
 
 **Dependencies:** Task 5
 

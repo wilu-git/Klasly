@@ -57,10 +57,12 @@ void AddApiClient<TRepository, TImplementation>()
 AddApiClient<IAuthRepository, AuthRepository>();
 AddApiClient<ITermRepository, TermRepository>();
 AddApiClient<ISubjectRepository, SubjectRepository>();
+AddApiClient<IAccountRepository, AccountRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITermService, TermService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
 
 var app = builder.Build();
 

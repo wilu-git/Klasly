@@ -49,7 +49,10 @@ public static class ApiResponse
         var status = (int)response.StatusCode;
         throw new ApiException(
             status,
-            problem?.Detail ?? problem?.Title ?? $"The server answered with status {status}.",
+            problem?.Detail
+                ?? problem?.Errors?.Values.SelectMany(messages => messages).FirstOrDefault()
+                ?? problem?.Title
+                ?? $"The server answered with status {status}.",
             problem?.Errors ?? NoErrors);
     }
 

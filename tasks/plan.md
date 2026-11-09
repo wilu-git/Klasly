@@ -72,9 +72,9 @@ Tasks 3–8 all edit `Program.cs` (one client registration each) and the layout 
 - [ ] Team looks at the layout and form style before more pages copy it
 
 ### Phase 3: Accounts
-- [ ] Task 4: Accounts — list + create (M)
-- [ ] Task 5: Accounts — edit, deactivate, password reset (S)
-- [ ] Task 6: Parent links (S)
+- [x] Task 4: Accounts — list + create (M)
+- [x] Task 5: Accounts — edit, deactivate, password reset (S)
+- [x] Task 6: Parent links (S)
 
 ### Checkpoint B — after Tasks 4–6
 - [ ] SPEC smoke steps 7 and 8 pass

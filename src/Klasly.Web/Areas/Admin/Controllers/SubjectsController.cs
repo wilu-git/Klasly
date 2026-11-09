@@ -37,7 +37,7 @@ public class SubjectsController(ISubjectService subjects) : Controller
         }
         catch (ApiException ex) when (ex.IsFormError)
         {
-            ModelState.AddApiErrors(ex);
+            ModelState.AddApiErrors(ex, model);
             return View("Form", model);
         }
 
