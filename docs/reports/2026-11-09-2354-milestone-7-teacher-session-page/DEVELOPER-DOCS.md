@@ -86,7 +86,7 @@ None.
 - Left as is: on phones, **End session** sits about 50 px above the QR. Its `confirm()` prevents an accidental end, and teachers project from a laptop, where it is far from the QR.
 
 ## Known limits / TODO
-- **Not checked with a real phone camera.** The QR was decoded by zxing-cpp from the page's own SVG, which is the same library family many scanner apps use. Point a phone at the projected QR once (Milestone 8 does this for real).
+- **Real phone camera: checked 2026-11-10.** A phone scanned session 2's QR on the monitor and read `2.59808022.LolZb3…`. That text was sent as Aira's scan 43 s into the next 30 s step, so in the grace step. The API accepted it (signature valid → Present), and the teacher's page showed "Aira Mendoza · Present · 12:11 AM" within 5 s. Students' own scanner is the Android app (Milestone 8).
 - **Test data left in LocalDB:**
   - sessions 12–16 (14 is still Open until 12:56 AM Manila);
   - attendance for Aira (session 14) and Carla (session 15);
