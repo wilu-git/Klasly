@@ -11,13 +11,13 @@
 **Description:** Create the `Teacher` area, built the same way as the Admin area. A teacher who opens `/` goes to **My classes**, a table of their own classes from `GET api/teacher/classes` (active term first, in the order the API sends). The navbar gets a "My classes" link for teachers. The welcome page shows only for Parents.
 
 **Acceptance criteria:**
-- [ ] `/Teacher/Classes` lists only the logged-in teacher's classes with subject code + title, section, term, schedule, room, enrolled count and a "Sessions" button (links to `Classes/Details/{id}`).
-- [ ] `/` sends a Teacher to `/Teacher/Classes` and an Admin to `/Admin`. A Parent still sees the welcome page, with text for Parents only.
-- [ ] An Admin or a Parent who opens `/Teacher/Classes` gets Access denied (`[Authorize(Roles = "Teacher")]`).
+- [x] `/Teacher/Classes` lists only the logged-in teacher's classes with subject code + title, section, term, schedule, room, enrolled count and a "Sessions" button (links to `Classes/Details/{id}`).
+- [x] `/` sends a Teacher to `/Teacher/Classes` and an Admin to `/Admin`. A Parent still sees the welcome page, with text for Parents only.
+- [x] An Admin or a Parent who opens `/Teacher/Classes` gets Access denied (`[Authorize(Roles = "Teacher")]`).
 
 **Verification:**
-- [ ] Build succeeds: `dotnet build Klasly.slnx`
-- [ ] Manual check: smoke step 1 (except the "Teacher B's session URL" part, which comes in Task 3)
+- [x] Build succeeds: `dotnet build Klasly.slnx`
+- [x] Manual check: smoke step 1 (except the "Teacher B's session URL" part, which comes in Task 3)
 
 **Dependencies:** None
 

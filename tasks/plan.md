@@ -56,7 +56,7 @@ Tasks 4 and 5 both depend only on Task 3. They touch the same controller and vie
 ## Task list
 
 ### Phase 1: Teacher can find their sessions
-- [ ] Task 1: Teacher area + My classes page
+- [x] Task 1: Teacher area + My classes page
 - [ ] Task 2: Class details with the session list (Manila times)
 
 ### Checkpoint A (after Tasks 1–2)
