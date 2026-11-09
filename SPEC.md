@@ -1,6 +1,6 @@
 # Spec: Milestone 6 — Web API sessions, rotating QR token, scan check-in
 
-> Status: **Approved** (2026-11-09). Q1, Q3 and Q4 approved as recommended; Q2 changed to "register the phone before the first scan through a separate endpoint" (see Decisions at the bottom). Tasks: [`tasks/todo.md`](tasks/todo.md). Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "QR attendance check-in") → `CLAUDE.md` → this spec.
+> Status: **Done** (2026-11-09; reports in `docs/reports/2026-11-09-2144-milestone-6-api-sessions/`). Q1, Q3 and Q4 approved as recommended; Q2 changed to "register the phone before the first scan through a separate endpoint" (see Decisions at the bottom). Tasks: [`tasks/todo.md`](tasks/todo.md). Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "QR attendance check-in") → `CLAUDE.md` → this spec.
 > Milestone 5's spec (Web admin pages) is in git history (commit `f859150`) and in `docs/reports/2026-11-09-2101-milestone-5-web-admin/`. The QR flow is drawn in `docs/4-2 Core Feature Flowchart - QR Check-in.png`.
 
 ## Assumptions (correct these before we build)
@@ -185,13 +185,13 @@ public async Task<ScanResponse> ScanAsync(int userId, string role, ScanRequest r
 
 ## Success criteria
 
-- [ ] All smoke-test steps behave as written.
-- [ ] Every scan failure returns the guide's status code and message, in the guide's order.
-- [ ] A forged, edited or expired token is never accepted; tokens rotate every `QrStepSeconds`.
-- [ ] Only the class's own teacher can create, open, close, read the QR of, or read the roster of a session.
-- [ ] A student has at most one AttendanceRecord per session, even with parallel scans.
-- [ ] No migration, no new package, no key in the repo; every Microsoft package is 10.x.
-- [ ] Reports written; `docs/reports/INDEX.md` updated.
+- [x] All smoke-test steps behave as written.
+- [x] Every scan failure returns the guide's status code and message, in the guide's order.
+- [x] A forged, edited or expired token is never accepted; tokens rotate every `QrStepSeconds`.
+- [x] Only the class's own teacher can create, open, close, read the QR of, or read the roster of a session.
+- [x] A student has at most one AttendanceRecord per session, even with parallel scans.
+- [x] No migration, no new package, no key in the repo; every Microsoft package is 10.x.
+- [x] Reports written; `docs/reports/INDEX.md` updated.
 
 ## Decisions (2026-11-09)
 

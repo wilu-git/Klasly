@@ -174,14 +174,14 @@
 **Description:** Prove everything works together, document it, commit.
 
 **Acceptance criteria:**
-- [ ] All 15 smoke steps pass in one run.
-- [ ] `dotnet list Klasly.slnx package` → no Microsoft package below 10.x. `git grep` finds no signing key.
-- [ ] `docs/reports/<yyyy-MM-dd-HHmm>-milestone-6-api-sessions/` with DEVELOPER-DOCS.md, HOW-TO-USE.md, FLOWCHARTS.md (no erDiagram: no DB change). One line in `INDEX.md`.
-- [ ] SPEC.md success criteria ticked, status "Done"; tasks ticked here and in `plan.md`.
+- [x] All 15 smoke steps pass in one run.
+- [x] `dotnet list Klasly.slnx package` → no Microsoft package below 10.x. `git grep` finds no signing key.
+- [x] `docs/reports/<yyyy-MM-dd-HHmm>-milestone-6-api-sessions/` with DEVELOPER-DOCS.md, HOW-TO-USE.md, FLOWCHARTS.md (no erDiagram: no DB change). One line in `INDEX.md`.
+- [x] SPEC.md success criteria ticked, status "Done"; tasks ticked here and in `plan.md`.
 
 **Verification:**
-- [ ] `dotnet build Klasly.slnx` → 0 errors, no new warnings
-- [ ] Every SPEC success criterion ticked
+- [x] `dotnet build Klasly.slnx` → 0 errors, no new warnings
+- [x] Every SPEC success criterion ticked
 
 **Dependencies:** Tasks 1–7
 

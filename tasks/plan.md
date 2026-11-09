@@ -78,7 +78,7 @@ All tasks touch `Program.cs` or `DependencyInjection.cs`, so they run one after 
 - [x] SPEC smoke steps 4–15 pass
 
 ### Phase 4: Wrap-up
-- [ ] Task 8: Package check, reports, spec tick, commit (S)
+- [x] Task 8: Package check, reports, spec tick, commit (S)
 
 ## Risks and mitigations
 
