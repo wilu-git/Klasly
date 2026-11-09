@@ -10,9 +10,4 @@
     <Folder Include="ViewModels\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Klasly.Core\Klasly.Core.csproj" />
-    <ProjectReference Include="..\Klasly.Infrastructure\Klasly.Infrastructure.csproj" />
-  </ItemGroup>
-
 </Project>
