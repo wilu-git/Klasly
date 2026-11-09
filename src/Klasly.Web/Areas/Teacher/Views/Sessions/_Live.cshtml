@@ -1,0 +1,58 @@
+@model SessionLiveViewModel
+@* Swapped into #live-panel every 5 s while the session is open. data-closed tells the page script to stop polling. *@
+<div class="row g-4" data-closed="@(Model.IsClosed ? "true" : "false")" data-summary="@(Model.IsClosed ? "This session has ended. " : "")@Model.Summary">
+    <div class="col-12 col-lg-5">
+        @if (Model.QrSvg is not null)
+        {
+            <div class="qr-code" role="img" aria-label="Check-in QR code. Students scan it with the Klasly app.">@Html.Raw(Model.QrSvg)</div>
+            <p class="text-body-secondary small text-center mt-2 mb-0">Changes every 30 s</p>
+        }
+        else
+        {
+            <div class="alert alert-secondary mb-0">This session has ended. Students can no longer check in.</div>
+        }
+    </div>
+
+    <div class="col-12 col-lg-7">
+        <p class="fw-semibold mb-2">@Model.Summary</p>
+
+        @if (Model.Roster.Count == 0)
+        {
+            <p class="text-body-secondary">No students are enrolled in this class.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Student no.</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Scanned (Manila)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model.Roster)
+                        {
+                            var css = r.Status switch
+                            {
+                                "Present" => "text-bg-success",
+                                "Late" => "text-bg-warning",
+                                "Absent" => "text-bg-danger",
+                                "Excused" => "text-bg-info",
+                                _ => "text-bg-light border"
+                            };
+                            <tr>
+                                <td>@r.StudentNumber</td>
+                                <td>@r.FullName</td>
+                                <td><span class="badge @css">@(r.Status ?? "Not yet")</span></td>
+                                <td>@(r.ScannedAtUtc is { } at ? ManilaTime.FormatTime(at) : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

@@ -36,7 +36,50 @@
     }
 </div>
 
-@if (s.Status == "Scheduled")
+@if (Model.Live is null)
 {
     <p class="text-body-secondary">This session hasn't been opened yet. Open it to show the QR code.</p>
+}
+else
+{
+    <p id="live-status" class="alert alert-warning py-2" role="status" hidden>Reconnecting… The QR and list below may be out of date.</p>
+    <p id="live-announcer" class="visually-hidden" aria-live="polite"></p>
+    <div id="live-panel">
+        <partial name="_Live" model="Model.Live" />
+    </div>
+}
+
+@if (s.IsLive)
+{
+    @section Scripts {
+        <script>
+            // Every 5 s, swap in the fresh QR + roster from the Live action (same site; the JWT stays in the cookie).
+            (() => {
+                const panel = document.getElementById('live-panel');
+                const status = document.getElementById('live-status');
+                const announcer = document.getElementById('live-announcer');
+                const url = '@Url.Action("Live", new { id = s.SessionId })';
+
+                // The next poll starts 5 s after this one ends, so a slow API never piles up requests.
+                async function poll() {
+                    try {
+                        const res = await fetch(url, { redirect: 'manual', cache: 'no-store' });
+                        // Login expired or access lost: reload the page itself, so the normal redirect (with its message) happens.
+                        if (res.type === 'opaqueredirect') { location.reload(); return; }
+                        if (!res.ok) throw new Error(res.status);
+                        panel.innerHTML = await res.text();
+                        status.hidden = true;
+                        const root = panel.firstElementChild;
+                        if (announcer.textContent !== root.dataset.summary) announcer.textContent = root.dataset.summary;
+                        // Closed or past its end: reload once to show the final state; that page has no poller.
+                        if (root.dataset.closed === 'true') { setTimeout(() => location.reload(), 3000); return; }
+                    } catch {
+                        status.hidden = false; // API down or network error: keep the last QR and roster, try again
+                    }
+                    setTimeout(poll, 5000);
+                }
+                setTimeout(poll, 5000);
+            })();
+        </script>
+    }
 }

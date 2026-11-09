@@ -115,13 +115,13 @@
 **Description:** Add QRCoder 1.8.1 (needs open question 1 approved). `GetLiveAsync` gets the QR token (a `409` means closed, so no QR) and the roster. It turns the token into an inline SVG string. `_Live.cshtml` renders the QR panel, the "x of y checked in · n Present · m Late" summary inside `aria-live="polite"`, and the roster table, with `data-closed="true"` when there is no QR. `Sessions/Details` renders `_Live` for Open and Closed sessions. `GET Sessions/Live/{id}` returns the same partial (it is polled in Task 6).
 
 **Acceptance criteria:**
-- [ ] An Open session shows a QR at least 320 px square, dark modules on a white background with a quiet zone, readable in both light and dark mode, with "Changes every 30 s" under it. The token text is not in the HTML except as SVG paths.
-- [ ] A phone QR reader decodes the QR to the same token as `GET /api/sessions/{id}/qr` at that moment.
-- [ ] The roster lists every Active student with student no., name, a status badge (Present green / Late amber / "Not yet" grey) and the Manila scan time. The summary counts are correct. A Closed or past-end session shows "This session has ended." with the final roster and no QR.
+- [x] An Open session shows a QR at least 320 px square, dark modules on a white background with a quiet zone, readable in both light and dark mode, with "Changes every 30 s" under it. The token text is not in the HTML except as SVG paths.
+- [x] A phone QR reader decodes the QR to the same token as `GET /api/sessions/{id}/qr` at that moment.
+- [x] The roster lists every Active student with student no., name, a status badge (Present green / Late amber / "Not yet" grey) and the Manila scan time. The summary counts are correct. A Closed or past-end session shows "This session has ended." with the final roster and no QR.
 
 **Verification:**
-- [ ] Build succeeds: `dotnet build Klasly.slnx`; `dotnet list Klasly.slnx package` shows QRCoder 1.8.1 as the only package in `Klasly.Web`
-- [ ] Manual check: decode with a phone. Scan with curl using a student's JWT, refresh the page, and the row is Present. Smoke step 4 needs a manual refresh until Task 6.
+- [x] Build succeeds: `dotnet build Klasly.slnx`; `dotnet list Klasly.slnx package` shows QRCoder 1.8.1 as the only package in `Klasly.Web`
+- [x] Manual check: decode with a phone. Scan with curl using a student's JWT, refresh the page, and the row is Present. Smoke step 4 needs a manual refresh until Task 6.
 
 **Dependencies:** Task 3 (build it after Task 4, because they edit the same files)
 
@@ -134,11 +134,11 @@
 **Estimated scope:** Medium (5 files)
 
 ### Checkpoint B: after Tasks 3–5
-- [ ] `dotnet build Klasly.slnx` clean
-- [ ] Teacher goes from login to a scannable QR in three clicks (class → Start session → page)
-- [ ] The QR decodes correctly on a real phone; a curl scan shows after a refresh
-- [ ] Smoke steps 3 and 8 pass
-- [ ] Review with the team before continuing
+- [x] `dotnet build Klasly.slnx` clean
+- [x] Teacher goes from login to a scannable QR in three clicks (class → Start session → page)
+- [x] The QR decodes correctly on a real phone; a curl scan shows after a refresh
+- [x] Smoke steps 3 and 8 pass
+- [x] Review with the team before continuing
 
 ---
 
@@ -150,13 +150,13 @@
 - any other failure or a network error → show "Reconnecting…", keep the last HTML, and keep trying.
 
 **Acceptance criteria:**
-- [ ] The QR changes within 5 s of each 30 s step, and a curl scan appears within 5 s, with no page reload.
-- [ ] The session closes (End session in another tab, or its end time passes) → within 5 s, "This session has ended." appears, and the network tab shows no more polls.
-- [ ] API stopped → "Reconnecting…" and the last QR stays; API started again → the page recovers by itself. JWT expired → the browser goes to the login page with "Your session ended, please log in again.", and after login it returns to the session page.
+- [x] The QR changes within 5 s of each 30 s step, and a curl scan appears within 5 s, with no page reload.
+- [x] The session closes (End session in another tab, or its end time passes) → within 5 s, "This session has ended." appears, and the network tab shows no more polls.
+- [x] API stopped → "Reconnecting…" and the last QR stays; API started again → the page recovers by itself. JWT expired → the browser goes to the login page with "Your session ended, please log in again.", and after login it returns to the session page.
 
 **Verification:**
-- [ ] Build succeeds: `dotnet build Klasly.slnx`
-- [ ] Manual check: smoke steps 4–7, 9 and 10 (step 10 with `Jwt:ExpiryMinutes` = 1 in the API, set back afterwards)
+- [x] Build succeeds: `dotnet build Klasly.slnx`
+- [x] Manual check: smoke steps 4–7, 9 and 10 (step 10 with `Jwt:ExpiryMinutes` = 1 in the API, set back afterwards)
 
 **Dependencies:** Task 5
 

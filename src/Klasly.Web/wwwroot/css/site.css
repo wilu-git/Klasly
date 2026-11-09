@@ -44,3 +44,20 @@ body {
   margin-bottom: 0;
   padding-left: 1.25rem;
 }
+
+/* Check-in QR: at least 320 px, black on white whatever surrounds it, so phone cameras can read it. */
+.qr-code {
+  width: 100%;
+  min-width: 320px;
+  max-width: 440px;
+  margin-inline: auto;
+  background: #fff;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+}
+
+.qr-code svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}

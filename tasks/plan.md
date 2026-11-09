@@ -66,15 +66,15 @@ Tasks 4 and 5 both depend only on Task 3. They touch the same controller and vie
 ### Phase 2: Vertical slice, no live updates yet
 - [x] Task 3: Start session (create + open) → session page
 - [x] Task 4: Open a Scheduled session; End session
-- [ ] Task 5: QR + roster partial, drawn on the server
+- [x] Task 5: QR + roster partial, drawn on the server
 
 ### Checkpoint B (after Tasks 3–5)
-- [ ] A phone QR reader decodes the page's QR to the same token as `GET /api/sessions/{id}/qr`
-- [ ] A curl scan shows up after a manual page refresh
-- [ ] Smoke steps 3 and 8 pass
+- [x] A phone QR reader decodes the page's QR to the same token as `GET /api/sessions/{id}/qr`
+- [x] A curl scan shows up after a manual page refresh
+- [x] Smoke steps 3 and 8 pass
 
 ### Phase 3: Live, then finish
-- [ ] Task 6: Polling script (5 s, reconnect, auto-stop, login redirect)
+- [x] Task 6: Polling script (5 s, reconnect, auto-stop, login redirect)
 - [ ] Task 7: Accessibility + `/impeccable` + full smoke test + reports
 
 ### Checkpoint C (complete)

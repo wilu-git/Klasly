@@ -11,4 +11,6 @@ public interface ISessionRepository
     Task<SessionResponse> GetAsync(int sessionId, CancellationToken ct);
     Task<SessionResponse> OpenAsync(int sessionId, CancellationToken ct);
     Task<SessionResponse> CloseAsync(int sessionId, CancellationToken ct);
+    Task<QrTokenResponse> GetQrAsync(int sessionId, CancellationToken ct);
+    Task<List<SessionAttendanceRow>> GetAttendanceAsync(int sessionId, CancellationToken ct);
 }

@@ -26,4 +26,12 @@ public class SessionRepository(HttpClient http) : ISessionRepository
 
     public Task<SessionResponse> CloseAsync(int sessionId, CancellationToken ct) =>
         http.PostApiAsync<SessionResponse>($"api/sessions/{sessionId}/close", null, ct);
+
+    // 409 when the session is not open, or open but past its end time.
+    public Task<QrTokenResponse> GetQrAsync(int sessionId, CancellationToken ct) =>
+        http.GetApiAsync<QrTokenResponse>($"api/sessions/{sessionId}/qr", ct);
+
+    // Every actively enrolled student by name; Status null until they scan.
+    public Task<List<SessionAttendanceRow>> GetAttendanceAsync(int sessionId, CancellationToken ct) =>
+        http.GetApiAsync<List<SessionAttendanceRow>>($"api/sessions/{sessionId}/attendance", ct);
 }

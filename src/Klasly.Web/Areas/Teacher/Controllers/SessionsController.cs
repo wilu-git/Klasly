@@ -12,6 +12,10 @@ public class SessionsController(ISessionService sessions) : Controller
 {
     public async Task<IActionResult> Details(int id, CancellationToken ct) => View(await sessions.GetSessionAsync(id, ct));
 
+    /// <summary>The QR + roster panel the session page polls every 5 s. API errors go through ApiExceptionFilter like any page.</summary>
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> Live(int id, CancellationToken ct) => PartialView("_Live", await sessions.GetLiveAsync(id, ct));
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Start(StartSessionViewModel model, CancellationToken ct)
     {

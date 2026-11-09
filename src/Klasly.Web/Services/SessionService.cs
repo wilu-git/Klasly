@@ -3,6 +3,7 @@ using Klasly.Web.Models.Api;
 using Klasly.Web.Repositories.Interfaces;
 using Klasly.Web.Services.Interfaces;
 using Klasly.Web.ViewModels;
+using QRCoder;
 
 namespace Klasly.Web.Services;
 
@@ -44,8 +45,37 @@ public class SessionService(ISessionRepository sessions) : ISessionService
         }
     }
 
-    public async Task<SessionPageViewModel> GetSessionAsync(int sessionId, CancellationToken ct) =>
-        new(await sessions.GetAsync(sessionId, ct));
+    public async Task<SessionPageViewModel> GetSessionAsync(int sessionId, CancellationToken ct)
+    {
+        var session = await sessions.GetAsync(sessionId, ct);
+        // Scheduled: nothing to show yet. Closed/ended: the final roster, no QR call needed.
+        var live = session.Status == "Scheduled" ? null : await BuildLiveAsync(sessionId, tryQr: session.IsLive, ct);
+        return new SessionPageViewModel(session, live);
+    }
+
+    public Task<SessionLiveViewModel> GetLiveAsync(int sessionId, CancellationToken ct) => BuildLiveAsync(sessionId, tryQr: true, ct);
+
+    private async Task<SessionLiveViewModel> BuildLiveAsync(int sessionId, bool tryQr, CancellationToken ct)
+    {
+        QrTokenResponse? qr = null;
+        if (tryQr)
+        {
+            try { qr = await sessions.GetQrAsync(sessionId, ct); }
+            catch (ApiException ex) when (ex.StatusCode == StatusCodes.Status409Conflict) { } // closed or past its end
+        }
+
+        var roster = await sessions.GetAttendanceAsync(sessionId, ct);
+        return new SessionLiveViewModel(sessionId, qr is null ? null : QrSvg(qr.Token), roster);
+    }
+
+    // Drawn on the server so the token never reaches page JavaScript. White background with the quiet zone,
+    // so phones can read it whatever the page around it looks like; the viewBox lets CSS size it.
+    private static string QrSvg(string token)
+    {
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(token, QRCodeGenerator.ECCLevel.M);
+        return new SvgQRCode(data).GetGraphic(10, "#000000", "#ffffff", drawQuietZones: true, SvgQRCode.SizingMode.ViewBoxAttribute);
+    }
 
     public Task OpenAsync(int sessionId, CancellationToken ct) => sessions.OpenAsync(sessionId, ct);
 
