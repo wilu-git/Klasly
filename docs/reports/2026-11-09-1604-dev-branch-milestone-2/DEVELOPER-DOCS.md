@@ -6,7 +6,8 @@ Asked: set up a `master → dev` branch workflow and merge the current milestone
 with commits authored under the student's own GitHub identity (no AI co-author).
 Done: set the repo-local git author to `Venalouie Cruz <venalouiec@gmail.com>`, committed the Milestone 2
 work that was sitting uncommitted in its worktree, created `dev` from `master`, merged Milestone 2 with
-`--no-ff`, built the solution, and pushed `master` and `dev` to `origin`.
+`--no-ff`, built the solution, and pushed `dev`. `master` push was first rejected because PR #1 had been
+merged on GitHub; on the team's call it was reverted on `master`, then `master` was pushed.
 
 ## Projects touched
 
@@ -21,7 +22,8 @@ migration) — see [Milestone 2 report](../2026-11-09-1545-milestone-2-entities-
 | `claude/klasly-milestone-2-9baad5` | commit `81fe685` | The Milestone 2 work (50 files) was uncommitted. |
 | `dev` | new branch from `master` (`79762c2`) | Integration branch; milestones land here first. |
 | `dev` | merge commit `0814e1b` (`--no-ff`) | Keeps one visible "Merge Milestone 2" commit per milestone. |
-| `origin` | pushed `master` (was 1 ahead) and `dev` (tracking) | So the teammate can pull `dev`. |
+| `origin` | pushed `dev` (tracking) | So the teammate can pull `dev`. |
+| `master` | merge `a04454a` of `origin/master`, then revert `9ee3b14` of PR #1, pushed | PR #1 (old `claude/database-connection-issue` data layer) was merged on GitHub mid-task; it duplicates Milestone 2 and adds EF Core to `Klasly.Web`. The revert makes `master` identical to `79762c2` (empty diff), history kept. |
 
 Not merged (left as they are): `claude/database-connection-issue-a557aa` and
 `claude/erd-functions-completeness-9d38e9` — older Milestone 2 attempts on an old `master`; the first one
@@ -36,6 +38,7 @@ None in this task. The `InitialCreate` migration is now on `dev` but not applied
 - `dotnet build` in the Milestone 2 worktree: succeeded, 0 warnings, 0 errors.
 - `dotnet list package`: every Microsoft package is 10.0.14.
 - `dotnet build` on `dev` after the merge: succeeded, 0 warnings, 0 errors.
+- `git diff 79762c2 master` after the revert: empty; `dotnet build` on `master`: succeeded.
 - `git log --format='%an <%ae>'` on the new commits: `Venalouie Cruz <venalouiec@gmail.com>`, no co-author trailer.
 
 ## Known limits / TODO
