@@ -64,7 +64,7 @@ Tasks 3–8 all edit `Program.cs` (one client registration each) and the layout 
 
 ### Phase 2: Pattern slice and simple resources
 - [x] Task 2: Authenticated API plumbing + Admin home + Terms (M–L)
-- [ ] Task 3: Subjects (S)
+- [x] Task 3: Subjects (S)
 
 ### Checkpoint A — after Tasks 1–3
 - [ ] `dotnet build Klasly.slnx` → 0 errors, no new warnings

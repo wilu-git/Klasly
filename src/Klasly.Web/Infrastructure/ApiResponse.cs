@@ -6,6 +6,30 @@ namespace Klasly.Web.Infrastructure;
 /// <summary>Turns an API response into data, or into an <see cref="ApiException"/> carrying the API's message.</summary>
 public static class ApiResponse
 {
+    public static async Task<T> GetApiAsync<T>(this HttpClient http, string url, CancellationToken ct)
+    {
+        using var response = await http.GetAsync(url, ct);
+        return await ReadAsync<T>(response, ct);
+    }
+
+    public static async Task<T> PostApiAsync<T>(this HttpClient http, string url, object? body, CancellationToken ct)
+    {
+        using var response = await http.PostAsJsonAsync(url, body, ct);
+        return await ReadAsync<T>(response, ct);
+    }
+
+    public static async Task<T> PutApiAsync<T>(this HttpClient http, string url, object body, CancellationToken ct)
+    {
+        using var response = await http.PutAsJsonAsync(url, body, ct);
+        return await ReadAsync<T>(response, ct);
+    }
+
+    public static async Task DeleteApiAsync(this HttpClient http, string url, CancellationToken ct)
+    {
+        using var response = await http.DeleteAsync(url, ct);
+        await EnsureAsync(response, ct);
+    }
+
     public static async Task<T> ReadAsync<T>(HttpResponseMessage response, CancellationToken ct)
     {
         await EnsureAsync(response, ct);

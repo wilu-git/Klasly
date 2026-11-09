@@ -84,13 +84,13 @@
 **Description:** Copy the Terms pattern for the subject catalog.
 
 **Acceptance criteria:**
-- [ ] `Models/Api/SubjectDtos.cs`; repository (list, get, create, update); service; one more client registration.
-- [ ] `SubjectsController`: `Index`, `Create` GET/POST, `Edit` GET/POST. No delete (Milestone 4 decision 3).
-- [ ] `SubjectFormViewModel` (`Code` [Required, StringLength 20], `Title` [Required, StringLength 150], `Units` [Range 1–10]); `Index` (table sorted by code, as the API returns it) + `Form`.
+- [x] `Models/Api/SubjectDtos.cs`; repository (list, get, create, update); service; one more client registration.
+- [x] `SubjectsController`: `Index`, `Create` GET/POST, `Edit` GET/POST. No delete (Milestone 4 decision 3).
+- [x] `SubjectFormViewModel` (`Code` [Required, StringLength 20], `Title` [Required, StringLength 150], `Units` [Range 1–10]); `Index` (table sorted by code, as the API returns it) + `Form`.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Step 6 (create; duplicate code → API message, form still filled in)
+- [x] Build succeeds
+- [x] Step 6 (create; duplicate code → API message, form still filled in)
 
 **Dependencies:** Task 2
 
