@@ -63,7 +63,7 @@ All tasks touch `Program.cs` or `DependencyInjection.cs`, so they run one after 
 - [x] No token → 401 with the message; the API refuses to start without `Qr:SigningKey`
 
 ### Phase 2: Teacher session slice
-- [ ] Task 3: Create and read sessions, list my classes (M)
+- [x] Task 3: Create and read sessions, list my classes (M)
 - [ ] Task 4: Open, close and the QR endpoint (S–M)
 
 ### Checkpoint B — after Tasks 3–4

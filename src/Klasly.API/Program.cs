@@ -97,6 +97,7 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<IQrTokenService, QrTokenService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
 
 var app = builder.Build();
 

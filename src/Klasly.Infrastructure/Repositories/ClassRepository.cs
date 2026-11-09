@@ -14,6 +14,12 @@ public class ClassRepository(KlaslyDbContext context) : IClassRepository
             .OrderBy(c => c.Subject.Code).ThenBy(c => c.Section)
             .ToListAsync(ct);
 
+    public Task<List<Class>> ListByTeacherAsync(int teacherId, CancellationToken ct) =>
+        WithDetails()
+            .Where(c => c.TeacherId == teacherId)
+            .OrderByDescending(c => c.Term.IsActive).ThenBy(c => c.Subject.Code).ThenBy(c => c.Section)
+            .ToListAsync(ct);
+
     public Task<Class?> GetDetailsAsync(int classId, CancellationToken ct) =>
         WithDetails().FirstOrDefaultAsync(c => c.ClassId == classId, ct);
 

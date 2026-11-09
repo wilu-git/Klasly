@@ -8,6 +8,9 @@ public interface IClassRepository
     /// <summary>Classes with Subject, Teacher.User, Term and only the Active enrollments loaded.</summary>
     Task<List<Class>> ListAsync(int? termId, CancellationToken ct);
 
+    /// <summary>A teacher's classes loaded like <see cref="ListAsync"/>, active term first, then by subject code.</summary>
+    Task<List<Class>> ListByTeacherAsync(int teacherId, CancellationToken ct);
+
     /// <summary>One class loaded like <see cref="ListAsync"/>, not tracked — for responses.</summary>
     Task<Class?> GetDetailsAsync(int classId, CancellationToken ct);
 

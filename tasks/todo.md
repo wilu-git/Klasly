@@ -60,13 +60,13 @@
 **Description:** A teacher lists their own classes and a class's sessions, and creates a session. Only the class's own teacher may do so.
 
 **Acceptance criteria:**
-- [ ] `ISessionRepository` / `SessionRepository` (`GetByIdAsync` tracked with Class + Subject, `ListByClassAsync`, `AddAsync`, `SaveChangesAsync`). `IClassRepository.ListByTeacherAsync`.
-- [ ] `CreateSessionRequest`, `SessionResponse` (never `QrNonce`). Create: end > start, end > now, late minutes 0–120 (default 15); nonce = 32 random bytes as hex; status `Scheduled`.
-- [ ] `GET api/teacher/classes`, `GET/POST api/classes/{classId}/sessions`, `GET api/sessions/{id}`; another teacher → `403`, unknown id → `404`, admin → `403`.
+- [x] `ISessionRepository` / `SessionRepository` (`GetByIdAsync` tracked with Class + Subject, `ListByClassAsync`, `AddAsync`, `SaveChangesAsync`). `IClassRepository.ListByTeacherAsync`.
+- [x] `CreateSessionRequest`, `SessionResponse` (never `QrNonce`). Create: end > start, end > now, late minutes 0–120 (default 15); nonce = 32 random bytes as hex; status `Scheduled`.
+- [x] `GET api/teacher/classes`, `GET/POST api/classes/{classId}/sessions`, `GET api/sessions/{id}`, all in one `SessionsController` (no separate TeacherController); another teacher → `403`, unknown id → `404`, admin → `403`.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Steps 1–2
+- [x] Build succeeds
+- [x] Steps 1–2
 
 **Dependencies:** Task 1
 
