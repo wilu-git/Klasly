@@ -81,13 +81,13 @@
 **Description:** The teacher opens the session, gets a fresh token every step, and closes it.
 
 **Acceptance criteria:**
-- [ ] `POST api/sessions/{id}/open`: Scheduled → Open; already Open → `200` no change; now ≥ End → `400` "This session has already ended."; Closed / Finalized / Cancelled → `409` "Session is closed".
-- [ ] `POST api/sessions/{id}/close`: Open → Closed with `ClosedAt`; already Closed → `200`; otherwise `409` "Only an open session can be closed."
-- [ ] `GET api/sessions/{id}/qr` → `{ token, expiresAtUtc, stepSeconds }`, only when effectively open (`Open` and now < End), else `409` "Session is closed".
+- [x] `POST api/sessions/{id}/open`: Scheduled → Open; already Open → `200` no change; now ≥ End → `400` "This session has already ended."; Closed / Finalized / Cancelled → `409` "Session is closed".
+- [x] `POST api/sessions/{id}/close`: Open → Closed with `ClosedAt`; already Closed → `200`; otherwise `409` "Only an open session can be closed."
+- [x] `GET api/sessions/{id}/qr` → `{ token, expiresAtUtc, stepSeconds }`, only when effectively open (`Open` and now < End), else `409` "Session is closed".
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Step 3 and the QR/open parts of step 12
+- [x] Build succeeds
+- [x] Step 3 and the QR/open parts of step 12
 
 **Dependencies:** Tasks 2, 3
 
@@ -98,7 +98,7 @@
 ---
 
 ## Checkpoint B — after Tasks 3–4
-- [ ] Steps 1–3 pass
+- [x] Steps 1–3 pass
 
 ---
 

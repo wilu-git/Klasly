@@ -8,4 +8,9 @@ public interface ISessionService
     Task<List<SessionResponse>> ListAsync(int classId, int userId, CancellationToken ct);
     Task<SessionResponse> CreateAsync(int classId, CreateSessionRequest request, int userId, CancellationToken ct);
     Task<SessionResponse> GetAsync(int sessionId, int userId, CancellationToken ct);
+    Task<SessionResponse> OpenAsync(int sessionId, int userId, CancellationToken ct);
+    Task<SessionResponse> CloseAsync(int sessionId, int userId, CancellationToken ct);
+
+    /// <summary>The current QR token; only while the session is open and not past its end time.</summary>
+    Task<QrTokenResponse> GetQrAsync(int sessionId, int userId, CancellationToken ct);
 }

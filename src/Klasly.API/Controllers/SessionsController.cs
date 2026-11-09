@@ -32,6 +32,18 @@ public class SessionsController(ISessionService sessionService, IClassService cl
     [HttpGet("api/sessions/{id:int}")]
     public Task<SessionResponse> Get(int id, CancellationToken ct) => sessionService.GetAsync(id, CurrentUserId, ct);
 
+    /// <summary>Starts check-in. Opening an already open session changes nothing.</summary>
+    [HttpPost("api/sessions/{id:int}/open")]
+    public Task<SessionResponse> Open(int id, CancellationToken ct) => sessionService.OpenAsync(id, CurrentUserId, ct);
+
+    /// <summary>Ends check-in ("End session" button). Closing an already closed session changes nothing.</summary>
+    [HttpPost("api/sessions/{id:int}/close")]
+    public Task<SessionResponse> Close(int id, CancellationToken ct) => sessionService.CloseAsync(id, CurrentUserId, ct);
+
+    /// <summary>The QR token to show now; call again at expiresAtUtc.</summary>
+    [HttpGet("api/sessions/{id:int}/qr")]
+    public Task<QrTokenResponse> Qr(int id, CancellationToken ct) => sessionService.GetQrAsync(id, CurrentUserId, ct);
+
     // The TeacherOnly policy guarantees a valid token here.
     private int CurrentUserId => int.Parse(User.FindFirstValue("sub")!);
 }

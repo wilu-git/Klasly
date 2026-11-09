@@ -9,8 +9,14 @@ namespace Klasly.API.Services;
 
 /// <summary>Session rules: only the class's own teacher manages its sessions; the end is after the start and in the future.</summary>
 public class SessionService(
-    ISessionRepository sessions, IClassRepository classes, IUserRepository users) : ISessionService
+    ISessionRepository sessions, IClassRepository classes, IUserRepository users, IQrTokenService qr) : ISessionService
 {
+    /// <summary>
+    /// Open and not past its end time. Until the Worker closes ended sessions (Milestone 9),
+    /// an Open session whose end has passed counts as closed for QR and scans.
+    /// </summary>
+    public static bool IsOpenNow(ClassSession s) => s.Status == SessionStatus.Open && DateTime.UtcNow < s.EndTime;
+
     public async Task<List<SessionResponse>> ListAsync(int classId, int userId, CancellationToken ct)
     {
         await EnsureOwnClassAsync(classId, userId, ct);
@@ -41,6 +47,43 @@ public class SessionService(
 
     public async Task<SessionResponse> GetAsync(int sessionId, int userId, CancellationToken ct) =>
         ToResponse(await GetOwnSessionAsync(sessionId, userId, ct));
+
+    public async Task<SessionResponse> OpenAsync(int sessionId, int userId, CancellationToken ct)
+    {
+        var session = await GetOwnSessionAsync(sessionId, userId, ct);
+        if (session.Status == SessionStatus.Open) return ToResponse(session); // opening twice is harmless
+        if (session.Status != SessionStatus.Scheduled) throw new ConflictException("Session is closed");
+        if (DateTime.UtcNow >= session.EndTime) throw new ValidationException("This session has already ended.");
+
+        session.Status = SessionStatus.Open;
+        await sessions.SaveChangesAsync(ct);
+        return ToResponse(session);
+    }
+
+    public async Task<SessionResponse> CloseAsync(int sessionId, int userId, CancellationToken ct)
+    {
+        var session = await GetOwnSessionAsync(sessionId, userId, ct);
+        if (session.Status == SessionStatus.Closed) return ToResponse(session);
+        if (session.Status != SessionStatus.Open) throw new ConflictException("Only an open session can be closed.");
+
+        session.Status = SessionStatus.Closed;
+        session.ClosedAt = DateTime.UtcNow;
+        await sessions.SaveChangesAsync(ct);
+        return ToResponse(session);
+    }
+
+    public async Task<QrTokenResponse> GetQrAsync(int sessionId, int userId, CancellationToken ct)
+    {
+        var session = await GetOwnSessionAsync(sessionId, userId, ct);
+        if (!IsOpenNow(session)) throw new ConflictException("Session is closed");
+
+        var stepSeconds = await qr.StepSecondsAsync(ct);
+        var step = qr.CurrentStep(stepSeconds);
+        return new QrTokenResponse(
+            qr.Create(session.SessionId, step, session.QrNonce),
+            DateTimeOffset.FromUnixTimeSeconds((step + 1) * stepSeconds).UtcDateTime, // end of the current step
+            stepSeconds);
+    }
 
     private async Task<int> TeacherIdAsync(int userId, CancellationToken ct) =>
         (await users.GetByIdAsync(userId, ct))?.Teacher?.TeacherId

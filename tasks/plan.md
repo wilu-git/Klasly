@@ -64,10 +64,10 @@ All tasks touch `Program.cs` or `DependencyInjection.cs`, so they run one after 
 
 ### Phase 2: Teacher session slice
 - [x] Task 3: Create and read sessions, list my classes (M)
-- [ ] Task 4: Open, close and the QR endpoint (S–M)
+- [x] Task 4: Open, close and the QR endpoint (S–M)
 
 ### Checkpoint B — after Tasks 3–4
-- [ ] SPEC smoke steps 1–3 pass
+- [x] SPEC smoke steps 1–3 pass
 
 ### Phase 3: Device, scan, roster
 - [ ] Task 5: Register and reset a student's device (S)
