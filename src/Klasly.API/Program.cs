@@ -1,8 +1,15 @@
+using Klasly.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// EF Core context; also the design-time target of dotnet ef migrations.
+builder.Services.AddInfrastructure(
+    builder.Configuration.GetConnectionString("Klasly")
+    ?? throw new InvalidOperationException("Connection string 'Klasly' is missing."));
 
 var app = builder.Build();
 
