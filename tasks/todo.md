@@ -195,15 +195,15 @@
 **Description:** Class list filtered by term; create and edit with subject, teacher and term dropdowns.
 
 **Acceptance criteria:**
-- [ ] `Models/Api/ClassDtos.cs`; repository (list `?termId=`, get, create, update); client registration.
-- [ ] `ClassService.GetListAsync(int? termId)`: `null` → the active term (all terms if none is active); `0` → all terms. Returns the classes + the term dropdown.
-- [ ] `ClassService.GetFormAsync`: subjects, **active** teachers (`?role=Teacher`, value = `teacherId`), terms.
-- [ ] `ClassesController`: `Index(int? termId)` (term dropdown with an "All terms" option; table: subject code + title, section, teacher, schedule, room, enrolled count; Edit / Students buttons), `Create` / `Edit` GET/POST. On a failed post, the dropdowns are rebuilt before returning the view.
-- [ ] `ClassFormViewModel` (`SubjectId`, `TeacherId`, `TermId` required, `Section` [Required, StringLength 30], `Schedule` [StringLength 100], `Room` [StringLength 30], plus the `SelectList`s).
+- [x] `Models/Api/ClassDtos.cs`; repository (list `?termId=`, get, create, update); client registration.
+- [x] `ClassService.GetListAsync(int? termId)`: `null` → the active term (all terms if none is active); `0` → all terms. Returns the classes + the term dropdown.
+- [x] `ClassService.GetFormAsync`: subjects, **active** teachers (`?role=Teacher`, value = `teacherId`), terms.
+- [x] `ClassesController`: `Index(int? termId)` (term dropdown with an "All terms" option; table: subject code + title, section, teacher, schedule, room, enrolled count; Edit / Students buttons), `Create` / `Edit` GET/POST. On a failed post, the dropdowns are rebuilt before returning the view.
+- [x] `ClassFormViewModel` (`SubjectId`, `TeacherId`, `TermId` required, `Section` [Required, StringLength 30], `Schedule` [StringLength 100], `Room` [StringLength 30], plus the `SelectList`s).
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Step 9 (create with dropdowns; duplicate subject + section + term → message; the term filter changes the list)
+- [x] Build succeeds
+- [x] Step 9 (create with dropdowns; duplicate subject + section + term → message; the term filter changes the list)
 
 **Dependencies:** Tasks 2, 3, 4
 
@@ -221,14 +221,14 @@
 **Description:** One page per class showing who is enrolled, with enroll and drop.
 
 **Acceptance criteria:**
-- [ ] `Models/Api/EnrollmentDtos.cs` (`EnrollmentRequest`, `EnrollmentResponse` with `string Status`); `ClassRepository` gains list-enrollments / enroll / drop (enrollments belong to the class page, so no separate repository).
-- [ ] `ClassService.GetDetailsAsync(id)`: class + enrollments + a dropdown of active students who are not **Active** in this class (Dropped students can be picked again).
-- [ ] `ClassDetailsViewModel`; `Details.cshtml`: class header, enrollment table (student no., name, Active/Dropped badge, Drop button with `confirm()` on Active rows), "Enroll a student" form.
-- [ ] `Enroll` POST (`201` new or `200` re-enrolled; both → "Enrolled.") and `Drop` POST redirect back to Details. A `409` shows as a TempData error.
+- [x] `Models/Api/EnrollmentDtos.cs` (`EnrollmentRequest`, `EnrollmentResponse` with `string Status`); `ClassRepository` gains list-enrollments / enroll / drop (enrollments belong to the class page, so no separate repository).
+- [x] `ClassService.GetDetailsAsync(id)`: class + enrollments + a dropdown of active students who are not **Active** in this class (Dropped students can be picked again).
+- [x] `ClassDetailsViewModel`; `Details.cshtml`: class header, enrollment table (student no., name, Active/Dropped badge, Drop button with `confirm()` on Active rows), "Enroll a student" form.
+- [x] `Enroll` POST (`201` new or `200` re-enrolled; both → "Enrolled.") and `Drop` POST redirect back to Details. A `409` shows as a TempData error.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Step 10 (enroll → Active; drop → Dropped; enroll again → Active, same row)
+- [x] Build succeeds
+- [x] Step 10 (enroll → Active; drop → Dropped; enroll again → Active, same row)
 
 **Dependencies:** Task 7
 

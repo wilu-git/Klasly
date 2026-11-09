@@ -81,8 +81,8 @@ Tasks 3–8 all edit `Program.cs` (one client registration each) and the layout 
 - [ ] No page ever shows raw JSON or a stack trace
 
 ### Phase 4: Classes and enrollments
-- [ ] Task 7: Classes — list + create/edit (M)
-- [ ] Task 8: Class details — enroll, drop (S–M)
+- [x] Task 7: Classes — list + create/edit (M)
+- [x] Task 8: Class details — enroll, drop (S–M)
 
 ### Checkpoint C — after Tasks 7–8
 - [ ] SPEC smoke steps 9 and 10 pass

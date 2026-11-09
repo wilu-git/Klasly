@@ -58,11 +58,13 @@ AddApiClient<IAuthRepository, AuthRepository>();
 AddApiClient<ITermRepository, TermRepository>();
 AddApiClient<ISubjectRepository, SubjectRepository>();
 AddApiClient<IAccountRepository, AccountRepository>();
+AddApiClient<IClassRepository, ClassRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITermService, TermService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IClassService, ClassService>();
 
 var app = builder.Build();
 

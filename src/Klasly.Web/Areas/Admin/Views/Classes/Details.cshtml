@@ -1,0 +1,84 @@
+@model ClassDetailsViewModel
+@{
+    var c = Model.Class;
+    ViewData["Title"] = $"{c.SubjectCode} – {c.Section}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index" asp-route-termId="@c.TermId">Classes</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@c.SubjectCode – @c.Section</li>
+    </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
+    <div>
+        <h1 class="h3 mb-1">@c.SubjectCode @c.SubjectTitle – @c.Section</h1>
+        <p class="text-body-secondary mb-0">
+            @c.TeacherName · @c.TermName@(c.Schedule is null ? "" : $" · {c.Schedule}")@(c.Room is null ? "" : $" · {c.Room}")
+        </p>
+    </div>
+    <a asp-action="Edit" asp-route-id="@c.ClassId" class="btn btn-outline-secondary">Edit class</a>
+</div>
+
+<h2 class="h5">Students <span class="text-body-secondary fw-normal">(@c.ActiveEnrollmentCount enrolled)</span></h2>
+
+@if (Model.Enrollments.Count == 0)
+{
+    <p class="text-body-secondary">No students enrolled yet.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Student no.</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in Model.Enrollments)
+                {
+                    var active = e.Status == "Active";
+                    <tr class="@(active ? "" : "text-body-secondary")">
+                        <td>@e.StudentNumber</td>
+                        <td>@e.StudentName</td>
+                        <td><span class="badge @(active ? "text-bg-success" : "text-bg-secondary")">@e.Status</span></td>
+                        <td class="text-end">
+                            @if (active)
+                            {
+                                <form asp-action="Drop" asp-route-id="@c.ClassId" asp-route-enrollmentId="@e.EnrollmentId" method="post"
+                                      data-confirm="Drop @e.StudentName from @c.SubjectCode – @c.Section?">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Drop</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h3 class="h6 mt-4">Enroll a student</h3>
+@if (Model.StudentOptions.Count == 0)
+{
+    <p class="text-body-secondary">Every active student is already enrolled in this class.</p>
+}
+else
+{
+    <form asp-action="Enroll" asp-route-id="@c.ClassId" method="post" class="row g-2 align-items-end col-12 col-lg-8">
+        <div class="col-12 col-md-9">
+            <label for="studentId" class="form-label">Student</label>
+            <select id="studentId" name="studentId" class="form-select" asp-items="Model.StudentOptions" required>
+                <option value="">Choose a student…</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-3">
+            <button type="submit" class="btn btn-primary w-100">Enroll</button>
+        </div>
+    </form>
+}
