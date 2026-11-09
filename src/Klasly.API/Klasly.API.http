@@ -1,6 +1,35 @@
 @Klasly.API_HostAddress = http://localhost:5201
 
-GET {{Klasly.API_HostAddress}}/weatherforecast/
-Accept: application/json
+# Seed accounts all use the test password Klasly@123 (fictional data, RA 10173).
 
-###
+### 1. Admin login -> 200
+# @name adminLogin
+POST {{Klasly.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@klasly.test", "password": "Klasly@123" }
+
+### 2. Student login -> 200, role = Student
+POST {{Klasly.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "aira.mendoza@klasly.test", "password": "Klasly@123" }
+
+### 3. Wrong password -> 401 "Invalid email or password."
+POST {{Klasly.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@klasly.test", "password": "wrong-password" }
+
+### 4. Blank password -> 400 validation problem
+POST {{Klasly.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@klasly.test", "password": "" }
+
+### 5. Who am I, no token -> 401
+GET {{Klasly.API_HostAddress}}/api/auth/me
+
+### 6. Who am I, with the token from request 1 -> 200 (run request 1 first)
+GET {{Klasly.API_HostAddress}}/api/auth/me
+Authorization: Bearer {{adminLogin.response.body.$.token}}

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Klasly.API.Services.Interfaces;
 using Klasly.Core.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -24,4 +25,15 @@ public class AuthController(IAuthService authService) : ControllerBase
             ? Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "Invalid email or password.")
             : Ok(response);
     }
+
+    /// <summary>Returns the identity inside the caller's token. Proves the JWT is accepted.</summary>
+    [HttpGet("me")]
+    [Authorize]
+    [ProducesResponseType<CurrentUserResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public ActionResult<CurrentUserResponse> Me() => new CurrentUserResponse(
+        int.Parse(User.FindFirstValue("sub")!),
+        User.FindFirstValue("email")!,
+        User.FindFirstValue("name")!,
+        User.FindFirstValue("role")!);
 }
