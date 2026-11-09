@@ -7,4 +7,8 @@ public interface ISessionRepository
 {
     Task<List<ClassResponse>> ListMyClassesAsync(CancellationToken ct);
     Task<List<SessionResponse>> ListByClassAsync(int classId, CancellationToken ct);
+    Task<SessionResponse> CreateAsync(int classId, CreateSessionRequest request, CancellationToken ct);
+    Task<SessionResponse> GetAsync(int sessionId, CancellationToken ct);
+    Task<SessionResponse> OpenAsync(int sessionId, CancellationToken ct);
+    Task<SessionResponse> CloseAsync(int sessionId, CancellationToken ct);
 }

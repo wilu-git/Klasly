@@ -18,6 +18,8 @@
     </p>
 </div>
 
+<partial name="_StartSession" model="Model.Start" />
+
 <h2 class="h5">Sessions</h2>
 
 @if (Model.Sessions.Count == 0)
@@ -52,4 +54,8 @@ else
             </tbody>
         </table>
     </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
 }

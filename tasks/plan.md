@@ -64,8 +64,8 @@ Tasks 4 and 5 both depend only on Task 3. They touch the same controller and vie
 - [x] Smoke steps 1–2 pass (role routing, Access denied, Manila times)
 
 ### Phase 2: Vertical slice, no live updates yet
-- [ ] Task 3: Start session (create + open) → session page
-- [ ] Task 4: Open a Scheduled session; End session
+- [x] Task 3: Start session (create + open) → session page
+- [x] Task 4: Open a Scheduled session; End session
 - [ ] Task 5: QR + roster partial, drawn on the server
 
 ### Checkpoint B (after Tasks 3–5)

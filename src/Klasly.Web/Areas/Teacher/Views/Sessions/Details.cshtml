@@ -1,0 +1,42 @@
+@model SessionPageViewModel
+@{
+    var s = Model.Session;
+    var day = ManilaTime.ToLocal(s.StartTimeUtc).ToString("ddd, MMM d", System.Globalization.CultureInfo.InvariantCulture);
+    ViewData["Title"] = $"{s.SubjectCode} – {s.Section}, {day}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Classes" asp-action="Index">My classes</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Classes" asp-action="Details" asp-route-id="@s.ClassId">@s.SubjectCode – @s.Section</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@day</li>
+    </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1">@s.SubjectCode – @s.Section <partial name="_SessionStatusBadge" model="s" /></h1>
+        <p class="text-body-secondary mb-0">
+            @day · @ManilaTime.FormatTime(s.StartTimeUtc) – @ManilaTime.FormatTime(s.EndTimeUtc) (Manila) · Late after @s.LateAfterMinutes min
+        </p>
+    </div>
+    @if (s.Status == "Scheduled")
+    {
+        <form asp-action="Open" asp-route-id="@s.SessionId" method="post" class="m-0">
+            <button type="submit" class="btn btn-primary">Open session</button>
+        </form>
+    }
+    else if (s.Status == "Open")
+    {
+        @* Kept away from the QR so it isn't clicked by accident. *@
+        <form asp-action="Close" asp-route-id="@s.SessionId" method="post" class="m-0"
+              data-confirm="End this session? Students who haven't scanned can no longer check in.">
+            <button type="submit" class="btn btn-outline-danger">End session</button>
+        </form>
+    }
+</div>
+
+@if (s.Status == "Scheduled")
+{
+    <p class="text-body-secondary">This session hasn't been opened yet. Open it to show the QR code.</p>
+}

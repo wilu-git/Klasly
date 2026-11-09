@@ -66,14 +66,14 @@
 **Description:** Add a **Start session** form on the class details page, prefilled with start = now, end = now + 90 min (Manila time) and Late after 15 min. Posting it calls `POST api/classes/{id}/sessions` and then `POST api/sessions/{id}/open`, and redirects to `Sessions/Details/{id}`. For now the session page shows the header (class, Manila times, status badge, Late minutes). The QR comes in Task 5.
 
 **Acceptance criteria:**
-- [ ] With the default values, one click opens a session and lands on its page with status **Open**.
-- [ ] End before start, or an end in the past → the API's message on the form, and the entered values are kept (`ModelState.AddApiErrors`).
-- [ ] If the create works but the open fails, the page redirects to the session with a TempData error, and the session stays Scheduled (plan decision 6).
-- [ ] Teacher B opening Teacher A's session URL → Access denied.
+- [x] With the default values, one click opens a session and lands on its page with status **Open**.
+- [x] End before start, or an end in the past → the API's message on the form, and the entered values are kept (`ModelState.AddApiErrors`).
+- [x] If the create works but the open fails, the page redirects to the session with a TempData error, and the session stays Scheduled (plan decision 6).
+- [x] Teacher B opening Teacher A's session URL → Access denied.
 
 **Verification:**
-- [ ] Build succeeds: `dotnet build Klasly.slnx`
-- [ ] Manual check: smoke step 3 (without the QR) and the "Teacher B's session URL" part of step 1. The new session in Swagger has UTC times 8 h before the times on the form.
+- [x] Build succeeds: `dotnet build Klasly.slnx`
+- [x] Manual check: smoke step 3 (without the QR) and the "Teacher B's session URL" part of step 1. The new session in Swagger has UTC times 8 h before the times on the form.
 
 **Dependencies:** Task 2
 
@@ -92,13 +92,13 @@
 **Description:** On the session page, a Scheduled session gets an **Open** button (`POST Sessions/Open/{id}`). An Open session gets an **End session** button (`POST Sessions/Close/{id}`) with a `confirm()`, placed away from where the QR will be. Both redirect back to the page. A 400 or 409 from the API becomes a TempData error.
 
 **Acceptance criteria:**
-- [ ] Open on a Scheduled session (created through Swagger) → status Open.
-- [ ] End session → `confirm()` → status Closed. If the teacher cancels the confirm, nothing changes.
-- [ ] Opening or closing a session that another tab already closed → the API's message as a TempData error, not an error page.
+- [x] Open on a Scheduled session (created through Swagger) → status Open.
+- [x] End session → `confirm()` → status Closed. If the teacher cancels the confirm, nothing changes.
+- [x] Opening or closing a session that another tab already closed → the API's message as a TempData error, not an error page.
 
 **Verification:**
-- [ ] Build succeeds: `dotnet build Klasly.slnx`
-- [ ] Manual check: smoke step 8 (without the QR). Close it with two tabs open to get the 409 message.
+- [x] Build succeeds: `dotnet build Klasly.slnx`
+- [x] Manual check: smoke step 8 (without the QR). Close it with two tabs open to get the 409 message.
 
 **Dependencies:** Task 3
 
