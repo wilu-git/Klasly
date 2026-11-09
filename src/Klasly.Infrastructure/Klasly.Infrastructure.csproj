@@ -5,10 +5,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Data\" />
     <Folder Include="Email\" />
     <Folder Include="Security\" />
     <Folder Include="Repositories\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Not PrivateAssets: dotnet ef needs Design to flow to the startup project (Klasly.API). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.14" />
+    <!-- Pins the 9.0.11 copy Microsoft.Data.SqlClient pulls in (NU1903) up to 10.x. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
 
   <PropertyGroup>
