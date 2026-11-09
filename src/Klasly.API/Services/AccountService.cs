@@ -105,6 +105,34 @@ public class AccountService(IUserRepository users, IPasswordHasher<User> hasher)
         await users.RemoveLinkAsync(link, ct);
     }
 
+    // shortcut: two different phones registering at the same instant can both see "none yet" (last write wins);
+    // upgrade to a conditional UPDATE ... WHERE RegisteredDeviceId IS NULL if account sharing becomes a problem.
+    public async Task<DeviceResponse> RegisterDeviceAsync(int studentUserId, string deviceId, CancellationToken ct)
+    {
+        var user = await FindAsync(studentUserId, ct);
+        if (user.Student is null) throw new ForbiddenException("Only student accounts register a device.");
+        if (user.RegisteredDeviceId is null)
+        {
+            user.RegisteredDeviceId = deviceId;
+            user.UpdatedAt = DateTime.UtcNow;
+            await users.SaveChangesAsync(ct);
+        }
+        else if (user.RegisteredDeviceId != deviceId)
+        {
+            throw new ConflictException("Another device is already registered. Ask the admin to reset it.");
+        }
+        return new DeviceResponse(deviceId);
+    }
+
+    public async Task ResetDeviceAsync(int userId, CancellationToken ct)
+    {
+        var user = await FindAsync(userId, ct);
+        if (user.RegisteredDeviceId is null) return;
+        user.RegisteredDeviceId = null;
+        user.UpdatedAt = DateTime.UtcNow;
+        await users.SaveChangesAsync(ct);
+    }
+
     private async Task<User> FindAsync(int userId, CancellationToken ct) =>
         await users.GetByIdAsync(userId, ct)
         ?? throw new KeyNotFoundException($"Account {userId} was not found.");

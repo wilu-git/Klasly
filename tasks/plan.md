@@ -70,7 +70,7 @@ All tasks touch `Program.cs` or `DependencyInjection.cs`, so they run one after 
 - [x] SPEC smoke steps 1–3 pass
 
 ### Phase 3: Device, scan, roster
-- [ ] Task 5: Register and reset a student's device (S)
+- [x] Task 5: Register and reset a student's device (S)
 - [ ] Task 6: Scan endpoint with the 7 checks (M)
 - [ ] Task 7: Live attendance roster (S)
 

@@ -59,6 +59,14 @@ public class AccountsController(IAccountService accountService) : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Clears the student's registered phone so their next login registers a new one.</summary>
+    [HttpDelete("{id:int}/device")]
+    public async Task<IActionResult> ResetDevice(int id, CancellationToken ct)
+    {
+        await accountService.ResetDeviceAsync(id, ct);
+        return NoContent();
+    }
+
     // Same claim /api/auth/me reads; the AdminOnly policy guarantees a valid token here.
     private int CurrentUserId => int.Parse(User.FindFirstValue("sub")!);
 }

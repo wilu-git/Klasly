@@ -107,13 +107,13 @@
 **Description:** The phone is registered before the first scan (decision Q2), and the admin can reset it.
 
 **Acceptance criteria:**
-- [ ] `POST api/students/me/device` (`StudentOnly`) `{ deviceId }`: no phone → saved, `200 { deviceId }`; same → `200`; different → `409` "Another device is already registered. Ask the admin to reset it."
-- [ ] `DELETE api/accounts/{id}/device` (`AdminOnly`) → `204`, also when none is registered; unknown id → `404`.
-- [ ] `AccountResponse` still never carries the device id.
+- [x] `POST api/students/me/device` (`StudentOnly`) `{ deviceId }`: no phone → saved, `200 { deviceId }`; same → `200`; different → `409` "Another device is already registered. Ask the admin to reset it."
+- [x] `DELETE api/accounts/{id}/device` (`AdminOnly`) → `204`, also when none is registered; unknown id → `404`.
+- [x] `AccountResponse` still never carries the device id.
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Register `phone-1` → 200; again → 200; `phone-2` → 409; teacher token → 403; admin reset → 204 (twice); `phone-2` → 200; reset again for the later steps
+- [x] Build succeeds
+- [x] Register `phone-1` → 200; again → 200; `phone-2` → 409; teacher token → 403; admin reset → 204 (twice); `phone-2` → 200; reset again for the later steps
 
 **Dependencies:** Task 1
 
