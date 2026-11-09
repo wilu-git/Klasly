@@ -1,6 +1,6 @@
 # Spec: Milestone 5 — Web MVC login + Admin pages
 
-> Status: **Approved 2026-11-09** with the recommended answers to the 3 open questions (see "Decisions"). Plan: `tasks/plan.md` · Tasks: `tasks/todo.md`. Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` → `CLAUDE.md` → this spec.
+> Status: **Done — built 2026-11-09** (all 12 smoke steps pass). Reports: `docs/reports/2026-11-09-2034-milestone-5-task-1-login/`, `docs/reports/2026-11-09-2101-milestone-5-web-admin/`. Approved 2026-11-09 with the recommended answers to the 3 open questions (see "Decisions"). Plan: `tasks/plan.md` · Tasks: `tasks/todo.md`. Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` → `CLAUDE.md` → this spec.
 > Milestone 4's spec (the API contract these pages call) is in git history (commit `f87ee09`) and in `docs/reports/2026-11-09-2009-milestone-4-admin-crud/`.
 
 ## Assumptions (correct these before we build)
@@ -205,13 +205,13 @@ UI: Bootstrap from the template, one consistent admin layout (tables with a head
 
 ## Success criteria
 
-- [ ] All 12 smoke-test steps behave as written.
-- [ ] Every Milestone 4 admin endpoint is reachable from a page or button, and nothing else was added.
-- [ ] The JWT only ever lives inside the HttpOnly, Secure, SameSite=Lax auth cookie and the server-side `Authorization` header.
-- [ ] A failed save never loses what the user typed and always shows a human-readable message.
-- [ ] `Klasly.Web` builds with no database or `Klasly.Core` reference.
-- [ ] `/impeccable` run on the views; findings fixed or listed in the report.
-- [ ] Reports written; `docs/reports/INDEX.md` updated.
+- [x] All 12 smoke-test steps behave as written.
+- [x] Every Milestone 4 admin endpoint is reachable from a page or button, and nothing else was added.
+- [x] The JWT only ever lives inside the HttpOnly, Secure, SameSite=Lax auth cookie and the server-side `Authorization` header.
+- [x] A failed save never loses what the user typed and always shows a human-readable message.
+- [x] `Klasly.Web` builds with no database or `Klasly.Core` reference.
+- [x] `/impeccable` run on the views; findings fixed or listed in the report.
+- [x] Reports written; `docs/reports/INDEX.md` updated.
 
 ## Decisions (were open questions — approved 2026-11-09)
 

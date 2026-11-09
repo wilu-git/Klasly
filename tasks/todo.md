@@ -104,8 +104,8 @@
 ---
 
 ## Checkpoint A — after Tasks 1–3
-- [ ] `dotnet build Klasly.slnx` → 0 errors, no new warnings
-- [ ] Steps 1–6, 11 and 12 pass
+- [x] `dotnet build Klasly.slnx` → 0 errors, no new warnings
+- [x] Steps 1–6, 11 and 12 pass
 - [ ] Team looks at the layout and form style before more pages copy it
 
 ---
@@ -185,8 +185,8 @@
 ---
 
 ## Checkpoint B — after Tasks 4–6
-- [ ] Steps 7 and 8 pass
-- [ ] No page ever shows raw JSON or a stack trace
+- [x] Steps 7 and 8 pass
+- [x] No page ever shows raw JSON or a stack trace
 
 ---
 
@@ -242,7 +242,7 @@
 ---
 
 ## Checkpoint C — after Tasks 7–8
-- [ ] Steps 9 and 10 pass
+- [x] Steps 9 and 10 pass
 
 ---
 
@@ -251,16 +251,16 @@
 **Description:** Polish, prove everything works together, document it, commit.
 
 **Acceptance criteria:**
-- [ ] `/impeccable` run on every view; findings fixed or listed in the report.
-- [ ] All 12 smoke steps pass in one run.
-- [ ] `dotnet list Klasly.slnx package` → no Microsoft package below 10.x. `Klasly.Web.csproj` has no EF Core package and no `Klasly.Core` / `Klasly.Infrastructure` reference. No secret or connection string in `Klasly.Web`.
-- [ ] `docs/reports/<yyyy-MM-dd-HHmm>-milestone-5-web-admin/` with DEVELOPER-DOCS.md, HOW-TO-USE.md (including `dotnet dev-certs https --trust`), FLOWCHARTS.md (login flow + MVC → API sequence; no erDiagram, since there are no database changes). One line in `INDEX.md`.
-- [ ] SPEC.md success criteria ticked, status "Done"; tasks ticked in `plan.md` and this file.
-- [ ] Committed to `dev`.
+- [x] `/impeccable` run on every view; findings fixed or listed in the report.
+- [x] All 12 smoke steps pass in one run.
+- [x] `dotnet list Klasly.slnx package` → no Microsoft package below 10.x. `Klasly.Web.csproj` has no EF Core package and no `Klasly.Core` / `Klasly.Infrastructure` reference. No secret or connection string in `Klasly.Web`.
+- [x] `docs/reports/<yyyy-MM-dd-HHmm>-milestone-5-web-admin/` with DEVELOPER-DOCS.md, HOW-TO-USE.md (including `dotnet dev-certs https --trust`), FLOWCHARTS.md (login flow + MVC → API sequence; no erDiagram, since there are no database changes). One line in `INDEX.md`.
+- [x] SPEC.md success criteria ticked, status "Done"; tasks ticked in `plan.md` and this file.
+- [x] Committed to `dev`.
 
 **Verification:**
-- [ ] `dotnet build Klasly.slnx` → 0 errors, no new warnings
-- [ ] Every SPEC success criterion ticked
+- [x] `dotnet build Klasly.slnx` → 0 errors, no new warnings
+- [x] Every SPEC success criterion ticked
 
 **Dependencies:** Tasks 1–8
 

@@ -30,6 +30,11 @@ body {
   text-align: start;
 }
 
+/* Same-width digits so ID numbers, dates and counts line up in columns. */
+.table {
+  font-variant-numeric: tabular-nums;
+}
+
 /* The validation summary box only shows when it has messages. */
 .validation-summary-valid {
   display: none;

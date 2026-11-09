@@ -67,8 +67,8 @@ Tasks 3–8 all edit `Program.cs` (one client registration each) and the layout 
 - [x] Task 3: Subjects (S)
 
 ### Checkpoint A — after Tasks 1–3
-- [ ] `dotnet build Klasly.slnx` → 0 errors, no new warnings
-- [ ] SPEC smoke steps 1–6, 11 and 12 pass
+- [x] `dotnet build Klasly.slnx` → 0 errors, no new warnings
+- [x] SPEC smoke steps 1–6, 11 and 12 pass
 - [ ] Team looks at the layout and form style before more pages copy it
 
 ### Phase 3: Accounts
@@ -77,23 +77,23 @@ Tasks 3–8 all edit `Program.cs` (one client registration each) and the layout 
 - [x] Task 6: Parent links (S)
 
 ### Checkpoint B — after Tasks 4–6
-- [ ] SPEC smoke steps 7 and 8 pass
-- [ ] No page ever shows raw JSON or a stack trace
+- [x] SPEC smoke steps 7 and 8 pass
+- [x] No page ever shows raw JSON or a stack trace
 
 ### Phase 4: Classes and enrollments
 - [x] Task 7: Classes — list + create/edit (M)
 - [x] Task 8: Class details — enroll, drop (S–M)
 
 ### Checkpoint C — after Tasks 7–8
-- [ ] SPEC smoke steps 9 and 10 pass
+- [x] SPEC smoke steps 9 and 10 pass
 
 ### Phase 5: Wrap-up
-- [ ] Task 9: `/impeccable`, full smoke test, package check, reports, commit (S)
+- [x] Task 9: `/impeccable`, full smoke test, package check, reports, commit (S)
 
 ### Checkpoint D — complete
-- [ ] Every SPEC.md success criterion ticked
-- [ ] `Klasly.Web.csproj` has no EF Core, `Klasly.Core` or `Klasly.Infrastructure` reference; `dotnet list package` shows no Microsoft package below 10.x
-- [ ] Reports in `docs/reports/`, `INDEX.md` updated, committed to `dev`
+- [x] Every SPEC.md success criterion ticked
+- [x] `Klasly.Web.csproj` has no EF Core, `Klasly.Core` or `Klasly.Infrastructure` reference; `dotnet list package` shows no Microsoft package below 10.x
+- [x] Reports in `docs/reports/`, `INDEX.md` updated, committed to `dev`
 
 ## Risks and mitigations
 
