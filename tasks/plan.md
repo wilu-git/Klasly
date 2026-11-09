@@ -63,7 +63,7 @@ Tasks 3–8 all edit `Program.cs` (one client registration each) and the layout 
 - [x] Task 1: Login and logout end to end (M)
 
 ### Phase 2: Pattern slice and simple resources
-- [ ] Task 2: Authenticated API plumbing + Admin home + Terms (M–L)
+- [x] Task 2: Authenticated API plumbing + Admin home + Terms (M–L)
 - [ ] Task 3: Subjects (S)
 
 ### Checkpoint A — after Tasks 1–3

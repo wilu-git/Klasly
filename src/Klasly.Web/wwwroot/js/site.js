@@ -1,4 +1,5 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
-
-// Write your JavaScript code.
+﻿// Forms with data-confirm="..." ask before submitting (used for Deactivate, Drop, Unlink).
+document.addEventListener('submit', function (event) {
+    var message = event.target.dataset.confirm;
+    if (message && !window.confirm(message)) event.preventDefault();
+});

@@ -48,22 +48,22 @@
 **Description:** Calls that carry the JWT, the single place that handles 401 / 403 / 404 / API down, and the first Admin slice. Terms sets the pattern every other resource copies.
 
 **Acceptance criteria:**
-- [ ] `BearerTokenHandler` adds `Authorization: Bearer <access_token>` when the user is signed in. Registered as transient, with `AddHttpContextAccessor()`.
-- [ ] A local helper in `Program.cs` registers typed clients with base address `Api:BaseUrl`, a 15 s timeout and the bearer handler. Terms is the first client to use it.
-- [ ] `ApiExceptionFilter` registered globally: `401` → sign out + TempData message + redirect to login (with `returnUrl` on GET only); `403` → AccessDenied; `404` → `NotFound()`; `HttpRequestException` / `TaskCanceledException` → logged + `Views/Shared/ApiUnavailable.cshtml` ("Klasly can't reach the server right now. Try again in a minute.").
-- [ ] `ModelStateExtensions.AddApiErrors` puts each `errors` entry on its key and `detail` on `""`.
-- [ ] Area route mapped before the default route. `Areas/Admin/Controllers/HomeController` + view: four links (Terms, Subjects, Accounts, Classes) with one-line descriptions. Layout shows the Admin nav for the Admin role. `Areas/Admin/Views/_ViewImports.cshtml` + `_ViewStart.cshtml`.
-- [ ] `Models/Api/TermDtos.cs` (`TermRequest` with `DateOnly?` dates, `TermResponse`); `ITermRepository` / `TermRepository` (list, get, create, update, activate, deactivate); `ITermService` / `TermService`.
-- [ ] `TermsController`: `Index`, `Create` GET/POST, `Edit` GET/POST, `Activate` POST, `Deactivate` POST (with `confirm()`). Success → redirect to Index with a TempData message.
-- [ ] `TermFormViewModel` (`Id?`, `Name` [Required, StringLength 50], `StartDate`, `EndDate` [Required]); `Index.cshtml` (table with an Active badge and buttons) + `Form.cshtml` (validation summary + field messages).
+- [x] `BearerTokenHandler` adds `Authorization: Bearer <access_token>` when the user is signed in. Registered as transient, with `AddHttpContextAccessor()`.
+- [x] A local helper in `Program.cs` registers typed clients with base address `Api:BaseUrl`, a 15 s timeout and the bearer handler. Terms is the first client to use it.
+- [x] `ApiExceptionFilter` registered globally: `401` → sign out + TempData message + redirect to login (with `returnUrl` on GET only); `403` → AccessDenied; `404` → `NotFound()`; `HttpRequestException` / `TaskCanceledException` → logged + `Views/Shared/ApiUnavailable.cshtml` ("Klasly can't reach the server right now. Try again in a minute.").
+- [x] `ModelStateExtensions.AddApiErrors` puts each `errors` entry on its key and `detail` on `""`.
+- [x] Area route mapped before the default route. `Areas/Admin/Controllers/HomeController` + view: four links (Terms, Subjects, Accounts, Classes) with one-line descriptions. Layout shows the Admin nav for the Admin role. `Areas/Admin/Views/_ViewImports.cshtml` + `_ViewStart.cshtml`.
+- [x] `Models/Api/TermDtos.cs` (`TermRequest` with `DateOnly?` dates, `TermResponse`); `ITermRepository` / `TermRepository` (list, get, create, update, activate, deactivate); `ITermService` / `TermService`.
+- [x] `TermsController`: `Index`, `Create` GET/POST, `Edit` GET/POST, `Activate` POST, `Deactivate` POST (with `confirm()`). Success → redirect to Index with a TempData message.
+- [x] `TermFormViewModel` (`Id?`, `Name` [Required, StringLength 50], `StartDate`, `EndDate` [Required]); `Index.cshtml` (table with an Active badge and buttons) + `Form.cshtml` (validation summary + field messages).
 
 **Verification:**
-- [ ] Build succeeds
-- [ ] Step 3 (teacher → Access denied; logged out → login → back to the page)
-- [ ] Step 5 (create, edit, activate; end before start → message)
-- [ ] Key mapping check: turn client validation off (remove `_ValidationScriptsPartial` for the check, or post with dev tools) and submit a blank name → the API's `Name` message shows **next to the field**, not only in the summary
-- [ ] Step 11 (stop the API → friendly page)
-- [ ] Step 12 (1-minute JWT → "session ended" on the login page)
+- [x] Build succeeds
+- [x] Step 3 (teacher → Access denied; logged out → login → back to the page)
+- [x] Step 5 (create, edit, activate; end before start → message)
+- [x] Key mapping check: turn client validation off (remove `_ValidationScriptsPartial` for the check, or post with dev tools) and submit a blank name → the API's `Name` message shows **next to the field**, not only in the summary
+- [x] Step 11 (stop the API → friendly page)
+- [x] Step 12 (1-minute JWT → "session ended" on the login page)
 
 **Dependencies:** Task 1
 

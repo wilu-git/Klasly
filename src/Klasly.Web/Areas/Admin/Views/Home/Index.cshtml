@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "Admin";
+    var sections = new[]
+    {
+        ("Terms", "Terms", "Create the semester and choose which term is active."),
+        ("Subjects", "Subjects", "Keep the subject catalog: code, title and units."),
+        ("Accounts", "Accounts", "Teachers, students, parents and admins; link parents to their children."),
+        ("Classes", "Classes", "Class sections with their teacher, and which students are enrolled."),
+    };
+}
+
+<h1 class="h3 mb-1">Admin</h1>
+<p class="text-body-secondary mb-4">Set up the term before teachers open sessions.</p>
+
+<div class="row g-3">
+    @foreach (var (controller, title, description) in sections)
+    {
+        <div class="col-12 col-md-6">
+            <a class="card h-100 text-decoration-none" asp-controller="@controller" asp-action="Index">
+                <div class="card-body">
+                    <h2 class="h5 card-title">@title</h2>
+                    <p class="card-text text-body-secondary mb-0">@description</p>
+                </div>
+            </a>
+        </div>
+    }
+</div>

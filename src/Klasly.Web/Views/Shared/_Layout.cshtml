@@ -14,6 +14,19 @@
         <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container">
                 <a class="navbar-brand fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">Klasly</a>
+                @if (User.IsInRole("Admin"))
+                {
+                    var current = ViewContext.RouteData.Values["controller"]?.ToString();
+                    <ul class="navbar-nav flex-row gap-3 me-auto">
+                        @foreach (var (controller, label) in new[] { ("Terms", "Terms"), ("Subjects", "Subjects"), ("Accounts", "Accounts"), ("Classes", "Classes") })
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(current == controller ? "active fw-semibold" : "")" aria-current="@(current == controller ? "page" : null)"
+                                   asp-area="Admin" asp-controller="@controller" asp-action="Index">@label</a>
+                            </li>
+                        }
+                    </ul>
+                }
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     <div class="d-flex align-items-center gap-3 ms-auto">

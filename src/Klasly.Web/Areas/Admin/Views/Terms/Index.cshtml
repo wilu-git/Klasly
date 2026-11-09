@@ -1,0 +1,62 @@
+@model List<TermResponse>
+@{
+    ViewData["Title"] = "Terms";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Terms</h1>
+    <a asp-action="Create" class="btn btn-primary">New term</a>
+</div>
+
+@if (Model.Count == 0)
+{
+    <p class="text-body-secondary">No terms yet. Create the first semester to get started.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Start</th>
+                    <th scope="col">End</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var term in Model)
+                {
+                    <tr>
+                        <td>@term.Name</td>
+                        <td>@term.StartDate.ToString("MMM d, yyyy")</td>
+                        <td>@term.EndDate.ToString("MMM d, yyyy")</td>
+                        <td>
+                            @if (term.IsActive)
+                            {
+                                <span class="badge text-bg-success">Active</span>
+                            }
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <a asp-action="Edit" asp-route-id="@term.TermId" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            @if (term.IsActive)
+                            {
+                                <form asp-action="Deactivate" asp-route-id="@term.TermId" method="post" class="d-inline"
+                                      data-confirm="Deactivate @term.Name? No term will be active.">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="Activate" asp-route-id="@term.TermId" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Make active</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

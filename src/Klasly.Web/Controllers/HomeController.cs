@@ -9,7 +9,8 @@ public class HomeController : Controller
 {
     /// <summary>Sends each role to its portal. Not logged in → the cookie handler redirects to the login page.</summary>
     [Authorize]
-    public IActionResult Index() => User.IsInRole("Admin") ? LocalRedirect("/Admin") : View();
+    public IActionResult Index() =>
+        User.IsInRole("Admin") ? RedirectToAction("Index", "Home", new { area = "Admin" }) : View();
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
