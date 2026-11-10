@@ -61,7 +61,7 @@ Task 0  (team) Android Studio wizard creates android/KlaslyApp
 
 ### Phase 1: Foundation
 - [x] Task 0: create the project (wizard files copied from a recent project on this PC, see `todo.md`)
-- [ ] Task 1: Build setup
+- [x] Task 1: Build setup
 - [ ] Task 2: API text rules, test first
 - [ ] Task 3: API client + session store
 

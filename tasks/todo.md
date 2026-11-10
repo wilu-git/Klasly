@@ -39,13 +39,13 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 **Description:** Add the libraries from plan decision 9 to the version catalog and `app/build.gradle.kts`, plus the Kotlin serialization plugin. Turn on `buildConfig` and add `API_BASE_URL`, read from `local.properties` `klasly.apiBaseUrl` with the default `http://10.0.2.2:5201/api/`. Add the `INTERNET` and `CAMERA` permissions (camera hardware `required="false"`) to the main manifest, and `usesCleartextTraffic="true"` in a new `src/debug/AndroidManifest.xml`.
 
 **Acceptance criteria:**
-- [ ] `./gradlew assembleDebug` passes with every library resolved.
-- [ ] The merged **debug** manifest has `usesCleartextTraffic="true"`, and the merged **release** manifest doesn't.
-- [ ] Without `klasly.apiBaseUrl`, `BuildConfig.API_BASE_URL` is `http://10.0.2.2:5201/api/`. With it set, it uses that value.
+- [x] `./gradlew assembleDebug` passes with every library resolved.
+- [x] The merged **debug** manifest has `usesCleartextTraffic="true"`, and the merged **release** manifest doesn't.
+- [x] Without `klasly.apiBaseUrl`, `BuildConfig.API_BASE_URL` is `http://10.0.2.2:5201/api/`. With it set, it uses that value.
 
 **Verification:**
-- [ ] Build succeeds: `./gradlew assembleDebug`
-- [ ] Manual check: the generated `BuildConfig.java`, and the merged manifests under `app/build/intermediates/merged_manifests/` after `./gradlew processDebugMainManifest processReleaseMainManifest`
+- [x] Build succeeds: `./gradlew assembleDebug`
+- [x] Manual check: the generated `BuildConfig.java`, and the merged manifests under `app/build/intermediates/merged_manifests/` after `./gradlew processDebugMainManifest processReleaseMainManifest`
 
 **Dependencies:** Task 0
 
