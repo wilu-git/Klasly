@@ -1,9 +1,9 @@
 using Klasly.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-[assembly: AssemblyFixture(typeof(Klasly.Worker.Tests.DatabaseFixture))]
+[assembly: AssemblyFixture(typeof(Klasly.Tests.DatabaseFixture))]
 
-namespace Klasly.Worker.Tests;
+namespace Klasly.Tests;
 
 /// <summary>
 /// One LocalDB test database for the whole test run, built by the real migrations (real CHECKs and unique indexes).

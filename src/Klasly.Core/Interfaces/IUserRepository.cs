@@ -17,6 +17,11 @@ public interface IUserRepository
     Task<bool> EmployeeNoExistsAsync(string employeeNo, int? excludeTeacherId, CancellationToken ct);
 
     /// <summary>Inserts the user together with any profile set on its navigation properties.</summary>
+    /// <summary>
+    /// Saves this phone's FCM token on the user and clears it from anyone else who had it (a shared phone), in one transaction.
+    /// </summary>
+    Task SetFcmTokenAsync(int userId, string token, CancellationToken ct);
+
     Task AddAsync(User user, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 

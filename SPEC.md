@@ -1,201 +1,230 @@
-# Spec: Milestone 9 — Worker (Hangfire): close ended sessions + auto-Absent; teacher attendance corrections
+# Spec: Milestone 10 — Assessments and grades (API + MVC), with the FCM grade-posted push
 
-> Status: **Approved** (2026-11-10): open questions 1–3 answered as recommended (never-opened session → `Cancelled`; corrections only after the session ends; a small xUnit test project). **Change to Q3 (approved 2026-11-10):** the tests run on a LocalDB `Klasly_Tests` database instead of SQLite in-memory, because the model's SQL Server CHECK syntax (`N'…'`) can't be created on SQLite (see `tasks/plan-m9.md`, decision 5). Plan: `tasks/plan-m9.md` + `tasks/todo-m9.md` (Milestone 8's open checks stay in `tasks/plan.md` / `todo.md`).
-> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 business rules, §27.2 "Auto-absent marking" and "Attendance records & corrections") → `CLAUDE.md` (§3.5 Console Worker, §3.3 Web API, §3.4 Web MVC) → this spec.
-> Milestone 8's spec (Android login + Scan QR) is in git history (commit `a2303ce`) and in `docs/reports/2026-11-10-1342-milestone-8-android-login-scan/`.
+> Status: **Approved** (2026-11-10). Open questions 1, 2, 3 and 5 answered as recommended. **Q4 changed:** the FCM OAuth token is built in-house with .NET's RSA + System.Text.Json, with **no NuGet package** (`Google.Apis.Auth` would pull in Newtonsoft.Json and System.Management 7.0.2). Android uses Firebase BoM 35.1.0 + the google-services plugin 4.5.0. No Firebase project exists yet, so the plan includes setup steps for the team. Plan: `tasks/plan-m10.md` + `tasks/todo-m10.md`.
+> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.2 "Assessments & grade entry" and "Grade push notifications", §27.6 tables, §27.7 conventions, §27.8 "Grade-posted push", §27.9 #6–7, §13 `FcmPushClient`, §14 secrets) → `CLAUDE.md` (§3.3 Web API, §3.4 Web MVC, §3.6 Android) → this spec.
+> Milestone 9's spec is in git history (commit `ba5dae1`) and in `docs/reports/2026-11-10-1811-milestone-9-worker-absent-corrections/`.
 
 ## What exists today
 
-- **Milestone 8 is built but not fully checked.** The real-phone scan steps in `tasks/todo.md` (Tasks 6–8, Checkpoints C–D) are still open. This milestone does not depend on them, but they should be ticked before Milestone 9 is called done.
-- **The Worker is still the template.** `src/Klasly.Worker` has the `Worker.cs` loop that logs every second, no Hangfire, no connection string, and an empty `Jobs/` folder. It already references `Klasly.Core` and `Klasly.Infrastructure`.
-- **Sessions:** a teacher creates a session (`Scheduled`), opens it (`Open`) and can end it with **End session** (`Closed`, `ClosedAt` set). Nothing ever sets `Finalized` or `Cancelled`. An `Open` session whose `EndTime` has passed already counts as closed for the QR and scans (`SessionService.IsOpenNow`), but its status stays `Open` in the database.
-- **Attendance:** only scans create records (`Source = Scan`). Students who never scan have no record, so the roster shows "Not yet" forever. The `MarkedBy` column and `Source = Manual / Auto` exist in the schema but nothing writes them.
-- **No .NET test project exists** (see open question 3).
+- **Tables are ready.** `Assessments`, `Grades`, `Notifications` and `Users.FcmToken` exist with every CHECK and unique index from `Klasly_Schema.sql`:
+  - `MaxScore > 0`, `0 < WeightPercent ≤ 100`, `Score ≥ 0`;
+  - unique `(ClassId, Title)` and `(AssessmentId, StudentId)`;
+  - a unique `Notifications.DedupKey`.
+  
+  Nothing reads or writes them yet: no repository, service, endpoint or page.
+- **Teacher side:**
+  - the API has `TeacherOnly` session endpoints with an ownership check (`EnsureOwnClassAsync`);
+  - MVC has **My classes → class page** (start session + sessions list) and the session page.
+- **Android:**
+  - login, phone registration and Scan QR screens;
+  - no Firebase, no notifications;
+  - no "My grades" screen (that's Milestone 13).
+- **Tests:** `tests/Klasly.Worker.Tests` (xUnit v3, LocalDB `Klasly_Tests`) exists. It tests Worker services only.
 
 ## Assumptions (correct these before we build)
 
-1. **No database change.** Every column this milestone needs exists (`Status`, `ClosedAt`, `Source`, `MarkedBy`, `MarkedAt`). No migration. The only new tables are Hangfire's own, in the `HangFire` schema (CLAUDE.md §3.1 allows this).
-2. **Session status flow:**
-   ```
-   Scheduled ──open──▶ Open ──End session or EndTime passed──▶ Closed ──Worker marks Absent──▶ Finalized
-       └──EndTime passed, never opened──▶ Cancelled   (open question 1)
-   ```
-   `Finalized` means "attendance is complete": every actively enrolled student has exactly one record. Milestone 11's absence rate counts only `Finalized` sessions (guide §27.8), so this milestone is what makes that number possible.
-3. **The Worker tick (`WorkerTickJob`) runs only two steps for now**, in this order, inside one execution:
-   1. **Close ended sessions:** every `Open` session with `EndTime ≤ now` → `Closed`, `ClosedAt = now`.
-   2. **Mark Absent and finalize:** for every `Closed` session (closed by step 1 *or* by the teacher's **End session**), insert an `Absent` record for each **Active** enrollment that has no record (`Source = Auto`, `MarkedAt = now`, `ScannedAt = null`, `MarkedBy = null`), then set the session to `Finalized`. One `SaveChanges` per session, so a crash never leaves a session half-finalized; the next tick just retries it.
-
-   Steps 3–5 (risk, outbox, Brevo) are added in Milestones 11 and 12. Dropped students get no Absent record.
-4. **Running twice is safe.** If a student scanned or a teacher corrected in the moment between "read the roster" and "insert", the unique `(SessionId, StudentId)` index rejects the duplicate. The Worker skips that student and continues; it never overwrites a scan or a correction.
-5. **Hangfire setup (CLAUDE.md §3.5):** packages `Hangfire.Core`, `Hangfire.SqlServer`, `Hangfire.NetCore` (latest stable 1.8.x; the exact versions go in the report). SQL Server storage on the `Klasly` connection string, `AddHangfireServer()`, no dashboard, no web host. `WorkerTickJob` is registered on startup with `IRecurringJobManager.AddOrUpdate`, cron from `Worker:Cron` (default `*/5 * * * *`), and carries `[DisableConcurrentExecution]` and `[AutomaticRetry(Attempts = 0)]`. The template `Worker.cs` is deleted.
-6. **Worker configuration:** the LocalDB connection string (no password) goes in `src/Klasly.Worker/appsettings.Development.json`, the same string the API uses. `Worker:Cron` goes in `appsettings.json`. Nothing secret is needed yet (the Brevo key comes in Milestone 12).
-7. **Where the code lives:**
-   - the business logic in a Worker service (`Klasly.Worker/Services/AttendanceFinalizer`), as guide §27.4 says business-rule services stay in the Api and Worker projects;
-   - the job class only calls the service;
-   - the queries in the existing EF Core repositories in `Klasly.Infrastructure` (a few new methods on `ISessionRepository` / `IAttendanceRepository`), shared with the API.
-8. **Times:** the Worker compares UTC with UTC (`DateTime.UtcNow` against `EndTime`). The cron runs in UTC (Hangfire's default); `*/5` means the same thing in any time zone.
-9. **Teacher corrections — API:**
-   - **New endpoint:** `PUT /api/sessions/{sessionId}/attendance/{studentId}` with body `{ "status": "Present" | "Late" | "Absent" | "Excused" }`. `TeacherOnly` policy, and the session must belong to the caller's class (same ownership check as today's session endpoints).
-   - **When:** only after the session has ended, so `Closed` or `Finalized` (open question 2). Any other status → `409` "Attendance can be corrected only after the session has ended."
-   - **Who:** the student must be **actively enrolled** in the class, otherwise `404` "This student is not enrolled in this class."
-   - **What it writes:** creates the record if there is none, or updates the existing one: `Status` = the new value, `Source = Manual`, `MarkedBy` = the teacher's UserId, `MarkedAt = now`. An existing `ScannedAt` is kept, so the original scan time is not lost.
-   - **The same status again** changes nothing and returns `200`.
-   - **Response:** `200` with the updated `SessionAttendanceRow`. Bad status → `400` problem-details.
-   - **"Logged" (guide §27.2):** the record itself keeps who (`MarkedBy`), when (`MarkedAt`) and how (`Source = Manual`). The API also writes one log line with the session, student, old status → new status and the teacher's UserId. There is no audit-history table, so a second correction replaces the first.
-   - The teacher picks Present or Late by hand; the API does not recompute lateness for a correction.
-10. **Teacher corrections — MVC:** on the existing session page (`Teacher/Sessions/Details`):
-    - once the session is `Closed` or `Finalized`, each roster row gets a status dropdown and a **Save** button (one small form per row, `[ValidateAntiForgeryToken]`), posting to a new `Teacher/Sessions/Correct` action;
-    - success → back to the same page with "Attendance updated for {name}."; API error → the API's message on the same page (the existing `TempData["Error"]` pattern);
-    - a new **Source** column shows "Scan", "Auto" or "Corrected", so the teacher sees which rows were changed by hand;
-    - while the session is `Open`, the page stays exactly as today (QR + 5-second polling, no dropdowns), so polling can't wipe a half-made choice;
-    - the session status badge already handles `Finalized` and `Cancelled`.
-11. **Corrections to Absent and alerts:** a correction to `Absent` is a normal record with `Source = Manual`. Milestone 12's outbox will pick it up like an `Auto` one (guide §27.8). Nothing is emailed in this milestone.
-12. **Out of scope:**
-    - risk flags, the outbox, Brevo (Milestones 11–12);
-    - excuse requests (Nice-to-Have);
-    - a Hangfire dashboard;
-    - a correction history table;
-    - corrections from the Android app;
-    - an admin view of corrections;
-    - an attendance page by student or by class across sessions (the session page is the only correction screen).
+1. **No database change.** Every column exists. No migration.
+2. **Assessments (API):** a teacher manages assessments only for their own classes.
+   - **Fields:** `Title` (required, ≤ 100, unique in the class), `Type` (required, ≤ 30, free text; the page suggests Quiz, Exam, Activity, Project, Recitation), `MaxScore` (> 0, ≤ 9999.99, 2 decimals), `WeightPercent` (> 0, ≤ 100, 2 decimals).
+   - **Weights rule:** the class total may never go above **100%** (open question 1). The class page shows "Weights: 60 of 100%" and a warning while the total is under 100.
+   - **Edit:** title, type, max score and weight can be changed. A new `MaxScore` below a score already posted → `400` "Max score can't be lower than a posted score (18)."
+   - **No delete** (the table has no soft-delete column; deleting a graded assessment would lose grades). Out of scope.
+   - **`DatePosted`:** set to the time (UTC) when the first grade of that assessment is saved; null until then.
+3. **Grades (API):** one bulk call per assessment saves the scores of many students at once.
+   - **Who:** only **actively enrolled** students of the class. A student not actively enrolled → `400` for that row.
+   - **Values:** each score is `0 ≤ score ≤ MaxScore`, 2 decimals at most. A blank score means "not graded yet" and is skipped.
+   - **All or nothing:** one invalid row → `400` problem-details with field errors (`grades[2].score`), and nothing is saved.
+   - **Writes:** a new grade → insert (`PostedAt = now`). A changed score → update `Score`, `UpdatedAt = now`. The same score → no change.
+   - **No "un-post":** a posted grade can be changed but not removed. Out of scope.
+   - **Response:** `200` with the assessment's roster (student, score or null, posted/updated time).
+   - **Concurrency:** if two saves race to insert the same student's grade, the unique `(AssessmentId, StudentId)` index rejects one. The API turns that into `409` "Grades were just updated. Reload and try again.", the same pattern as attendance.
+4. **Grade-posted push (API, guide §27.8):** when a grade is saved **for the first time** (open question 2):
+   - the API writes a `Notifications` row in the **same save** as the grade: `UserId` = the student's user, `Channel = Push`, `Type = GradePosted`, `Status = Pending`, `DedupKey = grade:{AssessmentId}:{StudentId}`, `Subject` "New grade posted", `Body` "ELECT3 – Quiz 1: 18 / 20";
+   - after the save, the push is sent **in the background** so the teacher never waits for Firebase (open question 3);
+   - result: FCM `200` → `Accepted` with FCM's message name in `ExternalMessageId`; any error → `Failed` with `LastError`. No retries: a push is best-effort, and the grade is already saved and visible;
+   - a student with no `FcmToken` → `Failed`, `LastError` "No device registered for push";
+   - **Firebase not configured** (no credentials in user-secrets) → `Failed`, `LastError` "FCM is not configured". Grades still work, so the team can build and test everything except the real push before Firebase exists (open question 4).
+5. **FCM sender (API, guide §13):**
+   - a typed `HttpClient` `FcmPushClient` calls FCM HTTP v1 (`POST https://fcm.googleapis.com/v1/projects/{projectId}/messages:send`) with a Google OAuth access token from the service account;
+   - credentials: the service-account JSON file path in user-secrets (`Fcm:ServiceAccountPath`), never in the repo;
+   - one new package for the OAuth token (open question 4).
+6. **FCM token (API + Android):**
+   - **New endpoint:** `PUT api/students/me/fcm-token` with `{ "token": "…" }` (`StudentOnly`). It saves the token on the caller's `Users` row and **clears the same token from any other user**, so a shared phone never gets another student's grade.
+   - **Android:**
+     - after login, and whenever Firebase gives a new token (`onNewToken`), the app sends it;
+     - on logout it does nothing extra (the next student's login moves the token);
+     - a `FirebaseMessagingService` shows the push as a system notification ("New grade posted", "ELECT3 – Quiz 1: 18 / 20");
+     - on Android 13+ the app asks for the notification permission once, after the first student login;
+     - tapping the notification opens the app (the grade screen comes in Milestone 13).
+   - Parents get no push in this milestone.
+7. **MVC teacher pages** (`Teacher` area; `[ValidateAntiForgeryToken]` on every POST; API errors shown with the existing patterns):
+   - **Class page:** a new **Assessments** section under Sessions. It lists title, type, max score, weight, graded "4 of 6", and a total "Weights: 60 of 100%" with a warning below 100. It also has an **Add assessment** form.
+   - **Assessment page** (`Teacher/Assessments/Details/{id}`):
+     - the assessment details with an **Edit** form;
+     - the roster of active students (student no., name, a score input `0–MaxScore`, last posted/updated time in Manila);
+     - one **Save grades** button;
+     - success: "Grades saved: 3 new, 1 changed." Errors show on the matching rows.
+8. **Privacy (RA 10173):** a push payload goes through Google's servers. It carries only the subject code, assessment title and score: no student name or number. Test data stays fictional.
+9. **Out of scope:**
+   - student/parent grade screens (Milestone 13);
+   - risk and weighted average (Milestone 11);
+   - email (Milestone 12);
+   - deleting assessments or grades;
+   - push retries;
+   - a push for changed scores (open question 2);
+   - importing grades from a file;
+   - grade history.
 
 ## Objective
 
-After a class ends, nobody has to remember to close the session or mark who didn't come. Within 5 minutes of the end time (or of **End session**), the Worker closes the session and every enrolled student who didn't scan shows **Absent** on the teacher's page. The session is then `Finalized`, ready for the risk calculation in Milestone 11.
+A teacher sets up a class's graded work (quizzes, exams, projects with weights totalling 100%) and enters scores for the whole class on one page. The API refuses impossible scores and weights. When a student's grade is posted, their phone shows a notification within seconds.
 
-When the record is wrong (a phone died, a student was excused, a scan was refused unfairly), the teacher fixes it on the same page, and the record shows it was corrected and by whom.
-
-Functional requirements covered: guide §27.9 **#5** (auto-Absent after a session closes) and the "Attendance records & corrections" feature in §27.2.
+Functional requirements covered: guide §27.9 **#6** (weighted assessments, scores between 0 and the max) and **#7** (push when a grade is posted).
 
 ### User stories
 
-- As a **teacher**, I don't have to press **End session**: when the class's end time passes, the Worker closes it within 5 minutes.
-- As a **teacher**, after a session ends, the students who didn't scan show as **Absent** with source "Auto" within 5 minutes.
-- As a **teacher**, I can change any student's status on an ended session to Present, Late, Absent or Excused, and I see "Corrected" next to the rows I changed.
-- As a **teacher**, I can't correct another teacher's session, or a student who isn't in the class.
-- As a **student**, a scan that arrives after the session was closed is still refused with "Session is closed" (unchanged).
+- As a **teacher**, I can add an assessment to my class with a title, type, max score and weight, and I can't push the class total over 100%.
+- As a **teacher**, I can enter or change the scores of all my students for an assessment on one page, and a score above the max is refused with a clear message.
+- As a **teacher**, I can't see or change another teacher's assessments.
+- As a **student**, my phone shows "New grade posted – ELECT3 – Quiz 1: 18 / 20" when my teacher posts my grade.
+- As a **student** who shares a phone, I never get another student's grade notification.
 
 ## API contract (new)
 
 | Call | Body | Success | Errors |
 |---|---|---|---|
-| `PUT api/sessions/{sessionId}/attendance/{studentId}` (Bearer, Teacher) | `{ "status": "Excused" }` | `200 { studentId, studentNumber, fullName, status, scannedAtUtc, source }` (existing `SessionAttendanceRow`) | `400` bad status · `401` no/bad token · `403` another teacher's class · `404` session not found / student not enrolled · `409` session not ended yet |
+| `GET api/classes/{classId}/assessments` (Teacher) | — | `200 [ { assessmentId, title, type, maxScore, weightPercent, datePostedUtc, gradedCount, activeCount } ]` | `403` not own class · `404` |
+| `POST api/classes/{classId}/assessments` (Teacher) | `{ title, type, maxScore, weightPercent }` | `201` the assessment | `400` validation / total over 100% · `403` · `404` · `409` title already used in the class |
+| `GET api/assessments/{id}` (Teacher) | — | `200` the assessment | `403` · `404` |
+| `PUT api/assessments/{id}` (Teacher) | same as POST | `200` the assessment | `400` (incl. max below a posted score) · `403` · `404` · `409` title |
+| `GET api/assessments/{id}/grades` (Teacher) | — | `200 [ { studentId, studentNumber, fullName, score, postedAtUtc, updatedAtUtc } ]` active students by name | `403` · `404` |
+| `PUT api/assessments/{id}/grades` (Teacher) | `{ "grades": [ { "studentId": 1, "score": 18.5 } ] }` | `200` the roster + `{ added, changed }` | `400` row errors · `403` · `404` · `409` race |
+| `PUT api/students/me/fcm-token` (Student) | `{ "token": "…" }` | `204` | `400` empty / > 500 chars · `401` |
 
 ## Commands
 
 ```bash
 dotnet build Klasly.slnx
-dotnet run --project src/Klasly.API --launch-profile http        # API (Swagger at /swagger)
-dotnet run --project src/Klasly.Web                               # teacher pages
-dotnet run --project src/Klasly.Worker                            # Hangfire server, creates the HangFire schema on first run
-dotnet list package                                               # all Microsoft.* packages still 10.x
-
-# For the smoke test, tick every minute instead of every 5 (environment variable, not committed):
-$env:Worker__Cron = "* * * * *"; dotnet run --project src/Klasly.Worker
+dotnet test --solution Klasly.slnx
+dotnet run --project src/Klasly.API --launch-profile https       # Swagger at /swagger
+dotnet run --project src/Klasly.Web --launch-profile https
+dotnet user-secrets set "Fcm:ServiceAccountPath" "C:\secrets\klasly-fcm.json" --project src/Klasly.API   # not committed
+dotnet list package                                              # all Microsoft.* still 10.x
+cd android/KlaslyApp; ./gradlew assembleDebug testDebugUnitTest
 ```
 
 ## Project structure (files this milestone touches)
 
 ```
-src/Klasly.Worker/
-  Klasly.Worker.csproj                 (modified) + Hangfire.Core, Hangfire.SqlServer, Hangfire.NetCore
-  Program.cs                           (modified) AddInfrastructure, AddHangfire(SQL Server), AddHangfireServer, register WorkerTickJob
-  Worker.cs                            (deleted) template loop
-  Jobs/WorkerTickJob.cs                (new) the recurring job: calls the steps in order
-  Services/AttendanceFinalizer.cs      (new) close ended sessions; mark Absent + finalize
-  appsettings.json                     (modified) Worker:Cron
-  appsettings.Development.json         (modified) ConnectionStrings:Klasly (LocalDB, no password)
 src/Klasly.Core/
-  Interfaces/ISessionRepository.cs     (modified) list Open sessions ended before a time; list Closed sessions
-  Interfaces/IAttendanceRepository.cs  (modified) get one record (tracked) for a correction
-  DTOs/CorrectAttendanceRequest.cs     (new) { Status } with [Required]
-src/Klasly.Infrastructure/Repositories/SessionRepository.cs, AttendanceRepository.cs   (modified)
+  DTOs/            AssessmentRequest, AssessmentResponse, GradeRow, SaveGradesRequest/Response, FcmTokenRequest   (new)
+  Interfaces/      IAssessmentRepository, IGradeRepository, INotificationRepository (new); IUserRepository (+ token methods)
+src/Klasly.Infrastructure/
+  Repositories/    AssessmentRepository, GradeRepository, NotificationRepository (new); UserRepository (modified)
+  DependencyInjection.cs                                                                                    (register)
 src/Klasly.API/
-  Services/Interfaces/ISessionService.cs, Services/SessionService.cs   (modified) CorrectAttendanceAsync
-  Controllers/SessionsController.cs    (modified) PUT api/sessions/{id}/attendance/{studentId}
+  Controllers/     AssessmentsController (new); StudentsController (+ fcm-token)
+  Services/        AssessmentService, GradeService (new); Push/FcmPushClient + PushSender background queue (new)
+  Program.cs       typed HttpClient, background service, options
 src/Klasly.Web/
-  Repositories/(I)SessionRepository.cs, Services/(I)SessionService.cs  (modified) correct call
-  Areas/Teacher/Controllers/SessionsController.cs   (modified) Correct POST action
-  Areas/Teacher/Views/Sessions/_Live.cshtml         (modified) Source column; dropdown + Save when ended
-  ViewModels/SessionLiveViewModel.cs                (modified if needed) ended flag already there (IsClosed)
+  Areas/Teacher/   AssessmentsController + Views/Assessments/Details.cshtml (new); Classes/Details.cshtml (Assessments section)
+  Repositories/, Services/, Models/Api/, ViewModels/   assessment + grade calls and view models
+android/KlaslyApp/
+  app/build.gradle.kts, gradle/libs.versions.toml     Firebase BoM + messaging, google-services plugin
+  app/google-services.json                            from the team's Firebase project — NOT committed (open question 4)
+  data/  KlaslyApi (+ fcm-token), KlaslyRepository
+  push/  KlaslyMessagingService (new); AndroidManifest (service, POST_NOTIFICATIONS)
+tests/Klasly.Worker.Tests → see Testing strategy
 ```
 
 ## Code style
 
-Same layering as the API: the job is thin, the service holds the rule, the repository holds the query.
+The same as Milestones 3–9:
+- controllers stay thin;
+- rules live in services (`ValidationException` → 400, `ForbiddenException` → 403, `KeyNotFoundException` → 404, `ConflictException` → 409, via the existing `ApiExceptionHandler`);
+- DTOs, never entities;
+- `CancellationToken` all the way down.
 
 ```csharp
-// Jobs/WorkerTickJob.cs
-[DisableConcurrentExecution(timeoutInSeconds: 600)]
-[AutomaticRetry(Attempts = 0)] // the outbox (Milestone 12) does its own retries
-public class WorkerTickJob(AttendanceFinalizer attendance, ILogger<WorkerTickJob> logger)
+public async Task<SaveGradesResponse> SaveGradesAsync(int assessmentId, SaveGradesRequest request, int userId, CancellationToken ct)
 {
-    public async Task RunAsync(CancellationToken ct)
-    {
-        var closed = await attendance.CloseEndedSessionsAsync(ct);
-        var finalized = await attendance.MarkAbsentAndFinalizeAsync(ct);
-        logger.LogInformation("Tick: closed {Closed} sessions, finalized {Finalized}", closed, finalized);
-        // Milestone 11: risk flags. Milestone 12: queue alerts, send emails.
-    }
+    var assessment = await GetOwnAssessmentAsync(assessmentId, userId, ct);          // 404 / 403
+    var errors = Validate(request.Grades, assessment.MaxScore, activeStudentIds);     // all rows first
+    if (errors.Count > 0) throw new RowValidationException(errors);                  // 400, nothing saved
+    // insert/update grades + one Pending push row per first-time grade, one SaveChanges
 }
 ```
 
 ## Testing strategy
 
-- **Build:** `dotnet build Klasly.slnx` with no new warnings; `dotnet list package` shows every `Microsoft.*` package at 10.x (Hangfire must not pull in an older one).
-- **Automated tests:** see open question 3.
-- **Manual smoke test** on LocalDB with the seed data, the API (`http` profile), the website, and the Worker with `Worker__Cron = "* * * * *"`:
-  1. Start the Worker → the `HangFire` schema appears in the `Klasly` database, the log shows a tick every minute, and no Klasly table changed.
-  2. Teacher creates a session ending in 3 minutes and opens it; one student scans (or `curl` the scan endpoint). After the end time + 1 tick → the session is `Finalized`, the scanner keeps **Present** (`Scan`), every other active student is **Absent** (`Auto`), and a dropped student has no row.
-  3. A second session: teacher presses **End session** early → the next tick marks Absent and finalizes it.
-  4. A session created but never opened, ending in 2 minutes → after the end time + 1 tick, it becomes whatever open question 1 decides.
-  5. Stop and start the Worker mid-test; run two Worker processes at once → no duplicate records, no errors beyond a logged skip.
-  6. On the finalized session page: change an Absent student to **Excused** → "Attendance updated for …", the row shows Excused / Corrected; in the database `Source = Manual`, `MarkedBy` = the teacher's UserId. Change a scanned Present to Late → `ScannedAt` unchanged.
-  7. While a session is `Open`: no dropdowns on the page; `PUT` in Swagger → 409 with the message.
-  8. Swagger as another teacher → 403; a student not in the class → 404; status `"Sick"` → 400.
-  9. Scan after the session closed → "Session is closed" (unchanged).
-  10. `/impeccable` on the changed session page (roster with dropdowns); findings fixed or listed in the report.
+- **Automated:** the existing test project's LocalDB fixture is reused for the API's grade and assessment rules. A small `tests/Klasly.API.Tests` project, or the same project renamed `Klasly.Tests` (decided in `/plan`), covers:
+  - weights: total exactly 100 OK, 100.01 refused, edit counts the other assessments only;
+  - scores: 0 and exactly MaxScore OK; −0.01 and MaxScore + 0.01 refused; 3 decimals refused; one bad row saves nothing;
+  - first grade → exactly one Pending push row; a changed score → no new push row; the same score again → nothing;
+  - a lower MaxScore under a posted score refused;
+  - the FCM token moves from user A to user B;
+  - the push sender with a fake `FcmPushClient`: success → Accepted, error → Failed, not configured → Failed.
+- **Manual smoke test** (API + website, LocalDB seed data; push steps need Firebase and a phone or emulator with Google Play):
+  1. Teacher adds Quiz 1 (20 points, 30%) and Midterm (100 points, 70%) → "Weights: 100 of 100%". A third assessment at 10% → refused.
+  2. Assessment page: enter scores for 4 of 6 students → "Grades saved: 4 new, 0 changed". The class page shows "4 of 6".
+  3. A score of 21 on Quiz 1 → the row shows "Score must be between 0 and 20." and nothing is saved.
+  4. Change one score → "0 new, 1 changed"; the DB shows `UpdatedAt`; `Notifications` has no second row for that student.
+  5. Edit Quiz 1's max score to 15 when someone has 18 → refused with the message.
+  6. Swagger as another teacher → 403 on the assessment and its grades.
+  7. Without Firebase configured: the `Notifications` rows show `Failed` / "FCM is not configured", and grade saving still works.
+  8. With Firebase: a student logged in on the emulator/phone gets "New grade posted – ELECT3 – Quiz 1: 18 / 20" within ~10 s; the row shows `Accepted`.
+  9. A second student logs in on the same phone → the first student's `FcmToken` is cleared.
+  10. `/impeccable` on the class page Assessments section and the assessment page.
 
 ## Boundaries
 
 - **Always:**
-  - business rules in services (Worker service, API `SessionService`), never in the job class or the MVC controller;
-  - every write in UTC; Manila time only on screen;
-  - ownership checked in the API, not just by hiding the dropdown;
-  - `[ValidateAntiForgeryToken]` on the new POST;
-  - `dotnet build` after every change, the three reports at the end.
+  - ownership checked in the API for every assessment and grade call;
+  - validation repeated in the API (MVC hints are not security);
+  - UTC in the DB and Manila on screen;
+  - build + tests after every change;
+  - reports after every prompt.
 - **Ask first:**
-  - any package other than the three Hangfire ones;
-  - a database change, a new table (for example, a correction history), or a migration;
-  - a test project (open question 3);
-  - the Hangfire dashboard;
-  - letting the Worker touch `Scheduled` sessions in any way other than what open question 1 decides.
+  - any new package (the OAuth/Firebase ones, see open question 4);
+  - any schema change (none planned);
+  - adding Firebase files to the repo;
+  - sending real pushes to anyone but the team's test devices.
 - **Never:**
-  - delete or overwrite a scan record from the Worker;
-  - model Hangfire's tables in EF Core;
-  - add a second retry layer (Hangfire retries stay off);
-  - commit a connection string with a password.
+  - commit `google-services.json`, the service-account JSON or any key;
+  - put student names or numbers in push payloads;
+  - let a push failure undo or block a saved grade;
+  - add a Hangfire dashboard or move push sending into the Worker (the guide puts it in the Web API).
 
 ## Success criteria
 
-- [x] `dotnet run --project src/Klasly.Worker` starts a Hangfire server that runs `WorkerTickJob` on the `Worker:Cron` schedule, with no dashboard and no web host.
-- [x] Within one tick of a session's end (or **End session**), it is `Closed` and then `Finalized`, and every active enrolled student has exactly one attendance record.
-- [x] Non-scanners get `Absent` / `Auto`; scans and corrections are never overwritten; running two ticks at once creates no duplicates.
-- [x] A teacher can correct a student's status on an ended session from the session page; the record shows `Source = Manual`, `MarkedBy` and `MarkedAt`.
-- [x] Corrections are refused for open/scheduled sessions (409), other teachers' sessions (403) and non-enrolled students (404).
-- [x] All 10 smoke-test steps behave as written.
-- [x] No migration; `dotnet ef migrations has-pending-model-changes` reports none; every Microsoft package still 10.x.
-- [x] Reports written; `docs/reports/INDEX.md` updated.
+- [x] A teacher can add and edit assessments for their own classes, and the class weight total can't go above 100% (exactly 100 allowed).
+- [x] A teacher can save the scores of a whole class in one go. Scores outside 0–MaxScore or with more than 2 decimals are refused with a row message, and nothing partial is saved.
+- [x] Another teacher gets 403; an unknown assessment gets 404; a race gets 409.
+- [x] A student's first grade on an assessment creates exactly one `Push / GradePosted` Notification, sent in the background. It ends `Accepted` (Firebase configured) or `Failed` with a clear `LastError`, and grade saving never waits for or fails because of it.
+- [ ] With Firebase configured, the Android app registers its FCM token and shows the grade notification. A shared phone moves the token to the last student who logged in.
+- [x] No migration; `has-pending-model-changes` reports none; every Microsoft package still 10.x; no secrets or Firebase files committed.
+- [ ] All smoke steps behave as written (step 8 only with Firebase); `/impeccable` run on the new pages; reports written.
 
 ## Open questions (my recommendation first)
 
-1. **What happens to a session that was never opened once its end time passes?** (Status `Scheduled`, nobody could scan.)
-   **Recommended:** the Worker sets it to **`Cancelled`** and marks nobody Absent. Students had no way to check in, so counting them absent would be unfair, and guide §27.8 already excludes Cancelled sessions from the absence rate.
-   *Alternative A:* treat it like a closed session: everyone Absent, then `Finalized`.
-   *Alternative B:* leave it `Scheduled` forever (it then never counts anywhere, and the teacher's session list keeps showing it as upcoming).
-2. **When can a teacher correct attendance?**
-   **Recommended:** only after the session has ended (`Closed` or `Finalized`). During an open session the page polls every 5 s and students are still scanning, so a correction could race a scan, and the polling would reset a half-chosen dropdown. A student whose phone died is fixed right after **End session**.
-   *Alternative:* also while `Open`. Then a manual Present blocks that student's later scan with "Already checked in", and the MVC page needs to pause polling while a dropdown is in use.
-3. **Do we add automated tests now?** No .NET test project exists yet, and the Worker's close/Absent logic is the first non-trivial background rule.
-   **Recommended:** add a small `tests/Klasly.Worker.Tests` xUnit project with **one** test class for `AttendanceFinalizer`, ~~using the EF Core SQLite in-memory provider~~ **on a LocalDB `Klasly_Tests` database built by the real migrations** (it enforces the unique index, so the "no duplicates" rule is really tested). Packages: `xunit.v3`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk`. Milestone 14's role-access and boundary tests can then go in the same kind of project.
-   *Alternative:* no test project until Milestone 14; rely on the manual smoke test (steps 2–5) for now.
+1. **Weights rule:** what does "weights per class total 100%" mean while the teacher is still adding assessments?
+   - **Recommended:** the total may **never go above 100%**. Grades can be posted while it's under 100 (the weighted average in Milestone 11 already divides by the weights of graded assessments only), and the page warns until the total is exactly 100.
+   - *Alternative:* grades can't be posted until the class total is exactly 100%. Stricter, but the teacher must create every assessment of the term before entering the first quiz score.
+2. **When does a push go out?**
+   - **Recommended:** only when a student's grade is posted **for the first time** (`DedupKey grade:{AssessmentId}:{StudentId}`).
+   - *Alternative:* also when a score is changed. That needs a different DedupKey per change and could spam students during a correction.
+3. **How is the push sent "async"?**
+   - **Recommended:** the grade save also writes the Pending Notification. A small in-API background service (a `Channel<int>` of notification ids, ~20 lines) sends it right after the request finishes, and on startup it picks up any `Pending` push rows a restart interrupted.
+   - *Alternative:* send inline after the save with a 5-second timeout. Simpler, but saving a class of 40 could wait on 40 Firebase calls.
+4. **Firebase project and packages:** a real push needs a Firebase project, which only the team can create (free; your Google account):
+   - Android: `google-services.json` in `android/KlaslyApp/app/`, git-ignored.
+   - API: a service-account JSON kept outside the repo, its path in user-secrets.
+
+   **Recommended packages** (exact latest stable versions confirmed in `/plan`):
+   - API: **`Google.Apis.Auth`** (Google's library for the service-account OAuth token), used by a typed `HttpClient` as guide §13 says. The alternative, `FirebaseAdmin`, hides the HTTP call and pulls in more.
+   - Android: the **Firebase BoM + `firebase-messaging`** and the **`com.google.gms.google-services`** Gradle plugin.
+
+   Until the project exists, everything except smoke step 8 can be built and tested. Pushes are logged as "FCM is not configured". **Do you already have a Firebase project, or should the plan include the setup steps for you to follow?**
+5. **Test project:**
+   - **Recommended:** rename `tests/Klasly.Worker.Tests` to `tests/Klasly.Tests` and reference the API project too. One LocalDB fixture, one `dotnet test`.
+   - *Alternative:* a second project `tests/Klasly.API.Tests` with its own copy of the fixture.

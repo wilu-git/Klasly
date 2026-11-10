@@ -6,7 +6,7 @@ using Klasly.Worker.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Klasly.Worker.Tests;
+namespace Klasly.Tests;
 
 /// <summary>
 /// The Worker's attendance rules on the real schema. Each test makes its own class, so its rows never clash with another test's.
@@ -266,17 +266,7 @@ public class AttendanceFinalizerTests(DatabaseFixture db)
 
     private static (SessionStatus, DateTime?) Snapshot(ClassSession s) => (s.Status, s.ClosedAt);
 
-    /// <summary>A new class (seeded subject, teacher and term) with the given seats; students 1–6 are seeded.</summary>
-    private async Task<int> NewClassAsync(params (int StudentId, EnrollmentStatus Status)[] seats)
-    {
-        await using var context = db.CreateContext();
-        var cls = new Class { SubjectId = 1, TeacherId = 1, TermId = 1, Section = $"T-{Guid.NewGuid():N}"[..30] };
-        foreach (var (studentId, status) in seats)
-            cls.Enrollments.Add(new Enrollment { StudentId = studentId, Status = status });
-        context.Classes.Add(cls);
-        await context.SaveChangesAsync(Ct);
-        return cls.ClassId;
-    }
+    private Task<int> NewClassAsync(params (int StudentId, EnrollmentStatus Status)[] seats) => TestData.NewClassAsync(db, seats);
 
     private async Task<int> NewSessionAsync(int classId, SessionStatus status, DateTime end, DateTime? closedAt = null)
     {

@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Klasly.Worker\Klasly.Worker.csproj" />
     <ProjectReference Include="..\..\src\Klasly.Infrastructure\Klasly.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Klasly.API\Klasly.API.csproj" />
   </ItemGroup>
 
 </Project>

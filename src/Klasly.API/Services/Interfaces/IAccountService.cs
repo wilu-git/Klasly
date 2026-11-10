@@ -20,6 +20,9 @@ public interface IAccountService
     /// <summary>Saves the student's first phone; the same phone is a no-op; another phone is a 409.</summary>
     Task<DeviceResponse> RegisterDeviceAsync(int studentUserId, string deviceId, CancellationToken ct);
 
+    /// <summary>Saves the student's phone FCM token for grade pushes; the token is taken off any other account.</summary>
+    Task SetFcmTokenAsync(int studentUserId, string token, CancellationToken ct);
+
     /// <summary>Clears the registered phone (admin); a no-op when none is registered.</summary>
     Task ResetDeviceAsync(int userId, CancellationToken ct);
 }

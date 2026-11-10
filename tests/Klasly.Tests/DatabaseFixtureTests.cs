@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Klasly.Worker.Tests;
+namespace Klasly.Tests;
 
 public class DatabaseFixtureTests(DatabaseFixture db)
 {

@@ -8,7 +8,7 @@ using QRCoder;
 namespace Klasly.Web.Services;
 
 /// <summary>Shapes the Teacher pages from the session API calls. No business rules here (the API decides).</summary>
-public class SessionService(ISessionRepository sessions) : ISessionService
+public class SessionService(ISessionRepository sessions, IAssessmentRepository assessments) : ISessionService
 {
     public Task<List<ClassResponse>> GetMyClassesAsync(CancellationToken ct) => sessions.ListMyClassesAsync(ct);
 
@@ -23,6 +23,8 @@ public class SessionService(ISessionRepository sessions) : ISessionService
         var end = now.AddMinutes(90);
         return new TeacherClassViewModel(header, list)
         {
+            Assessments = await assessments.ListByClassAsync(classId, ct),
+            NewAssessment = new AssessmentFormViewModel { ClassId = classId },
             // Whole minutes, so the datetime-local input shows no seconds.
             Start = new StartSessionViewModel { ClassId = classId, EndTime = end.AddTicks(-(end.Ticks % TimeSpan.TicksPerMinute)) }
         };
