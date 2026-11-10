@@ -47,23 +47,23 @@ Tasks 1 and 2 don't depend on each other. Task 5 only needs real `Closed`/`Final
 
 ### Phase 1: Worker foundation
 - [x] Task 1: Hangfire server with an empty `WorkerTickJob` on the configured cron
-- [ ] Task 2: `tests/Klasly.Worker.Tests` with the LocalDB fixture
+- [x] Task 2: `tests/Klasly.Worker.Tests` with the LocalDB fixture
 
 ### Phase 2: Worker rules (test first)
-- [ ] Task 3: Close ended Open sessions, cancel never-opened ones
-- [ ] Task 4: Mark non-scanners Absent and finalize
+- [x] Task 3: Close ended Open sessions, cancel never-opened ones
+- [x] Task 4: Mark non-scanners Absent and finalize
 
 ### Checkpoint A: Worker
-- [ ] `dotnet build Klasly.slnx` and `dotnet test` pass; spec smoke steps 1–5 pass
+- [x] `dotnet build Klasly.slnx` and `dotnet test` pass; spec smoke steps 1–5 pass
 
 ### Phase 3: Corrections
-- [ ] Task 5: API `PUT api/sessions/{id}/attendance/{studentId}`
+- [x] Task 5: API `PUT api/sessions/{id}/attendance/{studentId}`
 
 ### Checkpoint B: API
-- [ ] Spec smoke steps 7–8 (API part) pass in Swagger
+- [x] Spec smoke steps 7–8 (API part) pass in Swagger
 
-- [ ] Task 6: MVC Source column + "never opened" message
-- [ ] Task 7: MVC correction dropdown + Save
+- [x] Task 6: MVC Source column + "never opened" message
+- [x] Task 7: MVC correction dropdown + Save
 - [ ] Task 8: `/impeccable`, full smoke test, reports
 
 ### Checkpoint C: Complete

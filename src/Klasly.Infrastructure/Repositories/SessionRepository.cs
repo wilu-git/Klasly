@@ -19,6 +19,14 @@ public class SessionRepository(KlaslyDbContext context) : ISessionRepository
             .OrderByDescending(s => s.StartTime)
             .ToListAsync(ct);
 
+    public Task<List<ClassSession>> ListEndedAsync(DateTime nowUtc, CancellationToken ct) =>
+        context.ClassSessions
+            .Where(s => (s.Status == SessionStatus.Open || s.Status == SessionStatus.Scheduled) && s.EndTime <= nowUtc)
+            .ToListAsync(ct);
+
+    public Task<List<ClassSession>> ListClosedAsync(CancellationToken ct) =>
+        context.ClassSessions.Where(s => s.Status == SessionStatus.Closed).ToListAsync(ct);
+
     public async Task AddAsync(ClassSession session, CancellationToken ct)
     {
         context.ClassSessions.Add(session);

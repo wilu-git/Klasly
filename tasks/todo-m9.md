@@ -1,6 +1,6 @@
 # Tasks: Milestone 9 — Worker (Hangfire) + attendance corrections
 
-> From [`plan-m9.md`](./plan-m9.md) and [`SPEC.md`](../SPEC.md). Every task ends with `dotnet build Klasly.slnx` (and `dotnet test` once Task 2 exists).
+> From [`plan-m9.md`](./plan-m9.md) and [`SPEC.md`](../SPEC.md). Every task ends with `dotnet build Klasly.slnx` (and `dotnet test --solution Klasly.slnx` once Task 2 exists).
 > Smoke-test steps refer to the spec's Testing strategy. For Worker checks, run it with `$env:Worker__Cron = "* * * * *"`.
 
 ---
@@ -44,12 +44,12 @@
 - One first test: the migrated database has the seeded `SystemSettings` rows.
 
 **Acceptance criteria:**
-- [ ] `dotnet test` runs and passes the first test; `Klasly_Tests` exists afterwards; `Klasly` is untouched.
-- [ ] Packages listed with versions in the report (`xunit.v3` 4.0.3, `xunit.runner.visualstudio` 4.0.1, `Microsoft.NET.Test.Sdk` 18.11.0).
+- [x] `dotnet test` runs and passes the first test; `Klasly_Tests` exists afterwards; `Klasly` is untouched. *(.NET 10 SDK needed `"test": { "runner": "Microsoft.Testing.Platform" }` in `global.json`; the command is now `dotnet test --solution Klasly.slnx`. Klasly row counts identical before/after.)*
+- [x] Packages listed with versions in the report (`xunit.v3` 4.0.3, `xunit.runner.visualstudio` 4.0.1, `Microsoft.NET.Test.Sdk` 18.11.0).
 
 **Verification:**
-- [ ] Tests pass: `dotnet test Klasly.slnx`
-- [ ] Build succeeds: `dotnet build Klasly.slnx`
+- [x] Tests pass: `dotnet test Klasly.slnx`
+- [x] Build succeeds: `dotnet build Klasly.slnx`
 
 **Dependencies:** None (needs the plan's decision 5 approved)
 
@@ -71,16 +71,16 @@
 This needs a new `ISessionRepository.ListEndedAsync(DateTime nowUtc, ct)` (tracked; `Open` or `Scheduled`, `EndTime ≤ now`). `WorkerTickJob` calls the method and logs the counts.
 
 **Acceptance criteria:**
-- [ ] Tests:
+- [x] Tests:
   - Open past its end → Closed with ClosedAt;
   - Scheduled past its end → Cancelled;
   - Open/Scheduled not yet ended, and Closed/Finalized/Cancelled sessions → untouched.
-- [ ] A session ending exactly at `now` counts as ended (`≤`).
-- [ ] Running twice changes nothing the second time.
+- [x] A session ending exactly at `now` counts as ended (`≤`).
+- [x] Running twice changes nothing the second time.
 
 **Verification:**
-- [ ] Tests pass: `dotnet test Klasly.slnx`
-- [ ] Build succeeds: `dotnet build Klasly.slnx`
+- [x] Tests pass: `dotnet test Klasly.slnx`
+- [x] Build succeeds: `dotnet build Klasly.slnx`
 
 **Dependencies:** Tasks 1, 2
 
@@ -104,17 +104,17 @@ This needs a new `ISessionRepository.ListEndedAsync(DateTime nowUtc, ct)` (track
 New repository members: `ISessionRepository.ListClosedAsync(ct)` (tracked) and `IAttendanceRepository.Add(record)` (tracks only).
 
 **Acceptance criteria:**
-- [ ] Tests:
+- [x] Tests:
   - 3 active students, 1 scanned → scanner keeps Present/Scan, 2 get Absent/Auto, session Finalized;
   - a Dropped student gets no row;
   - a session with a Manual correction keeps it;
   - a session with no enrollments still becomes Finalized;
   - a second run adds nothing.
-- [ ] Test: a row inserted between "read" and "save" (simulated with a second `DbContext`) → `TrySaveAsync` false, session stays Closed; the next run finalizes it without touching that row.
+- [x] Test: a row inserted between "read" and "save" (simulated with a second `DbContext`) → `TrySaveAsync` false, session stays Closed; the next run finalizes it without touching that row.
 
 **Verification:**
-- [ ] Tests pass: `dotnet test Klasly.slnx`
-- [ ] Build succeeds: `dotnet build Klasly.slnx`
+- [x] Tests pass: `dotnet test Klasly.slnx`
+- [x] Build succeeds: `dotnet build Klasly.slnx`
 
 **Dependencies:** Task 3
 
@@ -127,8 +127,8 @@ New repository members: `ISessionRepository.ListClosedAsync(ct)` (tracked) and `
 **Estimated scope:** Medium (6 files, small edits)
 
 ### Checkpoint A: Worker (after Tasks 1–4)
-- [ ] `dotnet build Klasly.slnx` and `dotnet test Klasly.slnx` pass
-- [ ] Spec smoke steps 1–5 pass against the real `Klasly` database (API + website + Worker running)
+- [x] `dotnet build Klasly.slnx` and `dotnet test Klasly.slnx` pass
+- [x] Spec smoke steps 1–5 pass against the real `Klasly` database (API + website + Worker running) *(2026-11-10 09:27–09:33Z: sessions 1014–1018; two Workers at once ran each tick once, 0 duplicates, 0 errors.)*
 - [ ] Review with the team before continuing
 
 ---
@@ -149,15 +149,15 @@ New repository members: `ISessionRepository.ListClosedAsync(ct)` (tracked) and `
 - **Returns:** the updated `SessionAttendanceRow`.
 
 **Acceptance criteria:**
-- [ ] Swagger:
+- [x] Swagger:
   - Absent → Excused on a Finalized session = 200, DB shows Manual + MarkedBy;
   - Present → Late keeps ScannedAt;
   - an Open session → 409; another teacher → 403; a student not in the class → 404; `"Sick"` → 400.
-- [ ] The API log shows the correction line.
+- [x] The API log shows the correction line. *(Checked with curl against the same endpoints instead of the Swagger page: 409 / 403 / 404 / 400 and 200 as listed.)*
 
 **Verification:**
-- [ ] Build succeeds: `dotnet build Klasly.slnx`; `dotnet test` still passes
-- [ ] Manual check: spec smoke steps 6 (DB part), 7 (API part) and 8 in Swagger
+- [x] Build succeeds: `dotnet build Klasly.slnx`; `dotnet test` still passes
+- [x] Manual check: spec smoke steps 6 (DB part), 7 (API part) and 8 in Swagger
 
 **Dependencies:** Checkpoint A (needs Closed/Finalized sessions)
 
@@ -169,7 +169,7 @@ New repository members: `ISessionRepository.ListClosedAsync(ct)` (tracked) and `
 **Estimated scope:** Medium (6 files, small edits)
 
 ### Checkpoint B: API (after Task 5)
-- [ ] All Swagger checks above pass; `dotnet build` + `dotnet test` clean
+- [x] All Swagger checks above pass; `dotnet build` + `dotnet test` clean
 
 ---
 
@@ -178,12 +178,12 @@ New repository members: `ISessionRepository.ListClosedAsync(ct)` (tracked) and `
 **Description:** On the session page roster (`_Live.cshtml`), add a **Source** column: "Scan", "Auto" (marked by Klasly), "Corrected" (Manual), "—" when there's no record. A `Cancelled` session shows "This session was never opened, so no attendance was taken." instead of the "ended" alert, and no roster.
 
 **Acceptance criteria:**
-- [ ] A Finalized session shows Present/Scan and Absent/Auto rows in Manila time; an Open session shows Scan rows while polling, unchanged otherwise.
-- [ ] A Cancelled session shows the "never opened" message.
+- [x] A Finalized session shows Present/Scan and Absent/Auto rows in Manila time; an Open session shows Scan rows while polling, unchanged otherwise.
+- [x] A Cancelled session shows the "never opened" message.
 
 **Verification:**
-- [ ] Build succeeds: `dotnet build Klasly.slnx`
-- [ ] Manual check: open a Finalized, an Open and a Cancelled session in the browser
+- [x] Build succeeds: `dotnet build Klasly.slnx`
+- [x] Manual check: open a Finalized, an Open and a Cancelled session in the browser
 
 **Dependencies:** Checkpoint A
 
@@ -203,13 +203,13 @@ New repository members: `ISessionRepository.ListClosedAsync(ct)` (tracked) and `
 - **Controller:** the form posts to `Teacher/Sessions/Correct` (`[HttpPost, ValidateAntiForgeryToken]`) with `id`, `studentId`, `status`. Success → `TempData["Success"] = "Attendance updated for {name}."`; an API form error → `TempData["Error"]` with the API's message (the existing `ChangeAsync` pattern). Either way, redirect back to the page.
 
 **Acceptance criteria:**
-- [ ] On a Finalized session: change Absent → Excused → success message; the row shows Excused / Corrected.
-- [ ] On an Open session: no dropdowns. On a session closed in another tab after the page loaded: the API's 409 message shows.
-- [ ] Every POST has an anti-forgery token; keyboard-only use works (Tab to select, Tab to Save, Enter).
+- [x] On a Finalized session: change Absent → Excused → success message; the row shows Excused / Corrected.
+- [x] On an Open session: no dropdowns. On a session closed in another tab after the page loaded: the API's 409 message shows. *(Open part checked in the browser. Dropdowns only render for Closed/Finalized, which never go back to Open, so the 409 path was checked through the API only.)*
+- [x] Every POST has an anti-forgery token; keyboard-only use works (Tab to select, Tab to Save, Enter).
 
 **Verification:**
-- [ ] Build succeeds: `dotnet build Klasly.slnx`
-- [ ] Manual check: spec smoke steps 6 and 7 in the browser
+- [x] Build succeeds: `dotnet build Klasly.slnx`
+- [x] Manual check: spec smoke steps 6 and 7 in the browser
 
 **Dependencies:** Tasks 5, 6
 

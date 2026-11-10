@@ -49,6 +49,12 @@ public class SessionsController(ISessionService sessionService, IClassService cl
     public Task<List<SessionAttendanceRow>> Attendance(int id, CancellationToken ct) =>
         sessionService.GetAttendanceAsync(id, CurrentUserId, ct);
 
+    /// <summary>Corrects one student's result after the session has ended; returns the updated roster row.</summary>
+    [HttpPut("api/sessions/{id:int}/attendance/{studentId:int}")]
+    public Task<SessionAttendanceRow> CorrectAttendance(
+        int id, int studentId, CorrectAttendanceRequest request, CancellationToken ct) =>
+        sessionService.CorrectAttendanceAsync(id, studentId, request.Status!.Value, CurrentUserId, ct);
+
     // The TeacherOnly policy guarantees a valid token here.
     private int CurrentUserId => int.Parse(User.FindFirstValue("sub")!);
 }

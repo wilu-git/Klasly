@@ -1,6 +1,7 @@
 using Hangfire;
 using Klasly.Infrastructure;
 using Klasly.Worker.Jobs;
+using Klasly.Worker.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -10,6 +11,7 @@ var cron = builder.Configuration["Worker:Cron"]
     ?? throw new InvalidOperationException("Setting 'Worker:Cron' is missing.");
 
 builder.Services.AddInfrastructure(connectionString);
+builder.Services.AddScoped<AttendanceFinalizer>();
 
 // Hangfire keeps its own tables in the HangFire schema of the Klasly database (created on first run).
 builder.Services.AddHangfire(config => config

@@ -1,4 +1,5 @@
 using Klasly.Core.DTOs;
+using Klasly.Core.Entities;
 
 namespace Klasly.API.Services.Interfaces;
 
@@ -16,4 +17,8 @@ public interface ISessionService
 
     /// <summary>Every actively enrolled student with their result so far, by name.</summary>
     Task<List<SessionAttendanceRow>> GetAttendanceAsync(int sessionId, int userId, CancellationToken ct);
+
+    /// <summary>The teacher's correction of one student's result, only after the session has ended (Closed or Finalized).</summary>
+    Task<SessionAttendanceRow> CorrectAttendanceAsync(
+        int sessionId, int studentId, AttendanceStatus status, int userId, CancellationToken ct);
 }

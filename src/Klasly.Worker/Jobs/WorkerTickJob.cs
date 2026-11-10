@@ -1,4 +1,5 @@
 using Hangfire;
+using Klasly.Worker.Services;
 
 namespace Klasly.Worker.Jobs;
 
@@ -8,12 +9,17 @@ namespace Klasly.Worker.Jobs;
 /// </summary>
 [DisableConcurrentExecution(timeoutInSeconds: 600)] // two ticks never overlap, even across Worker processes
 [AutomaticRetry(Attempts = 0)] // a failed tick waits for the next one; the email outbox (Milestone 12) does its own retries
-public class WorkerTickJob(ILogger<WorkerTickJob> logger)
+public class WorkerTickJob(AttendanceFinalizer finalizer, ILogger<WorkerTickJob> logger)
 {
-    public Task RunAsync(CancellationToken ct)
+    public async Task RunAsync(CancellationToken ct)
     {
-        // Milestone 9 Tasks 3–4: close ended sessions, mark Absent. Milestone 11: risk flags. Milestone 12: alerts + emails.
-        logger.LogInformation("Worker tick at {UtcNow:u}", DateTime.UtcNow);
-        return Task.CompletedTask;
+        var now = DateTime.UtcNow;
+
+        var (closed, cancelled) = await finalizer.CloseEndedSessionsAsync(now, ct);
+        var finalized = await finalizer.MarkAbsentAndFinalizeAsync(now, ct);
+        logger.LogInformation(
+            "Tick {UtcNow:u}: closed {Closed}, cancelled {Cancelled}, finalized {Finalized} sessions", now, closed, cancelled, finalized);
+
+        // Milestone 11: risk flags. Milestone 12: alerts + emails.
     }
 }

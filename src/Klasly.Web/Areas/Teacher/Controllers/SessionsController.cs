@@ -46,6 +46,23 @@ public class SessionsController(ISessionService sessions) : Controller
     public Task<IActionResult> Close(int id, CancellationToken ct) =>
         ChangeAsync(id, () => sessions.CloseAsync(id, ct), "Session ended.");
 
+    /// <summary>One row's status dropdown on an ended session. The API's 400/409 message shows on the same page.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Correct(int id, int studentId, string? status, CancellationToken ct)
+    {
+        try
+        {
+            var row = await sessions.CorrectAttendanceAsync(id, studentId, status, ct);
+            TempData["Success"] = $"Attendance updated for {row.FullName}.";
+        }
+        catch (ApiException ex) when (ex.IsFormError)
+        {
+            TempData["Error"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     // 400/409 (e.g. already closed in another tab) → the API's message on the same page.
     private async Task<IActionResult> ChangeAsync(int id, Func<Task> change, string success)
     {

@@ -32,6 +32,11 @@
                             <th scope="col">Name</th>
                             <th scope="col">Status</th>
                             <th scope="col">Scanned (Manila)</th>
+                            <th scope="col">Source</th>
+                            @if (Model.CanCorrect)
+                            {
+                                <th scope="col">Correct</th>
+                            }
                         </tr>
                     </thead>
                     <tbody>
@@ -50,6 +55,27 @@
                                 <td>@r.FullName</td>
                                 <td><span class="badge @css">@(r.Status ?? "Not yet")</span></td>
                                 <td class="text-nowrap">@(r.ScannedAtUtc is { } at ? ManilaTime.FormatTime(at) : "—")</td>
+                                <td>@(r.Source switch { "Scan" => "Scan", "Auto" => "Auto", "Manual" => "Corrected", _ => "—" })</td>
+                                @if (Model.CanCorrect)
+                                {
+                                    <td>
+                                        <form asp-action="Correct" asp-route-id="@Model.SessionId" asp-route-studentId="@r.StudentId"
+                                              method="post" class="d-flex gap-2 m-0">
+                                            <label class="visually-hidden" for="status-@r.StudentId">New status for @r.FullName</label>
+                                            <select id="status-@r.StudentId" name="status" class="form-select form-select-sm w-auto">
+                                                @if (r.Status is null)
+                                                {
+                                                    <option value="" selected disabled>Choose…</option>
+                                                }
+                                                @foreach (var option in SessionLiveViewModel.Statuses)
+                                                {
+                                                    <option selected="@(option == r.Status)">@option</option>
+                                                }
+                                            </select>
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">Save<span class="visually-hidden"> for @r.FullName</span></button>
+                                        </form>
+                                    </td>
+                                }
                             </tr>
                         }
                     </tbody>

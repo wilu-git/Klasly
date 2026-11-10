@@ -34,4 +34,9 @@ public class SessionRepository(HttpClient http) : ISessionRepository
     // Every actively enrolled student by name; Status null until they scan.
     public Task<List<SessionAttendanceRow>> GetAttendanceAsync(int sessionId, CancellationToken ct) =>
         http.GetApiAsync<List<SessionAttendanceRow>>($"api/sessions/{sessionId}/attendance", ct);
+
+    // 409 while the session hasn't ended; 400 for a missing or unknown status.
+    public Task<SessionAttendanceRow> CorrectAttendanceAsync(
+        int sessionId, int studentId, CorrectAttendanceRequest request, CancellationToken ct) =>
+        http.PutApiAsync<SessionAttendanceRow>($"api/sessions/{sessionId}/attendance/{studentId}", request, ct);
 }

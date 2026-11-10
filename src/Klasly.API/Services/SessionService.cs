@@ -14,7 +14,8 @@ public class SessionService(
     IUserRepository users,
     IEnrollmentRepository enrollments,
     IAttendanceRepository attendance,
-    IQrTokenService qr) : ISessionService
+    IQrTokenService qr,
+    ILogger<SessionService> logger) : ISessionService
 {
     /// <summary>
     /// Open and not past its end time. Until the Worker closes ended sessions (Milestone 9),
@@ -104,6 +105,38 @@ public class SessionService(
                     record?.Status, record?.ScannedAt is { } scanned ? Utc(scanned) : null, record?.Source);
             })
             .ToList();
+    }
+
+    public async Task<SessionAttendanceRow> CorrectAttendanceAsync(
+        int sessionId, int studentId, AttendanceStatus status, int userId, CancellationToken ct)
+    {
+        var session = await GetOwnSessionAsync(sessionId, userId, ct);
+        if (session.Status is not (SessionStatus.Closed or SessionStatus.Finalized))
+            throw new ConflictException("Attendance can be corrected only after the session has ended.");
+        if (await enrollments.GetByClassAndStudentAsync(session.ClassId, studentId, ct) is not { Status: EnrollmentStatus.Active })
+            throw new KeyNotFoundException("This student is not enrolled in this class.");
+
+        var record = await attendance.GetAsync(sessionId, studentId, ct);
+        var oldStatus = record?.Status;
+        if (oldStatus != status) // the same status changes nothing
+        {
+            var isNew = record is null;
+            record ??= new AttendanceRecord { SessionId = sessionId, StudentId = studentId };
+            record.Status = status;
+            record.Source = AttendanceSource.Manual;
+            record.MarkedBy = userId;
+            record.MarkedAt = DateTime.UtcNow; // ScannedAt is kept: it records when the student actually scanned
+
+            // A lost insert race means the Worker or another request wrote this student's row first.
+            var saved = isNew ? await attendance.TryAddAsync(record, ct) : await attendance.TrySaveAsync(ct);
+            if (!saved) throw new ConflictException("Attendance was just updated. Reload and try again.");
+
+            logger.LogInformation(
+                "Attendance corrected: session {SessionId}, student {StudentId}, {OldStatus} -> {NewStatus} by user {UserId}",
+                sessionId, studentId, oldStatus?.ToString() ?? "none", status, userId);
+        }
+
+        return (await GetAttendanceAsync(sessionId, userId, ct)).Single(r => r.StudentId == studentId);
     }
 
     private async Task<int> TeacherIdAsync(int userId, CancellationToken ct) =>
