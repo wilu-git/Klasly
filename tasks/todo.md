@@ -63,13 +63,13 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 **Description:** Write `ApiTextTest` first and watch it fail. Then write `data/ApiText.kt` with `errorMessage(body: String?)` and `parseUtc(text: String)` (plan decision 4) until it passes. The functions use only `kotlinx.serialization.json` and `java.time`, with no Android types.
 
 **Acceptance criteria:**
-- [ ] `errorMessage`: `{"detail":"Invalid QR code"}` → "Invalid QR code"; `{"errors":{"Email":["The Email field is required."]}}` → that message; only `title` → the title; `""`, `null` or `<html>` → "Something went wrong. Please try again."
-- [ ] `parseUtc`: `"2026-11-10T01:03:00Z"` and `"2026-11-10T01:03:00.1234567Z"` (7 decimals, as .NET sends them) → the same `Instant` to the second; `"2026-11-10T01:03:00"` (no offset) → read as UTC.
-- [ ] The test fails before `ApiText.kt` exists and passes after.
+- [x] `errorMessage`: `{"detail":"Invalid QR code"}` → "Invalid QR code"; `{"errors":{"Email":["The Email field is required."]}}` → that message; only `title` → the title; `""`, `null` or `<html>` → "Something went wrong. Please try again."
+- [x] `parseUtc`: `"2026-11-10T01:03:00Z"` and `"2026-11-10T01:03:00.1234567Z"` (7 decimals, as .NET sends them) → the same `Instant` to the second; `"2026-11-10T01:03:00"` (no offset) → read as UTC.
+- [x] The test fails before `ApiText.kt` exists (8 unresolved references) and passes after (5/5).
 
 **Verification:**
-- [ ] Tests pass: `./gradlew testDebugUnitTest`
-- [ ] Build succeeds: `./gradlew assembleDebug`
+- [x] Tests pass: `./gradlew testDebugUnitTest`
+- [x] Build succeeds: `./gradlew assembleDebug`
 
 **Dependencies:** Task 1
 
