@@ -215,13 +215,13 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 
 **Acceptance criteria:**
 - [ ] TalkBack reads the result and error messages; rotating mid-result keeps the result. *(Live regions in place; rotation keeps the Login state ✔. TalkBack run and mid-result rotation need a real scan.)*
-- [ ] `/impeccable` findings fixed, or listed in the report with the reason.
+- [x] `/impeccable` findings fixed: dark-mode splash, login subtitle for parents, autofill hints, "Not checked in" heading. Checked in dark mode, 130 % font scale and landscape.
 - [ ] All 11 smoke steps pass; `dotnet build Klasly.slnx` still passes.
 
 **Verification:**
 - [ ] Build succeeds: `./gradlew assembleDebug testDebugUnitTest`; `dotnet build Klasly.slnx`
 - [ ] Manual check: smoke steps 10–11, plus a quick re-run of steps 1–9
-- [ ] Reports in `docs/reports/<yyyy-MM-dd-HHmm>-milestone-8-android-login-scan/`, one line added to `docs/reports/INDEX.md`
+- [x] Reports in `docs/reports/2026-11-10-1342-milestone-8-android-login-scan/`, one line added to `docs/reports/INDEX.md`
 
 **Dependencies:** Task 7
 
