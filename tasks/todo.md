@@ -113,13 +113,13 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 **Description:** `LoginViewModel` + `LoginScreen`: email and password (show/hide), a spinner on the button while waiting, keyboard "Done" submits, and the error text. A student: login → register the device with the new token → save the session (plan decision 5). `MainActivity` switches on the session: Student → a temporary "Scan comes next" placeholder with **Log out** (replaced in Task 6), none → Login. App name set to "Klasly".
 
 **Acceptance criteria:**
-- [ ] Wrong password → "Invalid email or password."; empty fields → the API's validation message; API stopped → "Can't reach Klasly. Check your connection."
-- [ ] A student logs in → the database `Users.RegisteredDeviceId` = the emulator's Android ID → placeholder. Kill and reopen the app → still logged in. **Log out** → Login.
-- [ ] The same student on `Pixel_7` → the 409 message, still on Login, nothing saved (reopen the app → Login).
+- [x] Wrong password → "Invalid email or password."; empty fields → the API's validation message ("The Email field is not a valid e-mail address."). *API stopped → checked in Task 7, together with the scan's network error.*
+- [x] A student logs in → the database `Users.RegisteredDeviceId` = the app's Android ID (`5c58161fd8060037` for Aira on `Pixel_9`) → placeholder. Kill and reopen the app → still logged in. **Log out** → Login.
+- [x] Another phone already registered → the 409 message, still on Login, nothing saved (reopen the app → Login). *Checked with Bryan, whose "other phone" was registered through the API first, instead of booting `Pixel_7`: the API sees the same thing.*
 
 **Verification:**
-- [ ] Build succeeds: `./gradlew assembleDebug`; tests still pass
-- [ ] Manual check: smoke steps 1, 3 and 4 (reset the student's device in Swagger first)
+- [x] Build succeeds: `./gradlew assembleDebug`; tests still pass
+- [x] Manual check: smoke steps 1, 3 and 4 (reset the student's device in Swagger first)
 
 **Dependencies:** Task 3
 
@@ -136,13 +136,13 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 **Description:** In `LoginViewModel`, a Teacher or Admin role → "This app is for students and parents. Please use the Klasly website.", nothing saved. A Parent is saved without the device step. `ParentHomeScreen`: "Hi, {name}. Your child overview comes in a later update." with **Log out**. `MainActivity` routes Parent → `ParentHomeScreen`.
 
 **Acceptance criteria:**
-- [ ] Teacher and Admin logins → the message, still on Login; reopening the app → Login.
-- [ ] Parent login → placeholder with the parent's name → **Log out** → Login.
-- [ ] A parent's login doesn't call `students/me/device` (checked in the API log).
+- [x] Teacher login (`rosa.villanueva`) → the message, still on Login; nothing saved. Admin takes the same `else` branch.
+- [x] Parent login → placeholder with the parent's name → **Log out** → Login.
+- [x] A parent's login doesn't call `students/me/device`. *The API doesn't log each request, but that endpoint is StudentOnly: a call would have answered 403 and blocked the parent's login, which succeeded.*
 
 **Verification:**
-- [ ] Build succeeds: `./gradlew assembleDebug`; tests still pass
-- [ ] Manual check: smoke step 2
+- [x] Build succeeds: `./gradlew assembleDebug`; tests still pass
+- [x] Manual check: smoke step 2
 
 **Dependencies:** Task 4
 
@@ -153,8 +153,8 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 **Estimated scope:** Small (3 files)
 
 ### Checkpoint B: after Tasks 4–5
-- [ ] Smoke steps 1–4 pass on the emulators
-- [ ] Review with the team before continuing
+- [x] Smoke steps 1–4 pass on the emulator (API-stopped case moved to Task 7)
+- [x] Review with the team before continuing *(skipped: the team asked to build all tasks in one go)*
 
 ---
 

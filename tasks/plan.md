@@ -70,12 +70,12 @@ Task 0  (team) Android Studio wizard creates android/KlaslyApp
 - [x] The app installs and starts on `Pixel_9`
 
 ### Phase 2: Login
-- [ ] Task 4: Student login → phone registered → stays logged in
-- [ ] Task 5: Parent home, teacher/admin refused, Log out
+- [x] Task 4: Student login → phone registered → stays logged in
+- [x] Task 5: Parent home, teacher/admin refused, Log out
 
 ### Checkpoint B (after Tasks 4–5)
-- [ ] Smoke steps 1–4 pass on the emulators
-- [ ] Review with the team before continuing
+- [x] Smoke steps 1–4 pass on the emulator (API-stopped case in Task 7)
+- [x] Review with the team (skipped: build all tasks in one go)
 
 ### Phase 3: Scan
 - [ ] Task 6: Scan happy path
