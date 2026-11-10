@@ -214,7 +214,7 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 **Description:** Add `liveRegion = Polite` to the result and error text, check 48 dp touch targets and content descriptions, and check that rotation keeps the state. Run `/impeccable` on the three screens and fix what it finds. Run all 11 smoke steps. Write the three reports and the INDEX line, with the library versions.
 
 **Acceptance criteria:**
-- [ ] TalkBack reads the result and error messages; rotating mid-result keeps the result.
+- [ ] TalkBack reads the result and error messages; rotating mid-result keeps the result. *(Live regions in place; rotation keeps the Login state ✔. TalkBack run and mid-result rotation need a real scan.)*
 - [ ] `/impeccable` findings fixed, or listed in the report with the reason.
 - [ ] All 11 smoke steps pass; `dotnet build Klasly.slnx` still passes.
 
