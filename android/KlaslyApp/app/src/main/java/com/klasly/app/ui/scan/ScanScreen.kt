@@ -186,10 +186,12 @@ private fun StatusCard(state: ScanUiState, onScanAgain: () -> Unit) {
                 }
                 is ScanUiState.Refused -> {
                     Text(
-                        state.message,
-                        style = MaterialTheme.typography.titleMedium,
+                        "Not checked in",
+                        style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.error,
                     )
+                    // The API's own reason, e.g. "QR expired – rescan" or "Already checked in".
+                    Text(state.message, style = MaterialTheme.typography.bodyLarge)
                     Button(onClick = onScanAgain, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Scan again") }
                 }
             }
