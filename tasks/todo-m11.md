@@ -28,18 +28,18 @@
 - registration in `DependencyInjection.cs`.
 
 **Acceptance:**
-- [ ] One row per Active enrollment in an active-term class. A Dropped enrollment, and a class in a new inactive term, are absent from the list.
-- [ ] Counts use only this class's Finalized sessions. Excused is left out of both counts, Late counts as attended, and a record in a Closed (not yet Finalized) session doesn't count.
-- [ ] Sums use only the student's own grades in this class. A blank grade adds nothing. Two assessments (18/20 weight 30, 30/50 weight 20) → WeightedSum 3900, WeightSum 50 (average 78.00).
-- [ ] The latest snapshot is the newest by `ComputedAt`, then `RiskFlagId`; null when there is none.
-- [ ] `ToQueryString()` shows a single SQL statement (or the fallback in the plan's risks table, noted in the report).
+- [x] One row per Active enrollment in an active-term class. A Dropped enrollment, and a class in a new inactive term, are absent from the list.
+- [x] Counts use only this class's Finalized sessions. Excused is left out of both counts, Late counts as attended, and a record in a Closed (not yet Finalized) session doesn't count.
+- [x] Sums use only the student's own grades in this class. A blank grade adds nothing. Two assessments (18/20 weight 30, 30/50 weight 20) → WeightedSum 3900, WeightSum 50 (average 78.00).
+- [x] The latest snapshot is the newest by `ComputedAt`, then `RiskFlagId`; null when there is none.
+- [x] `ToQueryString()` shows a single SQL statement (or the fallback in the plan's risks table, noted in the report).
 
 **Verify:** `dotnet test --solution Klasly.slnx --filter RiskRepositoryTests`; `has-pending-model-changes` reports none.
 
 **Files:** `src/Klasly.Core/DTOs/RiskInput.cs`, `src/Klasly.Core/Interfaces/IRiskRepository.cs`, `src/Klasly.Infrastructure/Repositories/RiskRepository.cs`, `src/Klasly.Infrastructure/DependencyInjection.cs`, `tests/Klasly.Tests/RiskRepositoryTests.cs`. **Depends on:** none.
 
 ## Checkpoint A
-- [ ] Build clean, all tests pass (33 + the new ones), no pending model changes.
+- [x] Build clean, all tests pass (33 + the new ones), no pending model changes.
 
 ## Task 3: RiskCalculator (test first)
 
