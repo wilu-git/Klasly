@@ -10,10 +10,10 @@
 **What:** `src/Klasly.Worker/Services/RiskRules.cs`, a static `Compute(absent, counted, weightedSum, weightSum, threshold, passing)` → `(Rate, Average, AtRisk)`.
 
 **Acceptance:**
-- [ ] 1 of 5 absent → rate 0.2000, at-risk. 0 of 5 → 0, not at-risk. 1 of 3 → 0.3333.
-- [ ] Rate 0.1999 → not at-risk (against a 0.20 threshold).
-- [ ] Average exactly 75.00 → not at-risk; 74.99 → at-risk; a raw 74.996 → 75.00 → not at-risk.
-- [ ] No grades (weightSum 0) → average null, and only the rate decides. No counted sessions → rate 0.
+- [x] 1 of 5 absent → rate 0.2000, at-risk. 0 of 5 → 0, not at-risk. 1 of 3 → 0.3333.
+- [x] Rate 0.1999 → not at-risk (against a 0.20 threshold).
+- [x] Average exactly 75.00 → not at-risk; 74.99 → at-risk; a raw 74.996 → 75.00 → not at-risk.
+- [x] No grades (weightSum 0) → average null, and only the rate decides. No counted sessions → rate 0.
 
 **Verify:** `dotnet test --solution Klasly.slnx --filter RiskRulesTests`
 

@@ -16,3 +16,4 @@
 - 2026-11-10 17:34 — Milestone 9 Tasks 2–7: test project, Worker closes/cancels/finalizes sessions with auto-Absent, teacher attendance corrections (API + MVC) — [folder](./2026-11-10-1734-milestone-9-tasks-2-7-worker-corrections/)
 - 2026-11-10 18:11 — Milestone 9 Task 8 + milestone complete: /impeccable polish of the session page (full-width ended roster, phone layout, Absent count, no-change message), final checks — [folder](./2026-11-10-1811-milestone-9-worker-absent-corrections/)
 - 2026-11-10 22:21 — Milestone 10 Tasks 0–8, 10: assessments + grade sheet (API + MVC), FCM grade push (in-house OAuth, background sender), Android receiver; Firebase setup (Task 9) waits on the team — [folder](./2026-11-10-2221-milestone-10-assessments-grades-push/)
+- 2026-11-11 00:03 — Milestone 11 Task 1: RiskRules (absence rate, weighted average, at-risk flag) with boundary tests (Console Worker) — [folder](./2026-11-11-0003-milestone-11-task-1-risk-rules/)
