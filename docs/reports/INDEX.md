@@ -18,3 +18,4 @@
 - 2026-11-10 22:21 — Milestone 10 Tasks 0–8, 10: assessments + grade sheet (API + MVC), FCM grade push (in-house OAuth, background sender), Android receiver; Firebase setup (Task 9) waits on the team — [folder](./2026-11-10-2221-milestone-10-assessments-grades-push/)
 - 2026-11-11 00:03 — Milestone 11 Task 1: RiskRules (absence rate, weighted average, at-risk flag) with boundary tests (Console Worker) — [folder](./2026-11-11-0003-milestone-11-task-1-risk-rules/)
 - 2026-11-11 00:55 — Milestone 11 Tasks 2–4 + milestone complete: one-query risk inputs, RiskCalculator with change-only RiskFlags snapshots, third WorkerTickJob step, dev smoke run (Console Worker, EF Core) — [folder](./2026-11-11-0055-milestone-11-worker-risk-flags/)
+- 2026-11-11 01:07 — Milestone 11 review fixes: risk settings range check (AbsenceThreshold 0–1, PassingGrade 1–100) and corrected troubleshooting tip (Console Worker) — [folder](./2026-11-11-0107-milestone-11-review-fixes/)

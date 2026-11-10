@@ -14,8 +14,9 @@ public class RiskCalculator(IRiskRepository risks, ISystemSettingRepository sett
     public async Task<(int Enrollments, int NewSnapshots, int AtRisk)> RecomputeAsync(DateTime nowUtc, CancellationToken ct)
     {
         // A bad setting throws before anything is read or written; Hangfire logs the failed tick and the next one retries.
-        var threshold = await ReadDecimalAsync("AbsenceThreshold", ct);
-        var passing = await ReadDecimalAsync("PassingGrade", ct);
+        // The ranges catch a value typed in the wrong scale (20 for 20%, 0.75 for 75), which would silently flag nobody.
+        var threshold = await ReadDecimalAsync("AbsenceThreshold", v => v > 0 && v <= 1, "a fraction above 0 and up to 1, e.g. 0.20", ct);
+        var passing = await ReadDecimalAsync("PassingGrade", v => v >= 1 && v <= 100, "a grade from 1 to 100, e.g. 75", ct);
 
         var inputs = await risks.ListInputsAsync(ct);
         int added = 0, atRisk = 0;
@@ -41,8 +42,9 @@ public class RiskCalculator(IRiskRepository risks, ISystemSettingRepository sett
         return (inputs.Count, added, atRisk);
     }
 
-    private async Task<decimal> ReadDecimalAsync(string key, CancellationToken ct) =>
+    private async Task<decimal> ReadDecimalAsync(string key, Func<decimal, bool> inRange, string expected, CancellationToken ct) =>
         decimal.TryParse(await settings.GetValueAsync(key, ct), NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
+        && inRange(value)
             ? value
-            : throw new InvalidOperationException($"Setting '{key}' is missing or not a number.");
+            : throw new InvalidOperationException($"Setting '{key}' is missing or invalid: it must be {expected}.");
 }

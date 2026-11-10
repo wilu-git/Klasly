@@ -36,6 +36,6 @@ The Worker now works out, every few minutes, whether each student is **at-risk**
 Excused absences and cancelled sessions are not counted. A student who enrolled late is judged only on the sessions they were enrolled for.
 
 ## Troubleshooting
-- **The log says `Setting 'PassingGrade' is missing or not a number.`**: the `SystemSettings` row was deleted or holds text. Put back a plain number such as `75` (use a dot for decimals: `0.20`).
+- **The log says `Setting 'AbsenceThreshold' is missing or invalid: it must be a fraction above 0 and up to 1, e.g. 0.20.`** (or the same for `PassingGrade`, which must be 1–100): the `SystemSettings` row was deleted, holds text, or was typed in the wrong scale (`20` instead of `0.20`, `0.75` instead of `75`). Put back a plain number with a dot for decimals. Nothing is written until it is fixed.
 - **"risk for 0 enrollments"**: there is no active term, or the classes have no Active enrollments. Check `AcademicTerms.IsActive`.
-- **Ticks every 5 minutes even with `--Worker:Cron`**: the setting is re-registered on start; make sure you passed it after `--`, as shown above.
+- **A student missed a class but no new snapshot appeared**: only **Finalized** sessions count. A session is finalized by the first tick after its end time, and the risk step runs right after that in the same tick. If the session is still Open or Closed, wait for the next tick. An Excused record never counts.

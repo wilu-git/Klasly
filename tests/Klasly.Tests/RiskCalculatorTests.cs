@@ -60,6 +60,10 @@ public class RiskCalculatorTests(DatabaseFixture db)
     [Theory]
     [InlineData(null, "75", "AbsenceThreshold")]
     [InlineData("0.20", "seventy-five", "PassingGrade")]
+    [InlineData("20", "75", "AbsenceThreshold")]  // typed as a percent: would silently flag nobody
+    [InlineData("0.20", "0.75", "PassingGrade")]  // typed as a fraction: would silently flag nobody
+    [InlineData("0", "75", "AbsenceThreshold")]   // 0 would flag everyone
+    [InlineData("0.20", "101", "PassingGrade")]
     public async Task Missing_or_bad_setting_fails_the_step_and_saves_nothing(string? threshold, string? passing, string key)
     {
         var classId = await TestData.NewClassAsync(db, (1, EnrollmentStatus.Active));
