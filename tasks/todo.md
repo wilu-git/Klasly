@@ -163,7 +163,7 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 **Description:** `ScanViewModel` with Scanning → Sending → Result. `ScanScreen`: top bar with the student's name and **Log out**; camera permission request (denied → explanation + **Allow camera**; blocked for good → open app settings); `PreviewView` in `AndroidView` bound to a `LifecycleCameraController` with `MlKitAnalyzer` (QR only, plan decision 6); a square guide; "Checking you in…" spinner; Result card (Present green / Late amber, "ELECT3 · BSIT-2A", Manila time, **Done**). Replaces the Task 4 placeholder. For now, a failed scan shows the message with a **Scan again** button. Task 7 finishes the error states.
 
 **Acceptance criteria:**
-- [ ] Permission denied → explanation + **Allow camera**; granted → live preview.
+- [x] Permission denied → explanation + **Allow camera**; granted → live preview. *(Pixel_9: dialog on first open, "Don't allow" → card, Allow camera → dialog again → "While using the app" → preview.)*
 - [ ] On a real phone (`adb reverse`), scanning the teacher's QR → **Present** with the subject, section and Manila time, and the teacher's roster shows the student within 5 s. *(The vertical slice.)*
 - [ ] One QR sends exactly one scan request (API log); **Done** goes back to the preview.
 
@@ -187,7 +187,7 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 
 **Acceptance criteria:**
 - [ ] The guide's text word for word: "Already checked in" (second scan), "Invalid QR code" (any non-Klasly QR), "QR expired – rescan" (a QR photo kept 2 min), "Session is closed" (after End session), "Not enrolled in this class"; and a student on a session started 30 min ago → **Late**.
-- [ ] API stopped → "Can't reach Klasly…"; **Scan again** returns to the preview.
+- [ ] API stopped → "Can't reach Klasly…"; **Scan again** returns to the preview. *(Login with the API stopped shows "Can't reach Klasly. Check your connection." on Pixel_9 ✔; the scan half needs the phone.)*
 - [ ] With API `Jwt:ExpiryMinutes` = 1 (set back afterwards): the next scan → Login with "Session expired – please log in"; reopening the app after expiry → Login.
 
 **Verification:**
