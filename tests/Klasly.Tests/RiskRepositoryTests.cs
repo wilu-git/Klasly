@@ -9,8 +9,10 @@ namespace Klasly.Tests;
 
 /// <summary>
 /// The risk step's inputs query on the real schema. The query reads every enrollment in the database,
-/// so each test makes its own class and checks only its own enrollments.
+/// so each test makes its own class and checks only its own enrollments. In the "Risk" collection so
+/// <see cref="RiskCalculatorTests"/> never adds snapshots in the middle of the latest-snapshot test.
 /// </summary>
+[Collection("Risk")]
 public class RiskRepositoryTests(DatabaseFixture db)
 {
     private static readonly DateTime Now = DateTime.UnixEpoch.AddSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds());

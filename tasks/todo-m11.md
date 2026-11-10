@@ -46,10 +46,10 @@
 **What:** `src/Klasly.Worker/Services/RiskCalculator.cs`, with `RecomputeAsync(nowUtc, ct)` → `(Enrollments, NewSnapshots, AtRisk)`.
 
 **Acceptance:**
-- [ ] First run → one snapshot per own enrollment, `ComputedAt = now`, values from `RiskRules`.
-- [ ] Second run with nothing changed → no new rows. A new Absent in a Finalized session, or a new grade → exactly one new row for that enrollment. Old rows are never changed.
-- [ ] Missing or unparsable `PassingGrade` / `AbsenceThreshold` (stub settings repository) → throws with the key in the message, and nothing is saved.
-- [ ] One `SaveChangesAsync` per run.
+- [x] First run → one snapshot per own enrollment, `ComputedAt = now`, values from `RiskRules`.
+- [x] Second run with nothing changed → no new rows. A new Absent in a Finalized session, or a new grade → exactly one new row for that enrollment. Old rows are never changed.
+- [x] Missing or unparsable `PassingGrade` / `AbsenceThreshold` (stub settings repository) → throws with the key in the message, and nothing is saved.
+- [x] One `SaveChangesAsync` per run.
 
 **Verify:** `dotnet test --solution Klasly.slnx --filter RiskCalculatorTests`
 
