@@ -48,12 +48,15 @@ public class SessionsController(ISessionService sessions) : Controller
 
     /// <summary>One row's status dropdown on an ended session. The API's 400/409 message shows on the same page.</summary>
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Correct(int id, int studentId, string? status, CancellationToken ct)
+    public async Task<IActionResult> Correct(int id, int studentId, string? status, string? currentStatus, CancellationToken ct)
     {
         try
         {
             var row = await sessions.CorrectAttendanceAsync(id, studentId, status, ct);
-            TempData["Success"] = $"Attendance updated for {row.FullName}.";
+            // currentStatus is what the page showed; the API itself treats the same status as no change.
+            TempData["Success"] = status == currentStatus
+                ? $"No change: {row.FullName} is already {row.Status}."
+                : $"Attendance updated for {row.FullName}.";
         }
         catch (ApiException ex) when (ex.IsFormError)
         {

@@ -64,10 +64,10 @@ Tasks 1 and 2 don't depend on each other. Task 5 only needs real `Closed`/`Final
 
 - [x] Task 6: MVC Source column + "never opened" message
 - [x] Task 7: MVC correction dropdown + Save
-- [ ] Task 8: `/impeccable`, full smoke test, reports
+- [x] Task 8: `/impeccable`, full smoke test, reports
 
 ### Checkpoint C: Complete
-- [ ] Every success criterion in SPEC.md is met; ready for `/review`
+- [x] Every success criterion in SPEC.md is met; ready for `/review`
 
 ## Risks and mitigations
 

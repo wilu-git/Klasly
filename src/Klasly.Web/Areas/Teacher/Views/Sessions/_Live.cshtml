@@ -1,7 +1,8 @@
 @model SessionLiveViewModel
 @* Swapped into #live-panel every 5 s while the session is open. data-closed tells the page script to stop polling. *@
+@* Once the session has ended there is no QR, so the roster takes the full width (it has the Correct column then). *@
 <div class="row g-4" data-closed="@(Model.IsClosed ? "true" : "false")" data-summary="@(Model.IsClosed ? "This session has ended. " : "")@Model.Summary">
-    <div class="col-12 col-lg-5">
+    <div class="@(Model.IsClosed ? "col-12" : "col-12 col-lg-5")">
         @if (Model.QrSvg is not null)
         {
             <h2 class="visually-hidden">Check-in QR code</h2>
@@ -10,11 +11,17 @@
         }
         else
         {
-            <div class="alert alert-secondary mb-0">This session has ended. Students can no longer check in.</div>
+            <div class="alert alert-secondary mb-0">
+                This session has ended. Students can no longer check in.
+                @if (Model.CanCorrect)
+                {
+                    <text>To fix a result, choose a new status in the <strong>Correct</strong> column and press Save.</text>
+                }
+            </div>
         }
     </div>
 
-    <div class="col-12 col-lg-7">
+    <div class="@(Model.IsClosed ? "col-12" : "col-12 col-lg-7")">
         <h2 class="visually-hidden">Attendance</h2>
         <p class="fw-semibold mb-2">@Model.Summary</p>
 
@@ -24,15 +31,16 @@
         }
         else
         {
+            @* On phones the student no. and scan time are hidden and the source moves under the status, so Correct stays on screen. *@
             <div class="table-responsive">
                 <table class="table table-sm align-middle">
                     <thead>
                         <tr>
-                            <th scope="col">Student no.</th>
+                            <th scope="col" class="d-none d-md-table-cell text-nowrap">Student no.</th>
                             <th scope="col">Name</th>
                             <th scope="col">Status</th>
-                            <th scope="col">Scanned (Manila)</th>
-                            <th scope="col">Source</th>
+                            <th scope="col" class="d-none d-md-table-cell text-nowrap">Scanned (Manila)</th>
+                            <th scope="col" class="d-none d-sm-table-cell">Source</th>
                             @if (Model.CanCorrect)
                             {
                                 <th scope="col">Correct</th>
@@ -50,17 +58,26 @@
                                 "Excused" => "text-bg-info",
                                 _ => "text-bg-light border"
                             };
+                            var source = r.Source switch { "Scan" => "Scan", "Auto" => "Auto", "Manual" => "Corrected", _ => "—" };
                             <tr>
-                                <td class="text-nowrap">@r.StudentNumber</td>
+                                <td class="d-none d-md-table-cell text-nowrap">@r.StudentNumber</td>
                                 <td>@r.FullName</td>
-                                <td><span class="badge @css">@(r.Status ?? "Not yet")</span></td>
-                                <td class="text-nowrap">@(r.ScannedAtUtc is { } at ? ManilaTime.FormatTime(at) : "—")</td>
-                                <td>@(r.Source switch { "Scan" => "Scan", "Auto" => "Auto", "Manual" => "Corrected", _ => "—" })</td>
+                                <td>
+                                    <span class="badge @css">@(r.Status ?? "Not yet")</span>
+                                    @if (r.Source is not null)
+                                    {
+                                        <span class="d-block d-sm-none small text-body-secondary">@source</span>
+                                    }
+                                </td>
+                                <td class="d-none d-md-table-cell text-nowrap">@(r.ScannedAtUtc is { } at ? ManilaTime.FormatTime(at) : "—")</td>
+                                <td class="d-none d-sm-table-cell">@source</td>
                                 @if (Model.CanCorrect)
                                 {
                                     <td>
                                         <form asp-action="Correct" asp-route-id="@Model.SessionId" asp-route-studentId="@r.StudentId"
                                               method="post" class="d-flex gap-2 m-0">
+                                            @* Lets the controller say "no change" instead of a false "updated". *@
+                                            <input type="hidden" name="currentStatus" value="@r.Status" />
                                             <label class="visually-hidden" for="status-@r.StudentId">New status for @r.FullName</label>
                                             <select id="status-@r.StudentId" name="status" class="form-select form-select-sm w-auto">
                                                 @if (r.Status is null)

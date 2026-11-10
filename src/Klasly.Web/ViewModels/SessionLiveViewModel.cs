@@ -14,5 +14,10 @@ public record SessionLiveViewModel(int SessionId, string? QrSvg, List<SessionAtt
     public int Present => Roster.Count(r => r.Status == "Present");
     public int Late => Roster.Count(r => r.Status == "Late");
     public int CheckedIn => Present + Late;
-    public string Summary => $"{CheckedIn} of {Roster.Count} checked in · {Present} Present · {Late} Late";
+    public int Absent => Roster.Count(r => r.Status == "Absent");
+    public int Excused => Roster.Count(r => r.Status == "Excused");
+
+    // After the session ends the teacher also needs the Absent/Excused totals; while it is live they are always 0.
+    public string Summary => $"{CheckedIn} of {Roster.Count} checked in · {Present} Present · {Late} Late"
+        + (IsClosed ? $" · {Absent} Absent · {Excused} Excused" : "");
 }

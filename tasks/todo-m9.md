@@ -232,14 +232,14 @@ New repository members: `ISessionRepository.ListClosedAsync(ct)` (tracked) and `
 - Write the three reports (with an `erDiagram` only if the DB changed, which it shouldn't) and the INDEX line.
 
 **Acceptance criteria:**
-- [ ] `/impeccable` findings fixed or listed in the report.
-- [ ] All 10 smoke steps pass.
-- [ ] No pending model changes.
-- [ ] All `Microsoft.*` packages are 10.x, and the Hangfire and test package versions are in the report.
+- [x] `/impeccable` findings fixed or listed in the report.
+- [x] All 10 smoke steps pass.
+- [x] No pending model changes.
+- [x] All `Microsoft.*` packages are 10.x, and the Hangfire and test package versions are in the report.
 
 **Verification:**
-- [ ] Tests pass: `dotnet test Klasly.slnx`; Build succeeds: `dotnet build Klasly.slnx`
-- [ ] Reports in `docs/reports/<yyyy-MM-dd-HHmm>-milestone-9-worker-absent-corrections/`, one line in `docs/reports/INDEX.md`
+- [x] Tests pass: `dotnet test Klasly.slnx`; Build succeeds: `dotnet build Klasly.slnx`
+- [x] Reports in `docs/reports/2026-11-10-1811-milestone-9-worker-absent-corrections/`, one line in `docs/reports/INDEX.md`
 
 **Dependencies:** Task 7
 
@@ -250,6 +250,6 @@ New repository members: `ISessionRepository.ListClosedAsync(ct)` (tracked) and `
 **Estimated scope:** Medium
 
 ### Checkpoint C: Complete
-- [ ] Every success criterion in SPEC.md is met
-- [ ] No migration; Hangfire tables only in the `HangFire` schema
-- [ ] Ready for `/review`
+- [x] Every success criterion in SPEC.md is met
+- [x] No migration; Hangfire tables only in the `HangFire` schema
+- [x] Ready for `/review`

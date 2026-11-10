@@ -178,14 +178,14 @@ public class WorkerTickJob(AttendanceFinalizer attendance, ILogger<WorkerTickJob
 
 ## Success criteria
 
-- [ ] `dotnet run --project src/Klasly.Worker` starts a Hangfire server that runs `WorkerTickJob` on the `Worker:Cron` schedule, with no dashboard and no web host.
-- [ ] Within one tick of a session's end (or **End session**), it is `Closed` and then `Finalized`, and every active enrolled student has exactly one attendance record.
-- [ ] Non-scanners get `Absent` / `Auto`; scans and corrections are never overwritten; running two ticks at once creates no duplicates.
-- [ ] A teacher can correct a student's status on an ended session from the session page; the record shows `Source = Manual`, `MarkedBy` and `MarkedAt`.
-- [ ] Corrections are refused for open/scheduled sessions (409), other teachers' sessions (403) and non-enrolled students (404).
-- [ ] All 10 smoke-test steps behave as written.
-- [ ] No migration; `dotnet ef migrations has-pending-model-changes` reports none; every Microsoft package still 10.x.
-- [ ] Reports written; `docs/reports/INDEX.md` updated.
+- [x] `dotnet run --project src/Klasly.Worker` starts a Hangfire server that runs `WorkerTickJob` on the `Worker:Cron` schedule, with no dashboard and no web host.
+- [x] Within one tick of a session's end (or **End session**), it is `Closed` and then `Finalized`, and every active enrolled student has exactly one attendance record.
+- [x] Non-scanners get `Absent` / `Auto`; scans and corrections are never overwritten; running two ticks at once creates no duplicates.
+- [x] A teacher can correct a student's status on an ended session from the session page; the record shows `Source = Manual`, `MarkedBy` and `MarkedAt`.
+- [x] Corrections are refused for open/scheduled sessions (409), other teachers' sessions (403) and non-enrolled students (404).
+- [x] All 10 smoke-test steps behave as written.
+- [x] No migration; `dotnet ef migrations has-pending-model-changes` reports none; every Microsoft package still 10.x.
+- [x] Reports written; `docs/reports/INDEX.md` updated.
 
 ## Open questions (my recommendation first)
 
