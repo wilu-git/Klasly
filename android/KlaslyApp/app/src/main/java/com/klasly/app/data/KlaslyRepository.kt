@@ -33,6 +33,10 @@ class KlaslyRepository(
     suspend fun scan(qrToken: String): ApiResult<ScanResponse> =
         call { api.scan(ScanRequest(qrToken = qrToken, deviceId = deviceId)) }
 
+    /** Sends the FCM token in the background; a 401 here never logs the student out (they find out on their next scan). */
+    suspend fun setFcmToken(token: String): ApiResult<Unit> =
+        call(endsSessionOn401 = false) { api.setFcmToken(FcmTokenRequest(token)) }
+
     private suspend fun <T> call(endsSessionOn401: Boolean = true, block: suspend () -> T): ApiResult<T> = try {
         ApiResult.Ok(block())
     } catch (e: HttpException) {

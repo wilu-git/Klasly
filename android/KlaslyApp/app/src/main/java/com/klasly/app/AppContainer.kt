@@ -8,6 +8,10 @@ import com.klasly.app.data.KlaslyApi
 import com.klasly.app.data.KlaslyRepository
 import com.klasly.app.data.Session
 import com.klasly.app.data.TokenStore
+import com.klasly.app.push.PushRegistration
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,11 +29,15 @@ class KlaslyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        PushRegistration.createChannel(this)
     }
 }
 
 /** Builds the app's shared objects by hand (no DI library) and owns the logged-in session. */
-class AppContainer(context: Context) {
+class AppContainer(private val context: Context) {
+
+    /** For work that outlives a screen, e.g. sending the FCM token. */
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val tokenStore = TokenStore(context)
 
@@ -71,6 +79,8 @@ class AppContainer(context: Context) {
         tokenStore.save(session)
         _loginMessage.value = null
         _session.value = session
+        // The phone's push token now belongs to this student (the API takes it off anyone else).
+        if (session.role == "Student") PushRegistration.sendToken(context, this)
     }
 
     fun logOut(message: String? = null) {

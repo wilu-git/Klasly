@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.klasly.app.push.AskNotificationPermissionOnce
 import com.klasly.app.ui.login.LoginScreen
 import com.klasly.app.ui.login.LoginViewModel
 import com.klasly.app.ui.parent.ParentHomeScreen
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
                 val current = session
                 when (current?.role) {
                     "Student" -> {
+                        AskNotificationPermissionOnce()
                         // Keyed by token: the next login starts with a fresh scan state.
                         val vm = viewModel(key = current.token) { ScanViewModel(container) }
                         val state by vm.state.collectAsState()
