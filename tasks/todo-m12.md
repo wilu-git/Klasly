@@ -13,10 +13,10 @@
 - `Brevo:BaseUrl` / `SenderEmail` (empty) / `SenderName` in `appsettings.json`.
 
 **Acceptance:**
-- [ ] The request is `POST smtp/email` with the `api-key` header and JSON `sender`, `to`, `subject`, `textContent`.
-- [ ] 201 `{ "messageId": "<x>" }` → Accepted + messageId. 400 → Permanent with Brevo's message. 401 and 403 → Unauthorized. 429, 500 and 503 → Transient.
-- [ ] A thrown `HttpRequestException` → Transient. A timeout (the handler waits past `HttpClient.Timeout`) → Transient "timeout". A cancelled caller token → still throws.
-- [ ] `IsConfigured` is false when ApiKey or SenderEmail is empty.
+- [x] The request is `POST smtp/email` with the `api-key` header and JSON `sender`, `to`, `subject`, `textContent`.
+- [x] 201 `{ "messageId": "<x>" }` → Accepted + messageId. 400 → Permanent with Brevo's message. 401 and 403 → Unauthorized. 429, 500 and 503 → Transient.
+- [x] A thrown `HttpRequestException` → Transient. A timeout (the handler waits past `HttpClient.Timeout`) → Transient "timeout". A cancelled caller token → still throws.
+- [x] `IsConfigured` is false when ApiKey or SenderEmail is empty.
 
 **Verify:** `dotnet test --solution Klasly.slnx --filter-class Klasly.Tests.BrevoEmailClientTests`
 
