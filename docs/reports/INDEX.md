@@ -12,3 +12,4 @@
 - 2026-11-09 23:54 — Milestone 7 Tasks 2–7: Teacher session page, rotating QR, live roster with 5-second polling (Web MVC) — [folder](./2026-11-09-2354-milestone-7-teacher-session-page/)
 - 2026-11-10 12:28 — Milestone 8 Task 0: Android project shell (KlaslyApp, com.klasly.app, min SDK 26) — [folder](./2026-11-10-1228-milestone-8-task-0-android-shell/)
 - 2026-11-10 13:42 — Milestone 8 Tasks 1–8: Android login, phone registration, Scan QR screen (real-phone scan checks still open) — [folder](./2026-11-10-1342-milestone-8-android-login-scan/)
+- 2026-11-10 14:51 — Milestone 9 Task 1: Hangfire server in the Worker with an empty WorkerTickJob (Console Worker) — [folder](./2026-11-10-1451-milestone-9-task-1-hangfire-worker/)
