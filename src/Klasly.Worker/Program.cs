@@ -12,6 +12,7 @@ var cron = builder.Configuration["Worker:Cron"]
 
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddScoped<AttendanceFinalizer>();
+builder.Services.AddScoped<RiskCalculator>();
 
 // Hangfire keeps its own tables in the HangFire schema of the Klasly database (created on first run).
 builder.Services.AddHangfire(config => config

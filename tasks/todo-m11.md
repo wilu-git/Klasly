@@ -63,16 +63,16 @@
 - the placeholder comment is updated (Milestone 12 only).
 
 **Acceptance:**
-- [ ] Build and all tests pass.
-- [ ] Smoke run on the dev `Klasly` database (`dotnet run --project src/Klasly.Worker`):
+- [x] Build and all tests pass.
+- [x] Smoke run on the dev `Klasly` database (`dotnet run --project src/Klasly.Worker`):
   - one tick writes a snapshot for each seeded active enrollment;
   - a second tick writes none;
-  - after a seeded student gets 1 Absent of 5 Finalized sessions (or a grade below 75), the next tick writes one at-risk row;
+  - after a seeded student gets 1 Absent of 5 Finalized sessions (or a grade below 75), the next tick writes one at-risk row; *(not run by hand: every dev enrollment was already at-risk, so this change case is covered by `RiskCalculatorTests` instead)*
   - checked with `SELECT TOP 20 * FROM RiskFlags ORDER BY ComputedAt DESC`.
 
 **Files:** `src/Klasly.Worker/Jobs/WorkerTickJob.cs`, `src/Klasly.Worker/Program.cs`. **Depends on:** Task 3.
 
 ## Checkpoint B: Complete
-- [ ] Every success criterion in SPEC.md met.
-- [ ] `dotnet list Klasly.slnx package`: Microsoft.* still 10.x, nothing new. No migration.
-- [ ] Reports + INDEX line written; ready for `/review`.
+- [x] Every success criterion in SPEC.md met.
+- [x] `dotnet list Klasly.slnx package`: Microsoft.* still 10.x, nothing new. No migration.
+- [x] Reports + INDEX line written; ready for `/review`.

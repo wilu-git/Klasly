@@ -1,6 +1,6 @@
 # Implementation Plan: Milestone 11 — Worker: risk calculation + RiskFlags snapshots
 
-> **Draft — waiting for team approval.** Built from [`SPEC.md`](../SPEC.md) (approved 2026-11-10). Task details and acceptance criteria are in [`todo-m11.md`](./todo-m11.md). Milestone 10 stays in `plan-m10.md` / `todo-m10.md` (its Task 9, the Firebase setup, is still open and doesn't block this milestone).
+> **Plan approved 2026-11-10; built 2026-11-11.** Built from [`SPEC.md`](../SPEC.md) (approved 2026-11-10). Task details and acceptance criteria are in [`todo-m11.md`](./todo-m11.md). Milestone 10 stays in `plan-m10.md` / `todo-m10.md` (its Task 9, the Firebase setup, is still open and doesn't block this milestone).
 
 ## Context
 
@@ -46,18 +46,18 @@ Milestone 10 is committed (`8f31453`). Milestone 11 implements guide §27.9 #8: 
 ## Task list
 
 ### Phase 1: Rules and data
-- [ ] Task 1: `RiskRules` + boundary unit tests (XS)
-- [ ] Task 2: `IRiskRepository` / `RiskInput` / `RiskRepository` + query tests (M)
+- [x] Task 1: `RiskRules` + boundary unit tests (XS)
+- [x] Task 2: `IRiskRepository` / `RiskInput` / `RiskRepository` + query tests (M)
 
 ### Checkpoint A
-- [ ] `dotnet build Klasly.slnx` clean, all tests pass, `has-pending-model-changes` reports none
+- [x] `dotnet build Klasly.slnx` clean, all tests pass, `has-pending-model-changes` reports none
 
 ### Phase 2: Worker step
-- [ ] Task 3: `RiskCalculator` (settings, change-only snapshots, one save) + tests (S)
-- [ ] Task 4: wire into `WorkerTickJob` + `Program.cs`; smoke run on the dev database (S)
+- [x] Task 3: `RiskCalculator` (settings, change-only snapshots, one save) + tests (S)
+- [x] Task 4: wire into `WorkerTickJob` + `Program.cs`; smoke run on the dev database (S)
 
 ### Checkpoint B: Complete
-- [ ] Every spec success criterion met; reports + INDEX written; ready for review
+- [x] Every spec success criterion met; reports + INDEX written; ready for review
 
 ## Risks and mitigations
 

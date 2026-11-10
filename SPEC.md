@@ -120,13 +120,13 @@ public static class RiskRules
 
 ## Success criteria
 
-- [ ] After a tick, every Active enrollment in the active term has a latest `RiskFlags` row whose AbsenceRate, WeightedAverage and IsAtRisk follow assumptions 2–6.
-- [ ] Exactly 20% absence → at-risk; exactly 75 average → not at-risk (tests).
-- [ ] Excused, Cancelled, not-yet-finalized sessions and blank grades are excluded as described (tests).
-- [ ] Changing `AbsenceThreshold` / `PassingGrade` in `SystemSettings` changes the next tick's flags with no code change.
-- [ ] The step runs as the third step of `WorkerTickJob`, after finalizing; one input query and one save per tick.
-- [ ] No migration (`has-pending-model-changes` reports none); no new package; Microsoft.* still 10.x; all tests pass.
-- [ ] Reports written; INDEX line added.
+- [x] After a tick, every Active enrollment in the active term has a latest `RiskFlags` row whose AbsenceRate, WeightedAverage and IsAtRisk follow assumptions 2–6.
+- [x] Exactly 20% absence → at-risk; exactly 75 average → not at-risk (tests).
+- [x] Excused, Cancelled, not-yet-finalized sessions and blank grades are excluded as described (tests).
+- [x] Changing `AbsenceThreshold` / `PassingGrade` in `SystemSettings` changes the next tick's flags with no code change.
+- [x] The step runs as the third step of `WorkerTickJob`, after finalizing; one input query and one save per tick.
+- [x] No migration (`has-pending-model-changes` reports none); no new package; Microsoft.* still 10.x; all tests pass.
+- [x] Reports written; INDEX line added.
 
 ## Open questions (my recommendation first)
 
