@@ -63,11 +63,11 @@ Task 0  (team) Android Studio wizard creates android/KlaslyApp
 - [x] Task 0: create the project (wizard files copied from a recent project on this PC, see `todo.md`)
 - [x] Task 1: Build setup
 - [x] Task 2: API text rules, test first
-- [ ] Task 3: API client + session store
+- [x] Task 3: API client + session store
 
 ### Checkpoint A (after Tasks 0–3)
-- [ ] `./gradlew assembleDebug` and `./gradlew testDebugUnitTest` pass
-- [ ] The app installs and starts on `Pixel_9`
+- [x] `./gradlew assembleDebug` and `./gradlew testDebugUnitTest` pass
+- [x] The app installs and starts on `Pixel_9`
 
 ### Phase 2: Login
 - [ ] Task 4: Student login → phone registered → stays logged in

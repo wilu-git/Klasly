@@ -83,16 +83,16 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 
 ## Task 3: API client + session store
 
-**Description:** `Dtos.kt`: `@Serializable` `LoginRequest`, `LoginResponse`, `RegisterDeviceRequest`, `DeviceResponse`, `ScanRequest`, `ScanResponse`. `KlaslyApi.kt`: the Retrofit interface (the device call takes an explicit `Authorization` header for the login flow, plan decision 5). `TokenStore.kt`: EncryptedSharedPreferences with a `shortcut:` comment for the deprecation, and recovery from a broken keystore. `KlaslyRepository.kt`: `ApiResult`, `login`, `scan`, and clearing the session on 401, with error text from `errorMessage`. `AppContainer.kt`: OkHttp with the Bearer interceptor, Retrofit with `Json { ignoreUnknownKeys = true }`, the Android ID, and the session `StateFlow`. Created once in `MainActivity` (no screen uses it yet).
+**Description:** `Dtos.kt`: `@Serializable` `LoginRequest`, `LoginResponse`, `RegisterDeviceRequest`, `DeviceResponse`, `ScanRequest`, `ScanResponse`. `KlaslyApi.kt`: the Retrofit interface (the device call takes an explicit `Authorization` header for the login flow, plan decision 5). `TokenStore.kt`: EncryptedSharedPreferences with a `shortcut:` comment for the deprecation, and recovery from a broken keystore. `KlaslyRepository.kt`: `ApiResult`, `login`, `scan`, and clearing the session on 401, with error text from `errorMessage`. `AppContainer.kt`: OkHttp with the Bearer interceptor, Retrofit with `Json { ignoreUnknownKeys = true }`, the Android ID, and the session `StateFlow`. Created once in `KlaslyApplication` (registered in the manifest), so a rotation never builds a second container; no screen uses it yet.
 
 **Acceptance criteria:**
-- [ ] The app builds and still starts (the template screen shows, no crash creating `AppContainer`).
-- [ ] No OkHttp logging interceptor, and no `Log` call with the token or the QR text.
-- [ ] `TokenStore` returns no session when the saved `expiresAtUtc` has passed.
+- [x] The app builds and still starts (the template screen shows, no crash creating `AppContainer`).
+- [x] No OkHttp logging interceptor, and no `Log` call with the token or the QR text.
+- [x] `TokenStore` returns no session when the saved `expiresAtUtc` has passed.
 
 **Verification:**
-- [ ] Build succeeds: `./gradlew assembleDebug`; tests still pass
-- [ ] Manual check: `./gradlew installDebug` on `Pixel_9`, the app opens
+- [x] Build succeeds: `./gradlew assembleDebug`; tests still pass
+- [x] Manual check: `./gradlew installDebug` on `Pixel_9`, the app opens
 
 **Dependencies:** Task 2
 
@@ -103,8 +103,8 @@ Click **Finish** and wait for the first Gradle sync to end. Nothing else.
 **Estimated scope:** Medium (5 files; the DTOs are one-liners)
 
 ### Checkpoint A: after Tasks 0–3
-- [ ] `./gradlew assembleDebug` and `./gradlew testDebugUnitTest` pass
-- [ ] The app installs and starts on `Pixel_9`
+- [x] `./gradlew assembleDebug` and `./gradlew testDebugUnitTest` pass
+- [x] The app installs and starts on `Pixel_9`
 
 ---
 
