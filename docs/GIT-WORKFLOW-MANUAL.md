@@ -31,8 +31,8 @@ gitGraph
 |--------|-------|-----------------|
 | `master` | forever | Finished, reviewed work. Only updated by a PR from `dev`. |
 | `dev` | forever | The team's working line. Every milestone branch merges here. |
-| `dotnet/m<N>-<slug>` | one milestone | .NET work: `src/` (API, Web, Worker, Core, Infrastructure) and `tests/`. |
-| `android/m<N>-<slug>` | one milestone | Android work: `android/KlaslyApp`. |
+| `dotnet/m<N>-<slug>` | one milestone, deleted after merge | .NET work: `src/` (API, Web, Worker, Core, Infrastructure) and `tests/`. |
+| `android/m<N>-<slug>` | one milestone, deleted after merge | Android work: `android/KlaslyApp`. |
 | `backup/dev-before-split` | until the team deletes it | Copy of `dev` before the 2026-11-11 history re-sort (local only). |
 
 ## 2. Naming rules
@@ -79,6 +79,12 @@ gitGraph
    git merge --no-ff dotnet/m14-role-access-tests -m "Merge dotnet/m14-role-access-tests: Milestone 14 role-access tests (.NET)"
    git push
    ```
+   Then **delete the branch**. On GitHub click "Delete branch" on the merged PR, or:
+   ```bash
+   git branch -d dotnet/m14-role-access-tests
+   git push origin --delete dotnet/m14-role-access-tests
+   ```
+   Nothing is lost: the commits are in `dev`, and the merge message keeps the branch name and label.
 6. **If the milestone also needs Android**, start `android/m14-<same slug>` from the
    updated `dev` and repeat steps 1–5. Do the .NET half first: Android calls the API,
    so the endpoints must exist before the app uses them.
@@ -105,38 +111,66 @@ re-sorted into the branches below so the history follows this manual. Rules kept
 - Author name and author date are unchanged; only the commit hashes are new.
 - `origin/dev` (Milestone 4) is still an ancestor, so no force-push was needed.
 
-| # | Branch | Milestone | Commits |
-|---|--------|-----------|---------|
-| 1 | `dotnet/m5-web-admin` | 5 Web MVC login and Admin pages (.NET) | 7 |
-| 2 | `dotnet/m6-api-sessions` | 6 sessions, QR token and scan endpoint (.NET) | 9 |
-| 3 | `dotnet/m7-web-teacher-session` | 7 teacher session page with rotating QR (.NET) | 7 |
-| 4 | `android/m8-login-scan` | 8 Android login and Scan QR (Android) | 13 |
-| 5 | `dotnet/m9-worker-corrections` | 9 Hangfire Worker, auto-Absent and corrections (.NET) | 4 |
-| 6 | `dotnet/m10-grades-push` | 10 assessments, grades and FCM sender (.NET half) | 1 |
-| 7 | `android/m10-grades-push` | 10 FCM grade push in the app (Android half) | 1 |
-| 8 | `dotnet/m11-worker-risk` | 11 Worker risk flags (.NET) | 6 |
-| 9 | `dotnet/m12-alerts-brevo` | 12 parent alerts and Brevo emails (.NET) | 7 |
-| 10 | `dotnet/m13-dashboards` | 13 overview endpoints and Parent portal (.NET half) | 6 |
-| 11 | `android/m13-dashboards` | 13 student and parent overview screens (Android half) | 4 |
+| #   | Branch                          | Milestone                                             | Commits |
+| --- | ------------------------------- | ----------------------------------------------------- | ------- |
+| 1   | `dotnet/m5-web-admin`           | 5 Web MVC login and Admin pages (.NET)                | 7       |
+| 2   | `dotnet/m6-api-sessions`        | 6 sessions, QR token and scan endpoint (.NET)         | 9       |
+| 3   | `dotnet/m7-web-teacher-session` | 7 teacher session page with rotating QR (.NET)        | 7       |
+| 4   | `android/m8-login-scan`         | 8 Android login and Scan QR (Android)                 | 13      |
+| 5   | `dotnet/m9-worker-corrections`  | 9 Hangfire Worker, auto-Absent and corrections (.NET) | 4       |
+| 6   | `dotnet/m10-grades-push`        | 10 assessments, grades and FCM sender (.NET half)     | 1       |
+| 7   | `android/m10-grades-push`       | 10 FCM grade push in the app (Android half)           | 1       |
+| 8   | `dotnet/m11-worker-risk`        | 11 Worker risk flags (.NET)                           | 6       |
+| 9   | `dotnet/m12-alerts-brevo`       | 12 parent alerts and Brevo emails (.NET)              | 7       |
+| 10  | `dotnet/m13-dashboards`         | 13 overview endpoints and Parent portal (.NET half)   | 6       |
+| 11  | `android/m13-dashboards`        | 13 student and parent overview screens (Android half) | 4       |
 
 Milestone 10 had been made as one commit touching both platforms (old `8f31453`).
 It was split by folder: everything outside `android/` went to the .NET half, and
 `android/` went to the Android half. Both commits keep the original message and
 say where the other half is.
 
-The 11 branches are kept (locally and on GitHub) as labels for each milestone.
+The 11 branches were deleted after the re-sort to keep the branch list clean. Their
+names and labels live on in the merge messages (`git log --oneline --first-parent dev`).
 
-## 6. Recovering something
+## 6. Undoing a merge
+
+**Merged but not pushed yet:** move `dev` back to before the merge (this also drops uncommitted edits, so commit or stash first):
+
+```bash
+git reset --hard ORIG_HEAD     # or HEAD~1 if you ran other git commands since
+```
+
+**Already pushed:** add a commit that undoes the whole merge. No history rewrite, no force-push.
+
+```bash
+git log --oneline --first-parent dev    # find the merge, e.g. 072a33c Merge dotnet/m12-alerts-brevo ...
+git revert -m 1 072a33c                 # -m 1 = keep the dev side
+git push
+```
+
+On GitHub the **Revert** button on the merged PR does the same thing.
+
+**Merging it again later:** git still counts the reverted branch as merged, so merging it
+again brings nothing back. Revert the revert first, then add your fixes:
+
+```bash
+git revert <hash-of-the-revert-commit>
+```
+
+## 7. Recovering something
 
 | Need | Command |
 |------|---------|
 | The old straight-line `dev` | `git log backup/dev-before-split` (local branch) |
 | The abandoned Milestone 3 draft from the old `claude/klasly-milestone-2` worktree | `git stash list`, then `git stash show -p stash@{0}` |
+| A deleted milestone branch | `git branch <name> <merge-hash>^2` (the merge's second parent is the branch tip) |
 | A deleted old branch | `git branch <name> <hash>`; the hashes are listed in `docs/reports/2026-11-11-1112-git-branch-split/DEVELOPER-DOCS.md` |
 
-## 7. Do and don't
+## 8. Do and don't
 
 - **Do** start every milestone branch from a freshly pulled `dev`.
+- **Do** delete the branch once it is merged.
 - **Do** keep one branch per milestone and platform, not one per task.
 - **Don't** force-push `dev` or `master`.
 - **Don't** commit `.idea/`, `.claude/`, secrets or connection-string passwords.
