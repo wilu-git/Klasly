@@ -15,7 +15,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
     private const string DatabaseName = "Klasly_Tests";
 
     // Windows auth, no password: safe to keep in code.
-    private const string ConnectionString =
+    internal const string ConnectionString =
         $"Server=(localdb)\\MSSQLLocalDB;Database={DatabaseName};Trusted_Connection=True;TrustServerCertificate=True";
 
     public KlaslyDbContext CreateContext(params IInterceptor[] interceptors) =>
