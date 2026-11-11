@@ -31,7 +31,7 @@
             {
                 var current = c.StudentId == o.StudentId;
                 <li class="nav-item">
-                    <a class="nav-link @(current ? "active" : "border")" aria-current="@(current ? "page" : null)"
+                    <a class="nav-link border @(current ? "active border-primary" : "")" aria-current="@(current ? "page" : null)"
                        asp-action="Details" asp-route-id="@c.StudentId">@c.StudentName</a>
                 </li>
             }
@@ -84,8 +84,8 @@
                 </p>
             }
 
-            <details class="mb-2">
-                <summary>Attendance records (@c.Attendance.Count)</summary>
+            <details>
+                <summary class="overview-toggle">Attendance records (@c.Attendance.Count)</summary>
                 @if (c.Attendance.Count == 0)
                 {
                     <p class="text-body-secondary mt-2 mb-0">No sessions recorded yet.</p>
@@ -101,7 +101,7 @@
                             <tbody>
                                 @foreach (var a in c.Attendance)
                                 {
-                                    <tr><td>@ManilaTime.Format(a.StartTimeUtc)</td><td>@a.Status</td></tr>
+                                    <tr><td>@ManilaTime.Format(a.StartTimeUtc)</td><td class="@(a.Status == "Absent" ? "text-danger-emphasis fw-semibold" : "")">@a.Status</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -110,7 +110,7 @@
             </details>
 
             <details>
-                <summary>Grades (@c.Grades.Count)</summary>
+                <summary class="overview-toggle">Grades (@c.Grades.Count)</summary>
                 @if (c.Grades.Count == 0)
                 {
                     <p class="text-body-secondary mt-2 mb-0">No assessments yet.</p>
@@ -132,7 +132,7 @@
                                 {
                                     <tr>
                                         <td>@g.Title <span class="text-body-secondary small">@g.Type</span></td>
-                                        <td class="text-end text-nowrap">@(g.Score is { } s ? $"{Number(s)} / {Number(g.MaxScore)}" : "Not graded yet")</td>
+                                        <td class="text-end text-nowrap @(g.Score is null ? "text-body-secondary" : "")">@(g.Score is { } s ? $"{Number(s)} / {Number(g.MaxScore)}" : "Not graded yet")</td>
                                         <td class="text-end">@Number(g.WeightPercent)%</td>
                                     </tr>
                                 }

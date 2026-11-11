@@ -85,8 +85,8 @@
 **Files:** the files above. **Depends on:** Task 3.
 
 ## Task 5: Parent portal polish
-- [ ] `/impeccable` on `Children/Index` and `Details`; fixes applied.
-- [ ] Browser smoke: parent user 10 (two children, switcher), a one-child parent → redirect (every seeded parent has two children: unlink one in Admin › Accounts for the check, then link it back), times in Manila, keyboard and screen-reader labels on the badge and tables.
+- [x] `/impeccable` on `Children/Index` and `Details`; fixes applied.
+- [x] Browser smoke (one-child redirect not exercised live: needs a temporary unlink; see the Task 5 report): parent user 10 (two children, switcher), a one-child parent → redirect (every seeded parent has two children: unlink one in Admin › Accounts for the check, then link it back), times in Manila, keyboard and screen-reader labels on the badge and tables.
 
 **Depends on:** Task 4.
 

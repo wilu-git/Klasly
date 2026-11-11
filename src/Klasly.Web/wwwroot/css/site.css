@@ -35,6 +35,11 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Parent overview: expandable tables get a full-size tap target on phones. */
+.overview-toggle {
+  padding-block: 0.75rem;
+}
+
 /* The validation summary box only shows when it has messages. */
 .validation-summary-valid {
   display: none;
