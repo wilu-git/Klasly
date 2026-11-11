@@ -1,137 +1,211 @@
-# Spec: Milestone 11 — Worker: risk calculation + RiskFlags snapshots
+# Spec: Milestone 12 — Worker: parent alerts outbox + Brevo email sender
 
-> Status: **Approved** (2026-11-10). Open questions 1–4 answered as recommended: snapshot only on change, count the student's own records, skip blank grades, fail on a bad setting. Plan: `tasks/plan-m11.md` + `tasks/todo-m11.md`.
-> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "Risk calculation", §27.6 RiskFlags / SystemSettings, §27.7 conventions, §27.9 #8, §27.10 boundary tests, the §"one query" note for the risk job) → `CLAUDE.md` (§3.5 Console Worker, §6 Milestone 11) → this spec.
-> Milestone 10's spec is in git history (commit `8f31453`) and in `docs/reports/2026-11-10-2221-milestone-10-assessments-grades-push/`.
+> Status: **Approved** (2026-11-11). Open questions 1–6 answered as recommended:
+> - add `Microsoft.Extensions.Http` 10.0.14;
+> - 401/403 stops the batch and leaves rows Pending;
+> - absence alerts reach back 48 h;
+> - unconfigured Brevo → Failed "Brevo is not configured";
+> - Brevo account setup is the last task;
+> - 50 emails per tick (constant).
+>
+> Plan: `tasks/plan-m12.md` + `tasks/todo-m12.md`.
+> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "Email outbox (Brevo)" and "Risk calculation", §27.6 Notifications / Guardians / StudentGuardians / SystemSettings, §27.9 #9, §13 `BrevoEmailClient` + 10 s timeout, §14 `Brevo:ApiKey` and config) → `CLAUDE.md` (§3.5 Console Worker, §6 Milestone 12) → this spec.
+> Milestone 11's spec is in git history (commit `9d7dacb`) and in `docs/reports/2026-11-11-0055-milestone-11-worker-risk-flags/`.
 
 ## What exists today
 
-- **The table is ready.** `RiskFlags` (EnrollmentId, AbsenceRate `decimal(5,4)` 0–1, WeightedAverage `decimal(5,2)` null or 0–100, IsAtRisk, ComputedAt UTC default) with the `(EnrollmentId, ComputedAt DESC)` index. `RiskFlag` entity and `Enrollment.RiskFlags` exist. Nothing writes or reads it yet.
-- **Settings are seeded:** `AbsenceThreshold = 0.20`, `PassingGrade = 75`. `ISystemSettingRepository.GetValueAsync(key)` reads them.
-- **The Worker:** `WorkerTickJob` runs `AttendanceFinalizer` (close ended sessions → mark Absent + Finalize) and has a placeholder comment for Milestone 11. `[DisableConcurrentExecution]` and `[AutomaticRetry(Attempts = 0)]` are in place.
-- **Inputs exist:** Finalized sessions with Present / Late / Absent / Excused records (Milestone 9); assessments with weights and grades, where a blank score means "not graded yet" (Milestone 10).
-- **Tests:** `tests/Klasly.Tests` (xUnit, LocalDB `Klasly_Tests` built by the real migrations), 33 passing.
+- **The outbox table is ready.** `Notifications` has every column (Channel, Type, Subject, Body, Status, Attempts, NextAttemptAt, LastError, DedupKey, ExternalMessageId, CreatedAt), plus:
+  - CHECKs on the Channel, Type, Status and Attempts values;
+  - a unique `DedupKey` (150 chars);
+  - the `(Status, NextAttemptAt)` index.
+  
+  The Web API already writes and sends `Push / GradePosted` rows (Milestone 10). Nothing writes `Email` rows yet.
+- **Recipients exist.** `Guardians.ContactEmail` (required), `StudentGuardians.ReceivesAlerts` (default true). The seed links students 1–5 to 3 fictional guardians at `@klasly.test`; student 6 has no guardian.
+- **Triggers exist:**
+  - Absent records from the Worker (`Source = Auto`) or a teacher correction (`Source = Manual`, `MarkedAt` = correction time);
+  - `RiskFlags` snapshots written only on change (Milestone 11), so "became at-risk" = the latest row is at-risk and the row before it is not (or there is none).
+- **Settings:** `MaxEmailAttempts = 5`, `TimeZoneId = Asia/Manila` are seeded.
+- **The Worker:** `WorkerTickJob` runs close → Absent + finalize → risk, with a `// Milestone 12` placeholder. It has `[DisableConcurrentExecution]` and `[AutomaticRetry(Attempts = 0)]` (no Hangfire retries; the outbox retries).
+- **Pattern to copy:** the API's `IFcmPushClient` / `FcmPushClient` (typed `HttpClient`, 10 s timeout, returns a result, never throws on HTTP errors) and `PushTests` (fake client).
+- **Missing:** the Worker has **no `AddHttpClient`**. The Worker SDK doesn't include `Microsoft.Extensions.Http` (see Q1).
 
 ## Assumptions (correct these before we build)
 
-1. **Who gets a snapshot:** every **Active** enrollment in a class of the **active term**. Dropped enrollments and past terms are left alone; their last snapshot stays as it was.
-2. **Absence Rate** for one enrollment = the student's **Absent** records ÷ the student's **Present + Late + Absent** records, counting only **Finalized** sessions of that class. Excused is left out of both counts; Cancelled sessions have no records, so they drop out by themselves. Counting the student's own records (not all class sessions) means a student who enrolled late is not charged for sessions held before they joined.
-3. **No finalized sessions yet → Absence Rate = 0** (the column is NOT NULL and 0 can't trigger a flag).
-4. **Weighted Average** = Σ(score ÷ max × 100 × weight) ÷ Σ(weight), over the assessments **this student has a grade for**. An assessment the student has no grade on (blank score) is skipped for that student. **NULL** when the student has no grades.
-5. **Rounding:** Absence Rate to 4 decimals, Weighted Average to 2 decimals (the column sizes), `MidpointRounding.AwayFromZero`. **IsAtRisk is decided on the rounded values**, so what a dashboard shows always matches the flag (74.996 is shown as 75.00 and is not at-risk).
-6. **At-risk** = Absence Rate ≥ `AbsenceThreshold` **OR** (Weighted Average is not NULL **AND** Weighted Average < `PassingGrade`). Exactly 0.20 → at-risk; exactly 75 → not.
-7. **Settings are read once per tick** with invariant-culture parsing. A missing or unparsable setting **fails the step** with a logged error (no silent default); the next tick tries again. *(Added after review, 2026-11-11:)* so does a value out of range: `AbsenceThreshold` must be above 0 and at most 1, and `PassingGrade` must be 1–100. This catches a value typed in the wrong scale (`20`, `0.75`).
-8. **One query, one save.** The repository loads every enrollment's inputs in one query (the guide asks for this because it runs every 5 minutes) plus the latest snapshot per enrollment; the rules run in C#; all new rows go in one `SaveChanges`. All snapshots of one tick share the tick's `now`.
-9. **Order in the tick:** after `MarkAbsentAndFinalizeAsync`, so newly finalized Absents count in the same tick.
-10. **No alerts in this milestone.** Queueing the "became at-risk" email is Milestone 12. This milestone only makes sure the snapshot history lets Milestone 12 find the change (see Q1).
-11. **No schema change, no new package, no API endpoint, no page.** Dashboards that read the flags are Milestone 13.
+1. **Two new steps, in this order, after risk:** **queue alerts** → **send emails**. Each is its own service; the job only calls them (CLAUDE.md §3.5).
+2. **Who gets an alert:** each guardian linked to the student with `ReceivesAlerts = 1` whose user is active (`Users.IsActive = 1`). Only for **Active** enrollments in classes of the **active term**. One email per guardian per alert; a guardian with two children gets separate emails.
+3. **Absence alert:**
+   - **Trigger:** an `Absent` record in a **Finalized** session, with `MarkedAt` inside the last **48 hours** (see Q3).
+   - **DedupKey:** `absent:{SessionId}:{StudentId}:{GuardianId}` (the guide's format).
+   - **Corrections:** a teacher correcting Present → Absent sets `MarkedAt` to now, so it is picked up on the next tick. Correcting back to Present after the email is queued doesn't take it back.
+   - **Excused:** never alerts.
+4. **At-risk alert:**
+   - **Trigger:** the enrollment's **latest** `RiskFlags` row is at-risk and the row before it is not at-risk or missing.
+   - **DedupKey:** `atrisk:{RiskFlagId}:{GuardianId}`.
+   - **Repeats:** a student who recovers and becomes at-risk again gets a new snapshot, so a new alert. A student still at-risk gets no repeat.
+5. **"Never twice":** the queue query skips alerts whose DedupKey already exists. The unique index is the backstop. The Worker is the only writer and ticks never overlap, so there is no race.
+6. **Email text** is stored in `Subject` / `Body` when queued, with times in `TimeZoneId` (Asia/Manila). Sent as Brevo `textContent` (plain text, no HTML template).
+   - Absence: subject `Klasly: Aira Santos was absent from ELECT3`, body: who, subject + section, the session date and time (Manila), and that the teacher marked or confirmed the absence.
+   - At-risk: subject `Klasly: Aira Santos may need support in ELECT3`, body: absence rate (%), weighted average (or "no grades yet"), and "This is an early-warning indicator for review, not a final grade" (§27.5).
+7. **Sending:**
+   - **Which rows:** `Channel = Email`, `Status = Pending`, `NextAttemptAt` null or ≤ now, oldest first, at most **50 per tick**. Push rows are never touched (the API owns them).
+   - **Recipient:** read at send time from the guardian's `ContactEmail`.
+   - **The call:** `POST {Brevo:BaseUrl}smtp/email` with the `api-key` header, JSON `sender {name, email}`, `to [{email, name}]`, `subject`, `textContent`; 10 s timeout.
+8. **Results (guide §27.8):** every try does `Attempts++`, then:
+   - **2xx** → `Accepted` + `ExternalMessageId` = Brevo `messageId`.
+   - **400** and any other 4xx except 401/403/429 → `Failed` + `LastError` (status + Brevo's message, cut to 500 chars).
+   - **429, 5xx, timeout, network error** → transient:
+     - stays `Pending`;
+     - `NextAttemptAt = now + 5 min × 2^(Attempts − 1)` (5, 10, 20, 40 min…), plus a random 0–60 s jitter;
+     - when `Attempts ≥ MaxEmailAttempts` → `Failed` + LastError.
+   - **401 / 403** → see Q2.
+9. **Configuration:**
+   - `appsettings.json`: `Brevo:BaseUrl` (`https://api.brevo.com/v3/`), `Brevo:SenderEmail`, `Brevo:SenderName` (`Klasly`).
+   - User-secrets: `Brevo:ApiKey` only (§14).
+   - `MaxEmailAttempts` is read from `SystemSettings` with the same "missing or out of range fails the step" rule as Milestone 11 (range 1–20).
+10. **No schema change.** No API endpoint and no page. "Failed rows shown on the admin dashboard" (§27.8) waits for the dashboards; until then they are visible in the table and the Worker log.
+11. **Saving:** the queue step saves once per tick; the send step saves **after each email**, so a crash never re-sends an already Accepted email.
 
 ## Objective
 
-Each Worker tick turns attendance and grades into an early-warning **at-risk flag** per student per class, so parents (Milestones 12–13) and teachers can act before the term ends. The flag is an indicator for review, not a final judgment (§27.5).
+Parents hear about problems early. When their child is marked absent, or newly flagged at-risk, each linked guardian who wants alerts gets **one** email through Brevo. A Brevo outage or rate limit delays it (with backoff) but never loses or duplicates it (§27.9 #9).
 
 ### User stories
 
-- As a **parent**, I want my child flagged when they miss 20% of classes or their average drops below 75, so the alert in Milestone 12 reaches me early.
-- As a **teacher**, I want the flag recomputed automatically after every session and every grade change, without pressing anything.
-- As the **team**, we want the boundary cases (exactly 20%, exactly 75) proven by tests, because §27.10 lists them for hardening.
+- As a **parent**, I get an email the same day my child is marked absent, and when my child becomes at-risk, so I can act before the term ends.
+- As a **parent**, I never get the same alert twice, even if the Worker restarts or Brevo is down for an hour.
+- As the **team**, we can see in `Notifications` which emails were sent, are waiting to retry, or failed and why.
 
 ## Design
 
 ```
 WorkerTickJob.RunAsync
-  ├─ AttendanceFinalizer.CloseEndedSessionsAsync     (Milestone 9)
-  ├─ AttendanceFinalizer.MarkAbsentAndFinalizeAsync  (Milestone 9)
-  └─ RiskCalculator.RecomputeAsync(now)              ← new
-        1. read AbsenceThreshold + PassingGrade
-        2. IRiskRepository.ListInputsAsync()  → one row per active enrollment:
-             EnrollmentId, AbsentCount, CountedCount, WeightedSum, WeightSum,
-             latest snapshot (AbsenceRate, WeightedAverage, IsAtRisk) or null
-        3. RiskRules.Compute(...) per row  → (rate, average, isAtRisk)
-        4. add RiskFlag rows (all, or only changed ones — Q1)
-        5. one SaveChanges; log "risk: X enrollments, Y new snapshots, Z at-risk"
+  ├─ AttendanceFinalizer (M9) → RiskCalculator (M11)
+  ├─ AlertQueuer.QueueAsync(now)               ← new
+  │     1. read TimeZoneId
+  │     2. INotificationRepository.ListAbsenceAlertsAsync(sinceUtc)   → candidates without an existing DedupKey
+  │     3. INotificationRepository.ListAtRiskAlertsAsync()            → candidates without an existing DedupKey
+  │     4. build Subject/Body, Add Notification (Email, Pending), one save
+  └─ EmailSender.SendDueAsync(now)             ← new
+        1. read MaxEmailAttempts; if Brevo isn't configured → Q4
+        2. INotificationRepository.ListDueEmailsAsync(now, take: 50)  (tracked, with Guardian email)
+        3. per row: IBrevoEmailClient.SendAsync → apply result (assumption 8) → save
 ```
 
-`RiskRules.Compute` is a small static method with no database, so the boundary tests are plain unit tests.
+`IBrevoEmailClient` / `BrevoEmailClient` (Worker, typed `HttpClient`) returns `EmailResult(Kind: Accepted | Permanent | Transient | Unauthorized, MessageId?, Error?)` and never throws for HTTP errors or timeouts (except cancellation).
 
 ## Commands
 
 ```
 Build:    dotnet build Klasly.slnx
-Test:     dotnet test Klasly.slnx
-Worker:   dotnet run --project src/Klasly.Worker
+Test:     dotnet test --solution Klasly.slnx
+Worker:   dotnet run --project src/Klasly.Worker -- --Worker:Cron "* * * * *"
+Secret:   dotnet user-secrets set "Brevo:ApiKey" "<key>" --project src/Klasly.Worker
 Model:    dotnet ef migrations has-pending-model-changes -p src/Klasly.Infrastructure -s src/Klasly.API   (must say none)
-Packages: dotnet list Klasly.slnx package   (Microsoft.* still 10.x, nothing new)
-Check:    SELECT TOP 20 * FROM RiskFlags ORDER BY ComputedAt DESC;
+Packages: dotnet list Klasly.slnx package   (Microsoft.* all 10.0.14)
+Check:    SELECT TOP 20 NotificationId, Type, Status, Attempts, NextAttemptAt, LastError, DedupKey FROM Notifications WHERE Channel = 'Email' ORDER BY NotificationId DESC;
 ```
 
 ## Project structure (files this milestone touches)
 
 | Path | New / changed | Why |
 | --- | --- | --- |
-| `src/Klasly.Core/Interfaces/IRiskRepository.cs` | new | Reads the per-enrollment inputs + latest snapshot; adds snapshots. |
-| `src/Klasly.Core/DTOs/RiskInput.cs` | new | The one-row-per-enrollment record the query returns. |
-| `src/Klasly.Infrastructure/Repositories/RiskRepository.cs` | new | The single EF Core query (grouped sums) and the save. |
-| `src/Klasly.Infrastructure/DependencyInjection.cs` | changed | Register `IRiskRepository`. |
-| `src/Klasly.Worker/Services/RiskRules.cs` | new | Pure rule: rates, rounding, at-risk. |
-| `src/Klasly.Worker/Services/RiskCalculator.cs` | new | Reads settings, runs the rule, writes snapshots. |
-| `src/Klasly.Worker/Jobs/WorkerTickJob.cs` | changed | Call `RecomputeAsync` as the third step; extend the log line. |
-| `src/Klasly.Worker/Program.cs` | changed | `AddScoped<RiskCalculator>()`. |
-| `tests/Klasly.Tests/RiskRulesTests.cs` | new | Boundary unit tests. |
-| `tests/Klasly.Tests/RiskCalculatorTests.cs` | new | LocalDB tests of the query + snapshots. |
+| `src/Klasly.Core/DTOs/AlertCandidates.cs` | new | `AbsenceAlert` and `AtRiskAlert`: one alert to queue (guardian, student, subject, session or snapshot facts). Due emails are plain tracked `Notification` rows with `User.Guardian` loaded, so they need no DTO. |
+| `src/Klasly.Core/Interfaces/INotificationRepository.cs` | changed | `ListAbsenceAlertsAsync`, `ListAtRiskAlertsAsync`, `ListDueEmailsAsync`. |
+| `src/Klasly.Infrastructure/Repositories/NotificationRepository.cs` | changed | The three queries. |
+| `src/Klasly.Worker/Email/BrevoEmailClient.cs` | new | `IBrevoEmailClient`, `EmailResult`, `BrevoOptions`, the typed client. |
+| `src/Klasly.Worker/Services/AlertQueuer.cs` | new | Builds and queues the email rows. |
+| `src/Klasly.Worker/Services/EmailSender.cs` | new | Sends due rows, applies results, backoff + jitter. |
+| `src/Klasly.Worker/Jobs/WorkerTickJob.cs` | changed | Two new steps + log lines. |
+| `src/Klasly.Worker/Program.cs` | changed | Options, `AddHttpClient<IBrevoEmailClient, BrevoEmailClient>` (10 s), services. |
+| `src/Klasly.Worker/Klasly.Worker.csproj` | changed | `Microsoft.Extensions.Http` 10.0.14 (Q1). |
+| `src/Klasly.Worker/appsettings.json` | changed | `Brevo:BaseUrl`, `SenderEmail`, `SenderName`. |
+| `tests/Klasly.Tests/AlertQueuerTests.cs` | new | LocalDB: triggers, filters, dedup, text. |
+| `tests/Klasly.Tests/EmailSenderTests.cs` | new | Fake client: every result branch, backoff, max attempts, push rows untouched. |
+| `tests/Klasly.Tests/BrevoEmailClientTests.cs` | new | Fake `HttpMessageHandler`: request shape, header, status → result mapping, timeout. |
 
 ## Code style
 
-Same as Milestone 9's `AttendanceFinalizer`: primary constructors, `CancellationToken` all the way, the job passes `now` in, decimals (never `double`) for scores and rates.
+Same as Milestones 9–11: primary constructors, `now` passed in by the job, `CancellationToken` everywhere, the HTTP client never throws on an HTTP status. One small piece of the sender:
 
 ```csharp
-public static class RiskRules
-{
-    public static (decimal Rate, decimal? Average, bool AtRisk) Compute(
-        int absent, int counted, decimal weightedSum, decimal weightSum, decimal threshold, decimal passing)
-    {
-        var rate = counted == 0 ? 0m : Math.Round((decimal)absent / counted, 4, MidpointRounding.AwayFromZero);
-        decimal? average = weightSum == 0 ? null : Math.Round(weightedSum / weightSum, 2, MidpointRounding.AwayFromZero);
-        return (rate, average, rate >= threshold || average < passing); // null < passing is false
-    }
-}
+static DateTime NextAttempt(DateTime nowUtc, int attempts) =>
+    nowUtc.AddMinutes(5 * Math.Pow(2, attempts - 1)).AddSeconds(Random.Shared.Next(0, 61)); // backoff + jitter (§27.8)
 ```
 
 ## Testing strategy
 
-- **Unit (`RiskRulesTests`)**, no database: 1 of 5 absent (0.20) → at-risk; 0 of 5 and 0.1999 → not; average exactly 75.00 → not; 74.99 → at-risk; 74.996 → rounds to 75.00 → not; no grades → average NULL and not at-risk on grades; no counted sessions → rate 0; 1 of 3 → 0.3333.
-- **Database (`RiskCalculatorTests`)**, LocalDB fixture like `AttendanceFinalizerTests`:
-  - Excused leaves both counts; Late counts as attended; records in a Closed (not yet Finalized) session don't count.
-  - A blank grade is skipped; weights of ungraded assessments don't count; the weighted formula matches a hand calculation.
-  - Dropped enrollment and an inactive-term class get no snapshot.
-  - Snapshot behaviour per Q1 (unchanged → no row / always a row; changed → a new row).
-  - Missing `PassingGrade` → the step throws and nothing is saved.
-- **Smoke (manual):** run the Worker against the dev database, finalize a session where a seeded student is absent 1 of 5, post a grade below 75 for another, wait one tick, check `RiskFlags`.
+- **`BrevoEmailClientTests`** (no network, fake handler):
+  - the URL, the `api-key` header and the JSON body;
+  - 201 → Accepted + messageId;
+  - 400 → Permanent; 401/403 → Unauthorized;
+  - 429 / 500 / 503 → Transient; a timeout → Transient.
+- **`EmailSenderTests`** (LocalDB + fake client):
+  - each result updates Status, Attempts, NextAttemptAt, LastError and ExternalMessageId as in assumption 8;
+  - the 5th transient failure → Failed;
+  - a row with `NextAttemptAt` in the future is skipped;
+  - Push rows are never touched;
+  - at most 50 per run;
+  - Q2 and Q4 behaviour.
+- **`AlertQueuerTests`** (LocalDB):
+  - an Absent in a Finalized session → one row per opted-in guardian, with the right DedupKey, subject and Manila time;
+  - `ReceivesAlerts = 0`, an inactive guardian user, Excused, a Closed session, Dropped, an inactive term, or older than 48 h → none;
+  - running twice → no duplicates;
+  - at-risk flip → alert; still at-risk → none; recover then flip again → a second alert.
+- The alert/email test classes share one xUnit collection (they read and write global outbox rows), like the Milestone 11 "Risk" collection.
+- **Smoke (manual, needs Q5 setup):**
+  - set one dev guardian's `ContactEmail` to a team member's own address;
+  - set `Brevo:ApiKey` and a verified `SenderEmail`;
+  - run the Worker, mark that student absent, and receive the email;
+  - check the row is `Accepted` with a messageId;
+  - with a wrong key, check Q2's behaviour.
 
 ## Boundaries
 
-- **Always:** keep the rules in `RiskRules` / `RiskCalculator`, not in the job; use `now` from the job; decimals; run build + tests; write the three reports after each code prompt.
-- **Ask first:** any schema change or new index; changing the guide's formulas; adding an API endpoint or page for the flags (Milestone 13); deleting old snapshots.
+- **Always:**
+  - keep the rules in the services and HTTP in the client (§13);
+  - store UTC, show Manila time only in the email text;
+  - run build + tests;
+  - write the reports.
+- **Ask first:**
+  - any schema change;
+  - adding a package beyond Q1;
+  - HTML templates or Brevo template ids;
+  - SMS or other channels (Optional in §27.2);
+  - an admin page for failed emails.
 - **Never:**
-  - queue emails or push here (Milestone 12);
-  - update or delete existing `RiskFlags` rows (they are history);
-  - call the risk step from the Web API;
-  - hard-code the 0.20 / 75 thresholds.
+  - commit the Brevo key or a real person's email address (RA 10173);
+  - send to the seeded `@klasly.test` addresses from a real Brevo account (they bounce and hurt the sender's reputation);
+  - touch Push rows;
+  - let Hangfire retry the tick;
+  - delete Notifications rows.
 
 ## Success criteria
 
-- [x] After a tick, every Active enrollment in the active term has a latest `RiskFlags` row whose AbsenceRate, WeightedAverage and IsAtRisk follow assumptions 2–6.
-- [x] Exactly 20% absence → at-risk; exactly 75 average → not at-risk (tests).
-- [x] Excused, Cancelled, not-yet-finalized sessions and blank grades are excluded as described (tests).
-- [x] Changing `AbsenceThreshold` / `PassingGrade` in `SystemSettings` changes the next tick's flags with no code change.
-- [x] The step runs as the third step of `WorkerTickJob`, after finalizing; one input query and one save per tick.
-- [x] No migration (`has-pending-model-changes` reports none); no new package; Microsoft.* still 10.x; all tests pass.
+- [x] A new Absent in a Finalized session queues exactly one Email/Absence row per opted-in, active guardian. Running again adds nothing.
+- [x] A student who becomes at-risk queues one Email/AtRisk row per opted-in guardian. Staying at-risk adds nothing; recovering and flipping again adds one more.
+- [ ] Pending emails are sent through Brevo. 2xx → Accepted with messageId; 400 → Failed; 429/5xx/timeout → retried with growing backoff + jitter and Failed after `MaxEmailAttempts`; 401/403 per Q2. *(Logic verified with a fake Brevo in Task 2; the real Brevo call is Task 6, by the team.)*
+- [x] Push rows are untouched; an email Accepted once is never sent again, even after a crash mid-batch.
+- [x] Without Brevo configured, the Worker still runs every other step, behaving as Q4 says.
+- [x] No migration; Microsoft.* all 10.x; only the Q1 package added; no secret or real email committed; all tests pass.
 - [x] Reports written; INDEX line added.
 
 ## Open questions (my recommendation first)
 
-1. **Snapshot every tick, or only on change?** The guide says "each run writes a snapshot per enrollment". Every 5 minutes that is 288 rows per enrollment per day (about 290,000 rows a day for 1,000 enrollments), almost all identical.
-   **Recommend: write a row only when there is no snapshot yet or when AbsenceRate, WeightedAverage or IsAtRisk differs from the latest one.** Dashboards still read the latest row, the trend history keeps every real change, and Milestone 12 finds "became at-risk" by checking that the latest row is at-risk while the one before it is not (or there is none). ComputedAt then means "when this value was first computed". Alternative: follow the guide literally and write every tick.
-2. **Late enrolment / denominator:** count the student's own records (assumption 2, recommended) or every Finalized session of the class? The second charges a late-enrolled student nothing (no record → not Absent) but also lowers their rate unfairly. **Recommend the student's own records.**
-3. **Missing grade on a graded assessment:** skip it for that student (assumption 4, recommended, since the guide says "ungraded assessments are excluded" and the grade sheet allows blanks) or count it as 0? **Recommend skip.**
-4. **Bad or missing setting:** fail the step and log (recommended, settings are seeded and shouldn't be guessed), or fall back to 0.20 / 75? **Recommend fail.**
+1. **Add `Microsoft.Extensions.Http` 10.0.14 to the Worker?** Guide §13 and CLAUDE.md §4.1 require a typed `HttpClient` from `IHttpClientFactory`, and the Worker SDK doesn't include it. The API gets it free from ASP.NET Core. **Recommend yes** (same 10.0.14 as the other Microsoft packages; no other new package). Alternative: one static `HttpClient`, against the guide.
+2. **401 / 403 from Brevo.** The guide calls them permanent (Failed). But they mean *our* API key or account is wrong, not the parent's address, so every row in the batch would be marked Failed and never sent. **Recommend:**
+   - stop the batch;
+   - leave the rows Pending without counting an attempt;
+   - log an error: "Brevo rejected the API key (401). Emails wait until it is fixed."
+   
+   Alternative: follow the guide literally (Failed).
+3. **How far back do absence alerts reach?** Without a limit, the first run would email every Absent of the whole term (the dev database has dozens). **Recommend 48 hours by `MarkedAt`.** That covers a Worker outage up to 2 days, and older absences are never emailed. Alternatives: 24 h, or only records marked after this feature is first deployed.
+4. **Brevo not configured** (no `Brevo:ApiKey` or `SenderEmail`). **Recommend: mark due rows `Failed` "Brevo is not configured",** the same as Milestone 10's "FCM is not configured". Nothing piles up and blasts out the day the key is added. Alternative: leave them Pending, skip sending, and log a warning.
+5. **Brevo account setup** waits on the team, like Milestone 10's Firebase:
+   - create a free Brevo account;
+   - verify one sender address;
+   - create an API key;
+   - `dotnet user-secrets set "Brevo:ApiKey" …`;
+   - put the sender in `appsettings.json` (it isn't a secret).
+   
+   **Recommend: the plan includes these as the last task, and every other task is tested with fakes so nothing blocks on it.**
+6. **Per-tick cap of 50 emails.** It keeps a tick well under Hangfire's 10-minute lock even with slow responses, and inside Brevo's free 300/day. **Recommend 50, as a constant with a `shortcut:` comment** (move it to config if the school is bigger).

@@ -8,8 +8,9 @@ namespace Klasly.Worker.Jobs;
 /// Hangfire passes the server's shutdown token in place of <c>CancellationToken.None</c>.
 /// </summary>
 [DisableConcurrentExecution(timeoutInSeconds: 600)] // two ticks never overlap, even across Worker processes
-[AutomaticRetry(Attempts = 0)] // a failed tick waits for the next one; the email outbox (Milestone 12) does its own retries
-public class WorkerTickJob(AttendanceFinalizer finalizer, RiskCalculator risk, ILogger<WorkerTickJob> logger)
+[AutomaticRetry(Attempts = 0)] // a failed tick waits for the next one; the email outbox does its own retries
+public class WorkerTickJob(
+    AttendanceFinalizer finalizer, RiskCalculator risk, AlertQueuer alerts, EmailSender email, ILogger<WorkerTickJob> logger)
 {
     public async Task RunAsync(CancellationToken ct)
     {
@@ -25,6 +26,11 @@ public class WorkerTickJob(AttendanceFinalizer finalizer, RiskCalculator risk, I
         logger.LogInformation(
             "Tick {UtcNow:u}: risk for {Enrollments} enrollments, {Snapshots} new snapshots, {AtRisk} at-risk", now, enrollments, snapshots, atRisk);
 
-        // Milestone 12: alerts + emails.
+        // After risk, so this tick's new at-risk snapshots are alerted; then send, so they can go out in the same tick.
+        var (absence, atRiskAlerts) = await alerts.QueueAsync(now, ct);
+        logger.LogInformation("Tick {UtcNow:u}: queued {Absence} absence and {AtRisk} at-risk emails", now, absence, atRiskAlerts);
+
+        var (sent, retrying, failed) = await email.SendDueAsync(now, ct);
+        logger.LogInformation("Tick {UtcNow:u}: emails sent {Sent}, retrying {Retrying}, failed {Failed}", now, sent, retrying, failed);
     }
 }
