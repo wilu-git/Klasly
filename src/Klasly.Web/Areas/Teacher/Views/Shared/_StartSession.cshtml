@@ -1,0 +1,27 @@
+@model StartSessionViewModel
+
+<section class="card mb-4" aria-labelledby="start-heading">
+    <div class="card-body">
+        <h2 id="start-heading" class="h5 card-title">Start a session</h2>
+        <p class="text-body-secondary small">It starts now and shows a QR code students scan to check in. Times are Manila time.</p>
+
+        <form asp-controller="Sessions" asp-action="Start" method="post" class="row g-3 align-items-end">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger col-12" role="alert"></div>
+            <input type="hidden" asp-for="ClassId" />
+
+            <div class="col-12 col-md-5">
+                <label asp-for="EndTime" class="form-label"></label>
+                <input asp-for="EndTime" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" />
+                <span asp-validation-for="EndTime" class="text-danger small"></span>
+            </div>
+            <div class="col-12 col-md-4">
+                <label asp-for="LateAfterMinutes" class="form-label"></label>
+                <input asp-for="LateAfterMinutes" type="number" min="0" max="120" class="form-control" />
+                <span asp-validation-for="LateAfterMinutes" class="text-danger small"></span>
+            </div>
+            <div class="col-12 col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Start session</button>
+            </div>
+        </form>
+    </div>
+</section>

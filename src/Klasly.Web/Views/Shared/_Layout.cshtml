@@ -14,15 +14,24 @@
         <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container">
                 <a class="navbar-brand fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">Klasly</a>
-                @if (User.IsInRole("Admin"))
-                {
+                @{
+                    var navArea = User.IsInRole("Admin") ? "Admin" : User.IsInRole("Teacher") ? "Teacher" : null;
+                    var navItems = navArea switch
+                    {
+                        "Admin" => new[] { ("Terms", "Terms"), ("Subjects", "Subjects"), ("Accounts", "Accounts"), ("Classes", "Classes") },
+                        "Teacher" => new[] { ("Classes", "My classes") },
+                        _ => []
+                    };
                     var current = ViewContext.RouteData.Values["controller"]?.ToString();
+                }
+                @if (navItems.Length > 0)
+                {
                     <ul class="navbar-nav flex-row gap-3 me-auto">
-                        @foreach (var (controller, label) in new[] { ("Terms", "Terms"), ("Subjects", "Subjects"), ("Accounts", "Accounts"), ("Classes", "Classes") })
+                        @foreach (var (controller, label) in navItems)
                         {
                             <li class="nav-item">
                                 <a class="nav-link @(current == controller ? "active fw-semibold" : "")" aria-current="@(current == controller ? "page" : null)"
-                                   asp-area="Admin" asp-controller="@controller" asp-action="Index">@label</a>
+                                   asp-area="@navArea" asp-controller="@controller" asp-action="Index">@label</a>
                             </li>
                         }
                     </ul>

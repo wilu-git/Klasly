@@ -1,0 +1,61 @@
+@model TeacherClassViewModel
+@{
+    var c = Model.Class;
+    ViewData["Title"] = $"{c.SubjectCode} – {c.Section}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">My classes</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@c.SubjectCode – @c.Section</li>
+    </ol>
+</nav>
+
+<div class="mb-4">
+    <h1 class="h3 mb-1">@c.SubjectCode @c.SubjectTitle – @c.Section</h1>
+    <p class="text-body-secondary mb-0">
+        @c.TermName@(c.Schedule is null ? "" : $" · {c.Schedule}")@(c.Room is null ? "" : $" · {c.Room}") · @c.ActiveEnrollmentCount enrolled
+    </p>
+</div>
+
+<partial name="_StartSession" model="Model.Start" />
+
+<h2 class="h5">Sessions</h2>
+
+@if (Model.Sessions.Count == 0)
+{
+    <p class="text-body-secondary">No sessions yet.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Time (Manila)</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.Sessions)
+                {
+                    <tr>
+                        <td>@ManilaTime.ToLocal(s.StartTimeUtc).ToString("ddd, MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture)</td>
+                        <td>@ManilaTime.FormatTime(s.StartTimeUtc) – @ManilaTime.FormatTime(s.EndTimeUtc)</td>
+                        <td><partial name="_SessionStatusBadge" model="s" /></td>
+                        <td class="text-end">
+                            <a asp-controller="Sessions" asp-action="Details" asp-route-id="@s.SessionId"
+                               class="btn btn-sm @(s.IsLive ? "btn-primary" : "btn-outline-primary")">@(s.IsLive ? "Show QR" : "View")</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
