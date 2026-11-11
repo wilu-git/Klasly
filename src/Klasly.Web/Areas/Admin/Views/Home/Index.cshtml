@@ -1,0 +1,23 @@
+@{
+    ViewData["Title"] = "Admin";
+    var sections = new[]
+    {
+        ("Terms", "Terms", "Create the semester and choose which term is active."),
+        ("Subjects", "Subjects", "Keep the subject catalog: code, title and units."),
+        ("Accounts", "Accounts", "Teachers, students, parents and admins; link parents to their children."),
+        ("Classes", "Classes", "Class sections with their teacher, and which students are enrolled."),
+    };
+}
+
+<h1 class="h3 mb-1">Admin</h1>
+<p class="text-body-secondary mb-4">Set up the term before teachers open sessions.</p>
+
+<div class="list-group col-12 col-lg-8">
+    @foreach (var (controller, title, description) in sections)
+    {
+        <a class="list-group-item list-group-item-action py-3" asp-controller="@controller" asp-action="Index">
+            <span class="d-block fw-semibold">@title</span>
+            <span class="d-block text-body-secondary small">@description</span>
+        </a>
+    }
+</div>
