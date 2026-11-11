@@ -18,11 +18,11 @@ Close the two open boxes of Milestone 14 Task 8: the `/impeccable` pass on `Admi
 
 ### Phase 1: Check (read-only)
 - [x] Task 1: Browser check: admin list, teacher refused, API-down error
-- [ ] Task 2: `/impeccable` measurement and defect list
+- [x] Task 2: `/impeccable` measurement and defect list
 
 ### Checkpoint A (after Tasks 1–2)
-- [ ] The teacher is refused. If not, stop and report a security finding.
-- [ ] The defect list is written. If it is empty, skip Task 3.
+- [x] The teacher is refused. If not, stop and report a security finding.
+- [x] The defect list is written (D1: narrow-screen column squeeze), so Task 3 runs.
 
 ### Phase 2: Fix
 - [ ] Task 3: Fix the defects and measure again (only if Task 2 found any)

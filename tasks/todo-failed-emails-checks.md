@@ -31,17 +31,34 @@
 **Description:** Run a narrow `/impeccable polish` review of the view against the house style (Terms / Accounts pages). Measure only, change nothing.
 
 **Done when:**
-- [ ] At 375, 480 and 1280 px:
+- [x] At 375, 480 and 1280 px:
   - the page has no sideways scroll (`document.documentElement.scrollWidth <= clientWidth`);
   - the last error and recipient email wrap inside their cells.
-- [ ] Contrast measured for body text and `text-body-secondary` on the page background: each ≥ 4.5:1 (WCAG AA).
-- [ ] Structure checked: one `h1`, every `<th>` has `scope="col"`, the "—" for no error makes sense to a screen reader.
-- [ ] Empty-state markup read and confirmed (not rendered, see spec question 1).
-- [ ] `npx impeccable detect --json src/Klasly.Web/Areas/Admin/Views/FailedEmails/Index.cshtml` was run and its output recorded.
-- [ ] A defect list (or "none found") is written down, with a measured number for each defect.
+
+  The page never scrolls sideways, but the wrapping is defect **D1** below. The email deliberately doesn't wrap (see "Not defects").
+- [x] Contrast measured: body text and headers 21:1, `text-body-secondary` (intro, email, subject) ≈ 6.7:1. All pass AA.
+- [x] Structure checked: one `h1`, every `<th>` has `scope="col"`, the nav item has `aria-current`, `lang="en"`, title "Failed emails - Klasly". The "—" for no error can't happen in practice: the Worker always sets `LastError` when it marks a row Failed (`EmailSender.cs:60`, `:79`).
+- [x] Empty-state markup read: `<p class="text-body-secondary">No failed emails. Every alert reached Brevo.</p>`, the same pattern as Terms. Not rendered (spec question 1).
+- [x] `impeccable detect --json` on the view → `[]`.
+- [x] Defect list written (below).
+
+**Measurements** (live page, 100 rows, logged in as the seeded admin):
+
+| Width | Page scrolls sideways | Table / box | Column widths (Created · Recipient · Alert · Attempts · Last error) | First row | "Brevo is not configured" | ~200-char Brevo error (injected in the DOM, then restored) |
+|---|---|---|---|---|---|---|
+| 375 px | no | 483 / 354 px, scrolls inside | 119 · 167 · **73** · 75 · **49** | 128 px | 4 lines in 35 px | **39 lines, 732 px row** |
+| 480 px | no | 483 / 459 px, scrolls inside | same as 375 | 128 px | 4 lines | **39 lines, 732 px row** |
+| 1280 px | no | 1116 / 1116 px | 162 · 235 · 420 · 105 · 194 | 62 px | 1 line | 3 lines, 83 px row |
+
+**Defects:**
+- **D1: narrow-screen column squeeze (local defect).** Below about 500 px the table shrinks to its smallest possible width. The Last error cell's `text-break` lets it collapse to 49 px, so the column the admin came for breaks every few characters. A realistic Brevo error becomes a 732 px-tall row (39 lines). The Alert subject is squeezed to 73 px and wraps to 5 lines. **Fix in Task 3:** give the Last error and Alert cells a sensible minimum width. Then the table scrolls inside `table-responsive`, which is the house pattern, instead of collapsing. **Target:** the long error at 375 px drops from 39 lines to ≤ 10, and the 1280 px layout is unchanged.
+
+**Not defects (kept):**
+- The recipient email doesn't wrap: it holds 167 px. Breaking an address mid-word makes it harder to read and copy, and the table scrolls inside its box anyway. The spec's "email wraps" wording is corrected to "stays whole and readable".
+- The Attempts column is 105 px wide at 1280 px for one digit. That's the header text width and matches the other tables.
 
 **Verification:**
-- [ ] DOM measurements + detector output recorded, to go in the report.
+- [x] DOM measurements and detector output recorded above. A phone screenshot from before the fix is saved for the report.
 
 **Dependencies:** Task 1
 **Files touched:** none
@@ -51,7 +68,7 @@
 
 ## Checkpoint A (after Tasks 1–2)
 - [x] The teacher was refused. **If not:** stop, report it as a security finding, and wait for the team.
-- [ ] The defect list exists. **If it says "none found":** skip Task 3 and go to Task 4.
+- [x] The defect list exists (1 defect: D1). **If it says "none found":** skip Task 3 and go to Task 4.
 
 ---
 
