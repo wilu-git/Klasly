@@ -1,195 +1,237 @@
-# Milestone 7 — Tasks (Web MVC Teacher session page)
+# Milestone 8 — Tasks (Android login + Scan QR screen)
 
-> Plan: [`plan.md`](./plan.md) · Spec: [`SPEC.md`](../SPEC.md). Web MVC only: no API or database change.
-> Build after every task: `dotnet build Klasly.slnx`. There is no test project (spec assumption 8), so each task is checked by hand in the browser with the API (`https://localhost:7256`) and the website (`https://localhost:7144`) running.
-> Seed logins: `rosa.villanueva@klasly.test` (ELECT3), `mark.delossantos@klasly.test`, plus the seed admin, parent and students.
+> Plan: [`plan.md`](./plan.md) · Spec: [`SPEC.md`](../SPEC.md). Android only: no API, Web or database change.
+> Build after every task (PowerShell, from `android/KlaslyApp`): `$env:JAVA_HOME = "D:\Android Studio\jbr"; ./gradlew assembleDebug testDebugUnitTest`.
+> API for the app: `dotnet run --project src/Klasly.API --launch-profile http` (`http://localhost:5201`). Website for the teacher's QR: `dotnet run --project src/Klasly.Web --launch-profile https` (`https://localhost:7144`).
+> Seed logins: teachers `rosa.villanueva@klasly.test` (ELECT3) and `mark.delossantos@klasly.test`, plus the seed admin, parents and students. Reset a student's phone in Swagger: `DELETE /api/accounts/{id}/device`.
+> Every task also has to meet the **Definition of Done** in `plan.md`.
 
 ---
 
-## Task 1: Teacher area + My classes page
+## Task 0 (team): create the project with the Android Studio wizard
 
-**Description:** Create the `Teacher` area, built the same way as the Admin area. A teacher who opens `/` goes to **My classes**, a table of their own classes from `GET api/teacher/classes` (active term first, in the order the API sends). The navbar gets a "My classes" link for teachers. The welcome page shows only for Parents.
+**Description:** In Android Studio: **File → New → New Project → Empty Activity**, with:
+- Name: `KlaslyApp`
+- Package name: `com.klasly.app`
+- Save location: `C:\Users\User\source\repos\wilu-git\Klasly\android\KlaslyApp`
+- Minimum SDK: **API 26 ("Oreo")**
+- Build configuration language: **Kotlin DSL (build.gradle.kts)** (the default)
+
+Click **Finish** and wait for the first Gradle sync to end. Nothing else.
+
+**Done differently (team decision, 2026-11-10):** instead of running the wizard, Claude copied the wizard-generated files from a recent project made by the same Android Studio (`ComposeNavigationSeatwork`: Gradle 9.5.0, AGP 9.3.2, Kotlin 2.2.10, Compose BOM 2026.02.01). Copied: the wrapper, Gradle files, launcher icons, `res/values`, `res/xml` and the `ui/theme` files. Renamed to `com.klasly.app` / `KlaslyTheme`, min SDK set to 26, navigation-compose removed, a fresh Empty Activity `MainActivity`. None of the seatwork's own screens were copied. Added `.gitattributes` so `gradlew` keeps LF line endings.
 
 **Acceptance criteria:**
-- [x] `/Teacher/Classes` lists only the logged-in teacher's classes with subject code + title, section, term, schedule, room, enrolled count and a "Sessions" button (links to `Classes/Details/{id}`).
-- [x] `/` sends a Teacher to `/Teacher/Classes` and an Admin to `/Admin`. A Parent still sees the welcome page, with text for Parents only.
-- [x] An Admin or a Parent who opens `/Teacher/Classes` gets Access denied (`[Authorize(Roles = "Teacher")]`).
+- [x] `android/KlaslyApp/gradlew.bat`, `gradle/libs.versions.toml` and `app/src/main/java/com/klasly/app/MainActivity.kt` exist.
+- [x] `android/KlaslyApp/.gitignore` exists (it keeps `local.properties` and `build/` out of git; checked with `git check-ignore`).
 
 **Verification:**
-- [x] Build succeeds: `dotnet build Klasly.slnx`
-- [x] Manual check: smoke step 1 (except the "Teacher B's session URL" part, which comes in Task 3)
+- [x] Build succeeds: `./gradlew assembleDebug` (BUILD SUCCESSFUL, first run 7 m 40 s for the downloads)
 
 **Dependencies:** None
 
-**Files likely touched:**
-- `src/Klasly.Web/Repositories/Interfaces/ISessionRepository.cs`, `Repositories/SessionRepository.cs` (new: `ListMyClassesAsync` only for now)
-- `src/Klasly.Web/Services/Interfaces/ISessionService.cs`, `Services/SessionService.cs` (new)
-- `src/Klasly.Web/Areas/Teacher/Controllers/ClassesController.cs`, `Areas/Teacher/Views/_ViewImports.cshtml`, `_ViewStart.cshtml`, `Classes/Index.cshtml` (new)
-- `src/Klasly.Web/Program.cs`, `Controllers/HomeController.cs`, `Views/Shared/_Layout.cshtml`, `Views/Home/Index.cshtml` (modified)
-
-**Estimated scope:** Medium. There are more than 5 files, but `_ViewImports`/`_ViewStart` are copies of Admin's and the changes to existing files are one line each.
+**Estimated scope:** Done by the team in about 2 minutes
 
 ---
 
-## Task 2: Class details with the session list (Manila times)
+## Task 1: Build setup
 
-**Description:** `Classes/Details/{id}` shows the class header and the class's sessions, newest first: date, start–end in Manila time, a status badge and a link. The header comes from the teacher's class list (a class not in it → 404). Add the session DTOs and the `ManilaTime` helper.
+**Description:** Add the libraries from plan decision 9 to the version catalog and `app/build.gradle.kts`, plus the Kotlin serialization plugin. Turn on `buildConfig` and add `API_BASE_URL`, read from `local.properties` `klasly.apiBaseUrl` with the default `http://10.0.2.2:5201/api/`. Add the `INTERNET` and `CAMERA` permissions (camera hardware `required="false"`) to the main manifest, and `usesCleartextTraffic="true"` in a new `src/debug/AndroidManifest.xml`.
 
 **Acceptance criteria:**
-- [x] The sessions created in Milestone 6 appear newest first, with Manila times such as "Nov 10, 9:00 AM – 10:30 AM" and a badge for each status (Scheduled / Open / Closed / Finalized / Cancelled).
-- [x] Another teacher's class id → 404 or Access denied (from `GET api/classes/{id}/sessions` → 403). It never shows that class's data.
-- [x] `ManilaTime.ToLocal` and `ToOffset` round-trip: 01:00 UTC ↔ 09:00 Manila (+08:00).
+- [x] `./gradlew assembleDebug` passes with every library resolved.
+- [x] The merged **debug** manifest has `usesCleartextTraffic="true"`, and the merged **release** manifest doesn't.
+- [x] Without `klasly.apiBaseUrl`, `BuildConfig.API_BASE_URL` is `http://10.0.2.2:5201/api/`. With it set, it uses that value.
 
 **Verification:**
-- [x] Build succeeds: `dotnet build Klasly.slnx`
-- [x] Manual check: smoke step 2. Compare one session's time with the UTC value from Swagger (`GET /api/sessions/{id}`).
+- [x] Build succeeds: `./gradlew assembleDebug`
+- [x] Manual check: the generated `BuildConfig.java`, and the merged manifests under `app/build/intermediates/merged_manifests/` after `./gradlew processDebugMainManifest processReleaseMainManifest`
+
+**Dependencies:** Task 0
+
+**Files likely touched:**
+- `gradle/libs.versions.toml`, `build.gradle.kts` (root: plugin alias), `app/build.gradle.kts` (modified)
+- `app/src/main/AndroidManifest.xml` (modified)
+- `app/src/debug/AndroidManifest.xml` (new)
+
+**Estimated scope:** Medium (5 files, small edits)
+
+---
+
+## Task 2: API text rules, test first
+
+**Description:** Write `ApiTextTest` first and watch it fail. Then write `data/ApiText.kt` with `errorMessage(body: String?)` and `parseUtc(text: String)` (plan decision 4) until it passes. The functions use only `kotlinx.serialization.json` and `java.time`, with no Android types.
+
+**Acceptance criteria:**
+- [x] `errorMessage`: `{"detail":"Invalid QR code"}` → "Invalid QR code"; `{"errors":{"Email":["The Email field is required."]}}` → that message; only `title` → the title; `""`, `null` or `<html>` → "Something went wrong. Please try again."
+- [x] `parseUtc`: `"2026-11-10T01:03:00Z"` and `"2026-11-10T01:03:00.1234567Z"` (7 decimals, as .NET sends them) → the same `Instant` to the second; `"2026-11-10T01:03:00"` (no offset) → read as UTC.
+- [x] The test fails before `ApiText.kt` exists (8 unresolved references) and passes after (5/5).
+
+**Verification:**
+- [x] Tests pass: `./gradlew testDebugUnitTest`
+- [x] Build succeeds: `./gradlew assembleDebug`
 
 **Dependencies:** Task 1
 
 **Files likely touched:**
-- `src/Klasly.Web/Models/Api/SessionDtos.cs` (new: `CreateSessionRequest`, `SessionResponse`, `QrTokenResponse`, `SessionAttendanceRow`, with string statuses)
-- `src/Klasly.Web/Infrastructure/ManilaTime.cs` (new)
-- `src/Klasly.Web/ViewModels/TeacherClassViewModel.cs` (new)
-- `SessionRepository` / `SessionService` / `ClassesController` (modified), `Areas/Teacher/Views/Classes/Details.cshtml` (new)
+- `app/src/main/java/com/klasly/app/data/ApiText.kt` (new)
+- `app/src/test/java/com/klasly/app/data/ApiTextTest.kt` (new)
 
-**Estimated scope:** Medium (4–5 files)
-
-### Checkpoint A: after Tasks 1–2
-- [x] `dotnet build Klasly.slnx`: 0 errors, no new warnings
-- [x] Smoke steps 1–2 pass
-- [x] Review with the team before continuing
+**Estimated scope:** Small (2 files)
 
 ---
 
-## Task 3: Start session (create + open) → session page
+## Task 3: API client + session store
 
-**Description:** Add a **Start session** form on the class details page, prefilled with start = now, end = now + 90 min (Manila time) and Late after 15 min. Posting it calls `POST api/classes/{id}/sessions` and then `POST api/sessions/{id}/open`, and redirects to `Sessions/Details/{id}`. For now the session page shows the header (class, Manila times, status badge, Late minutes). The QR comes in Task 5.
+**Description:** `Dtos.kt`: `@Serializable` `LoginRequest`, `LoginResponse`, `RegisterDeviceRequest`, `DeviceResponse`, `ScanRequest`, `ScanResponse`. `KlaslyApi.kt`: the Retrofit interface (the device call takes an explicit `Authorization` header for the login flow, plan decision 5). `TokenStore.kt`: EncryptedSharedPreferences with a `shortcut:` comment for the deprecation, and recovery from a broken keystore. `KlaslyRepository.kt`: `ApiResult`, `login`, `scan`, and clearing the session on 401, with error text from `errorMessage`. `AppContainer.kt`: OkHttp with the Bearer interceptor, Retrofit with `Json { ignoreUnknownKeys = true }`, the Android ID, and the session `StateFlow`. Created once in `KlaslyApplication` (registered in the manifest), so a rotation never builds a second container; no screen uses it yet.
 
 **Acceptance criteria:**
-- [x] With the default values, one click opens a session and lands on its page with status **Open**.
-- [x] End before start, or an end in the past → the API's message on the form, and the entered values are kept (`ModelState.AddApiErrors`).
-- [x] If the create works but the open fails, the page redirects to the session with a TempData error, and the session stays Scheduled (plan decision 6).
-- [x] Teacher B opening Teacher A's session URL → Access denied.
+- [x] The app builds and still starts (the template screen shows, no crash creating `AppContainer`).
+- [x] No OkHttp logging interceptor, and no `Log` call with the token or the QR text.
+- [x] `TokenStore` returns no session when the saved `expiresAtUtc` has passed.
 
 **Verification:**
-- [x] Build succeeds: `dotnet build Klasly.slnx`
-- [x] Manual check: smoke step 3 (without the QR) and the "Teacher B's session URL" part of step 1. The new session in Swagger has UTC times 8 h before the times on the form.
+- [x] Build succeeds: `./gradlew assembleDebug`; tests still pass
+- [x] Manual check: `./gradlew installDebug` on `Pixel_9`, the app opens
 
 **Dependencies:** Task 2
 
 **Files likely touched:**
-- `src/Klasly.Web/ViewModels/StartSessionViewModel.cs`, `SessionPageViewModel.cs` (new)
-- `SessionRepository` / `SessionService` (modified: create, open, get)
-- `src/Klasly.Web/Areas/Teacher/Controllers/SessionsController.cs` (new: `Start`, `Details`)
-- `Areas/Teacher/Views/Classes/Details.cshtml` (modified: form), `Areas/Teacher/Views/Sessions/Details.cshtml` (new)
+- `app/src/main/java/com/klasly/app/data/Dtos.kt`, `KlaslyApi.kt`, `TokenStore.kt`, `KlaslyRepository.kt` (new)
+- `app/src/main/java/com/klasly/app/AppContainer.kt` (new)
 
-**Estimated scope:** Medium (5 files)
+**Estimated scope:** Medium (5 files; the DTOs are one-liners)
+
+### Checkpoint A: after Tasks 0–3
+- [x] `./gradlew assembleDebug` and `./gradlew testDebugUnitTest` pass
+- [x] The app installs and starts on `Pixel_9`
 
 ---
 
-## Task 4: Open a Scheduled session; End session
+## Task 4: Student login → phone registered → stays logged in
 
-**Description:** On the session page, a Scheduled session gets an **Open** button (`POST Sessions/Open/{id}`). An Open session gets an **End session** button (`POST Sessions/Close/{id}`) with a `confirm()`, placed away from where the QR will be. Both redirect back to the page. A 400 or 409 from the API becomes a TempData error.
+**Description:** `LoginViewModel` + `LoginScreen`: email and password (show/hide), a spinner on the button while waiting, keyboard "Done" submits, and the error text. A student: login → register the device with the new token → save the session (plan decision 5). `MainActivity` switches on the session: Student → a temporary "Scan comes next" placeholder with **Log out** (replaced in Task 6), none → Login. App name set to "Klasly".
 
 **Acceptance criteria:**
-- [x] Open on a Scheduled session (created through Swagger) → status Open.
-- [x] End session → `confirm()` → status Closed. If the teacher cancels the confirm, nothing changes.
-- [x] Opening or closing a session that another tab already closed → the API's message as a TempData error, not an error page.
+- [x] Wrong password → "Invalid email or password."; empty fields → the API's validation message ("The Email field is not a valid e-mail address."). *API stopped → checked in Task 7, together with the scan's network error.*
+- [x] A student logs in → the database `Users.RegisteredDeviceId` = the app's Android ID (`5c58161fd8060037` for Aira on `Pixel_9`) → placeholder. Kill and reopen the app → still logged in. **Log out** → Login.
+- [x] Another phone already registered → the 409 message, still on Login, nothing saved (reopen the app → Login). *Checked with Bryan, whose "other phone" was registered through the API first, instead of booting `Pixel_7`: the API sees the same thing.*
 
 **Verification:**
-- [x] Build succeeds: `dotnet build Klasly.slnx`
-- [x] Manual check: smoke step 8 (without the QR). Close it with two tabs open to get the 409 message.
+- [x] Build succeeds: `./gradlew assembleDebug`; tests still pass
+- [x] Manual check: smoke steps 1, 3 and 4 (reset the student's device in Swagger first)
 
 **Dependencies:** Task 3
 
 **Files likely touched:**
-- `SessionRepository` / `SessionService` (modified: close)
-- `Areas/Teacher/Controllers/SessionsController.cs`, `Areas/Teacher/Views/Sessions/Details.cshtml` (modified)
+- `app/src/main/java/com/klasly/app/ui/login/LoginViewModel.kt`, `LoginScreen.kt` (new)
+- `app/src/main/java/com/klasly/app/MainActivity.kt`, `app/src/main/res/values/strings.xml` (modified)
+
+**Estimated scope:** Medium (4 files)
+
+---
+
+## Task 5: Parent home, teacher/admin refused, Log out
+
+**Description:** In `LoginViewModel`, a Teacher or Admin role → "This app is for students and parents. Please use the Klasly website.", nothing saved. A Parent is saved without the device step. `ParentHomeScreen`: "Hi, {name}. Your child overview comes in a later update." with **Log out**. `MainActivity` routes Parent → `ParentHomeScreen`.
+
+**Acceptance criteria:**
+- [x] Teacher login (`rosa.villanueva`) → the message, still on Login; nothing saved. Admin takes the same `else` branch.
+- [x] Parent login → placeholder with the parent's name → **Log out** → Login.
+- [x] A parent's login doesn't call `students/me/device`. *The API doesn't log each request, but that endpoint is StudentOnly: a call would have answered 403 and blocked the parent's login, which succeeded.*
+
+**Verification:**
+- [x] Build succeeds: `./gradlew assembleDebug`; tests still pass
+- [x] Manual check: smoke step 2
+
+**Dependencies:** Task 4
+
+**Files likely touched:**
+- `app/src/main/java/com/klasly/app/ui/parent/ParentHomeScreen.kt` (new)
+- `app/src/main/java/com/klasly/app/ui/login/LoginViewModel.kt`, `MainActivity.kt` (modified)
 
 **Estimated scope:** Small (3 files)
 
----
-
-## Task 5: QR + roster partial, drawn on the server
-
-**Description:** Add QRCoder 1.8.1 (needs open question 1 approved). `GetLiveAsync` gets the QR token (a `409` means closed, so no QR) and the roster. It turns the token into an inline SVG string. `_Live.cshtml` renders the QR panel, the "x of y checked in · n Present · m Late" summary inside `aria-live="polite"`, and the roster table, with `data-closed="true"` when there is no QR. `Sessions/Details` renders `_Live` for Open and Closed sessions. `GET Sessions/Live/{id}` returns the same partial (it is polled in Task 6).
-
-**Acceptance criteria:**
-- [x] An Open session shows a QR at least 320 px square, dark modules on a white background with a quiet zone, readable in both light and dark mode, with "Changes every 30 s" under it. The token text is not in the HTML except as SVG paths.
-- [x] A phone QR reader decodes the QR to the same token as `GET /api/sessions/{id}/qr` at that moment.
-- [x] The roster lists every Active student with student no., name, a status badge (Present green / Late amber / "Not yet" grey) and the Manila scan time. The summary counts are correct. A Closed or past-end session shows "This session has ended." with the final roster and no QR.
-
-**Verification:**
-- [x] Build succeeds: `dotnet build Klasly.slnx`; `dotnet list Klasly.slnx package` shows QRCoder 1.8.1 as the only package in `Klasly.Web`
-- [x] Manual check: decode with a phone. Scan with curl using a student's JWT, refresh the page, and the row is Present. Smoke step 4 needs a manual refresh until Task 6.
-
-**Dependencies:** Task 3 (build it after Task 4, because they edit the same files)
-
-**Files likely touched:**
-- `src/Klasly.Web/Klasly.Web.csproj` (modified: QRCoder)
-- `src/Klasly.Web/ViewModels/SessionLiveViewModel.cs` (new)
-- `SessionRepository` / `SessionService` (modified: qr, attendance, `GetLiveAsync`, `QrSvg`)
-- `Areas/Teacher/Controllers/SessionsController.cs` (modified: `Live`), `Areas/Teacher/Views/Sessions/_Live.cshtml` (new), `Sessions/Details.cshtml` (modified)
-
-**Estimated scope:** Medium (5 files)
-
-### Checkpoint B: after Tasks 3–5
-- [x] `dotnet build Klasly.slnx` clean
-- [x] Teacher goes from login to a scannable QR in three clicks (class → Start session → page)
-- [x] The QR decodes correctly on a real phone; a curl scan shows after a refresh
-- [x] Smoke steps 3 and 8 pass
-- [x] Review with the team before continuing
+### Checkpoint B: after Tasks 4–5
+- [x] Smoke steps 1–4 pass on the emulator (API-stopped case moved to Task 7)
+- [x] Review with the team before continuing *(skipped: the team asked to build all tasks in one go)*
 
 ---
 
-## Task 6: Polling script
+## Task 6: Scan happy path
 
-**Description:** Add about 25 lines of plain JavaScript to `Sessions/Details`, in its `Scripts` section, only when the session is Open. Every 5 s it calls `fetch("Live/{id}", { redirect: "manual" })`:
-- OK → swap the panel's HTML, hide "Reconnecting…", and stop the timer if the new HTML has `data-closed="true"`;
-- an opaque redirect (401/403) → `location.reload()`;
-- any other failure or a network error → show "Reconnecting…", keep the last HTML, and keep trying.
+**Description:** `ScanViewModel` with Scanning → Sending → Result. `ScanScreen`: top bar with the student's name and **Log out**; camera permission request (denied → explanation + **Allow camera**; blocked for good → open app settings); `PreviewView` in `AndroidView` bound to a `LifecycleCameraController` with `MlKitAnalyzer` (QR only, plan decision 6); a square guide; "Checking you in…" spinner; Result card (Present green / Late amber, "ELECT3 · BSIT-2A", Manila time, **Done**). Replaces the Task 4 placeholder. For now, a failed scan shows the message with a **Scan again** button. Task 7 finishes the error states.
 
 **Acceptance criteria:**
-- [x] The QR changes within 5 s of each 30 s step, and a curl scan appears within 5 s, with no page reload.
-- [x] The session closes (End session in another tab, or its end time passes) → within 5 s, "This session has ended." appears, and the network tab shows no more polls.
-- [x] API stopped → "Reconnecting…" and the last QR stays; API started again → the page recovers by itself. JWT expired → the browser goes to the login page with "Your session ended, please log in again.", and after login it returns to the session page.
+- [x] Permission denied → explanation + **Allow camera**; granted → live preview. *(Pixel_9: dialog on first open, "Don't allow" → card, Allow camera → dialog again → "While using the app" → preview.)*
+- [ ] On a real phone (`adb reverse`), scanning the teacher's QR → **Present** with the subject, section and Manila time, and the teacher's roster shows the student within 5 s. *(The vertical slice.)*
+- [ ] One QR sends exactly one scan request (API log); **Done** goes back to the preview.
 
 **Verification:**
-- [x] Build succeeds: `dotnet build Klasly.slnx`
-- [x] Manual check: smoke steps 4–7, 9 and 10 (step 10 with `Jwt:ExpiryMinutes` = 1 in the API, set back afterwards)
+- [ ] Build succeeds: `./gradlew assembleDebug`; tests still pass
+- [ ] Manual check: smoke steps 5–6 on a real phone
 
 **Dependencies:** Task 5
 
 **Files likely touched:**
-- `src/Klasly.Web/Areas/Teacher/Views/Sessions/Details.cshtml` (modified: `Scripts` section + "Reconnecting…" element)
+- `app/src/main/java/com/klasly/app/ui/scan/ScanViewModel.kt`, `ScanScreen.kt` (new)
+- `app/src/main/java/com/klasly/app/MainActivity.kt` (modified)
 
-**Estimated scope:** Extra small (1 file)
+**Estimated scope:** Medium (3 files; the main risk of the milestone)
 
 ---
 
-## Task 7: Accessibility, `/impeccable`, full smoke test, reports
+## Task 7: Scan refusals + expired session
 
-**Description:** Run `/impeccable` on the four Teacher views and fix what it finds. Check keyboard and screen-reader behaviour. Run all 12 smoke-test steps from SPEC.md. Write the three reports and the INDEX line.
+**Description:** The Error state: the API's message (or "Can't reach Klasly. Check your connection.") with **Scan again**. A 401 from the scan clears the session, and Login shows "Session expired – please log in". An app opened after the token expired goes straight to Login.
 
 **Acceptance criteria:**
-- [x] Keyboard only: tab to Start session, Open and End session. A screen reader announces summary changes, not the whole table. The QR is readable in light and dark mode.
-- [x] `/impeccable` findings are fixed, or listed in the report with the reason they were not fixed.
-- [x] All 12 smoke steps pass. `Klasly.Web.csproj` still has no EF Core package and no `Klasly.Core` / `Klasly.Infrastructure` reference.
+- [ ] The guide's text word for word: "Already checked in" (second scan), "Invalid QR code" (any non-Klasly QR), "QR expired – rescan" (a QR photo kept 2 min), "Session is closed" (after End session), "Not enrolled in this class"; and a student on a session started 30 min ago → **Late**.
+- [ ] API stopped → "Can't reach Klasly…"; **Scan again** returns to the preview. *(Login with the API stopped shows "Can't reach Klasly. Check your connection." on Pixel_9 ✔; the scan half needs the phone.)*
+- [ ] With API `Jwt:ExpiryMinutes` = 1 (set back afterwards): the next scan → Login with "Session expired – please log in"; reopening the app after expiry → Login.
 
 **Verification:**
-- [x] Build succeeds: `dotnet build Klasly.slnx`; `dotnet list Klasly.slnx package` shows no Microsoft package below 10.x
-- [x] Manual check: smoke steps 11–12, plus a quick re-run of steps 1–10
-- [x] Reports in `docs/reports/<yyyy-MM-dd-HHmm>-milestone-7-teacher-session-page/`, one line added to `docs/reports/INDEX.md`
+- [ ] Build succeeds: `./gradlew assembleDebug`; tests still pass
+- [ ] Manual check: smoke steps 7–9
 
 **Dependencies:** Task 6
 
 **Files likely touched:**
-- `Areas/Teacher/Views/**` (polish only)
+- `app/src/main/java/com/klasly/app/ui/scan/ScanViewModel.kt`, `ScanScreen.kt` (modified)
+- `app/src/main/java/com/klasly/app/ui/login/LoginScreen.kt` (modified: shows `loginMessage`)
+
+**Estimated scope:** Small (3 files)
+
+### Checkpoint C: after Tasks 6–7
+- [ ] Teacher opens a session → student scans on a real phone → the roster shows Present within 5 s
+- [ ] Smoke steps 5–9 pass
+- [ ] Review with the team before continuing
+
+---
+
+## Task 8: Accessibility, `/impeccable`, full smoke test, reports
+
+**Description:** Add `liveRegion = Polite` to the result and error text, check 48 dp touch targets and content descriptions, and check that rotation keeps the state. Run `/impeccable` on the three screens and fix what it finds. Run all 11 smoke steps. Write the three reports and the INDEX line, with the library versions.
+
+**Acceptance criteria:**
+- [ ] TalkBack reads the result and error messages; rotating mid-result keeps the result. *(Live regions in place; rotation keeps the Login state ✔. TalkBack run and mid-result rotation need a real scan.)*
+- [x] `/impeccable` findings fixed: dark-mode splash, login subtitle for parents, autofill hints, "Not checked in" heading. Checked in dark mode, 130 % font scale and landscape.
+- [ ] All 11 smoke steps pass; `dotnet build Klasly.slnx` still passes.
+
+**Verification:**
+- [ ] Build succeeds: `./gradlew assembleDebug testDebugUnitTest`; `dotnet build Klasly.slnx`
+- [ ] Manual check: smoke steps 10–11, plus a quick re-run of steps 1–9
+- [x] Reports in `docs/reports/2026-11-10-1342-milestone-8-android-login-scan/`, one line added to `docs/reports/INDEX.md`
+
+**Dependencies:** Task 7
+
+**Files likely touched:**
+- `ui/login/LoginScreen.kt`, `ui/scan/ScanScreen.kt`, `ui/parent/ParentHomeScreen.kt` (polish only)
 - `docs/reports/<folder>/DEVELOPER-DOCS.md`, `HOW-TO-USE.md`, `FLOWCHARTS.md`, `docs/reports/INDEX.md`
 
 **Estimated scope:** Medium
 
-### Checkpoint C: complete
-- [x] Every success criterion in SPEC.md is met
-- [x] No API or database change; QRCoder is the only new package
-- [x] Ready for `/review`
+### Checkpoint D: complete
+- [ ] Every success criterion in SPEC.md is met
+- [ ] No API, Web or database change
+- [ ] Ready for `/review`

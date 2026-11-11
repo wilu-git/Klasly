@@ -1,183 +1,213 @@
-# Spec: Milestone 7 — Web MVC Teacher session page (rotating QR + live attendance)
+# Spec: Milestone 8 — Android login + Scan QR screen
 
-> Status: **Approved and built** (2026-11-09): open questions 1–3 approved as recommended (approval given by asking to build through Checkpoint C). Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "QR attendance check-in") → `CLAUDE.md` (§3.4 Web MVC) → this spec.
-> Milestone 6's spec (Web API sessions) is in git history (commit `479dcc6`) and in `docs/reports/2026-11-09-2144-milestone-6-api-sessions/`.
+> Status: **Approved** (2026-11-10): open questions 1–3 approved as recommended (wizard-created project, EncryptedSharedPreferences with a `shortcut:` comment, real phone over USB with `adb reverse`). **Change to Q1 (2026-11-10):** the team chose to have Claude copy the wizard-generated files from a recent Android Studio project on this PC instead of running the wizard (details in `tasks/todo.md` Task 0).
+> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "QR attendance check-in") → `CLAUDE.md` (§3.6 Android Kotlin) → this spec.
+> Milestone 7's spec (Web MVC Teacher session page) is in git history (commit `244deab`) and in `docs/reports/2026-11-09-2354-milestone-7-teacher-session-page/`.
+
+## What exists today
+
+- **No Android project yet.** Milestone 1 listed an "Android app shell", but `android/` was never created. This milestone creates it.
+- **The API side is done.** Milestone 6 built everything the app calls: `POST /api/auth/login`, `POST /api/students/me/device` and `POST /api/attendance/scan` (all 7 checks). Milestone 7 checked that a real phone camera can read the teacher's QR.
+- **Toolchain on this PC:** Android Studio 2026.1.2 (`D:\Android Studio`, its bundled JDK 21), SDK at `D:\Android\sdk` (platforms 35–37.1), emulators `Pixel_7` and `Pixel_9` (API 36.1, Google APIs). `java` is not on PATH, so command-line Gradle uses `JAVA_HOME = D:\Android Studio\jbr`.
 
 ## Assumptions (correct these before we build)
 
-1. **Web MVC only.** No API change: every endpoint this page needs was built in Milestone 6. No database change. No Android code (Milestone 8).
-2. **A `Teacher` Area, built like the Admin Area from Milestone 5:**
-   - `[Area("Teacher"), Authorize(Roles = "Teacher")]` on each controller;
-   - same Controller → Service → API-backed Repository → typed `HttpClient` chain;
-   - the same `ApiExceptionFilter` (401 → login, 403 → Access denied, 404, API down page);
-   - TempData alerts and `[ValidateAntiForgeryToken]` on every POST.
-3. **Home redirect:** a Teacher who opens `/` goes to **My classes** (`/Teacher/Classes`), the same way an Admin goes to `/Admin`. The "coming soon" welcome page then shows only for Parents.
-4. **The browser never talks to the API** (CLAUDE.md §3.3, CORS stays off). The page's JavaScript polls an **MVC action** on the same site. That action calls the API server-side with the JWT from the cookie. The JWT never reaches page JavaScript.
-5. **Times are shown in Asia/Manila** (CLAUDE.md §3.1), for example "Nov 10, 9:00 AM". The API sends and receives UTC.
-   - The Start-session form takes Manila local time.
-   - The service sends it as `+08:00` (`DateTimeOffset`).
-   - One small helper does both conversions with `TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila")`.
-6. **"Session closed" covers more than Status = Closed.** The Milestone 6 API treats an Open session past its end time as closed. When the QR call answers `409`, the page stops polling and shows "This session has ended." It still shows the final roster.
-7. **Minimal JavaScript.** About 25 lines of plain `fetch` + `setInterval` in the session view's `Scripts` section: no framework and no SignalR. Everything else is server-rendered Razor.
-8. **No test project** (same as Milestones 3–6). The smoke test is done by hand in the browser, with the API and the website running. Automated tests come in Milestone 14.
-9. **Out of scope:**
-   - attendance corrections and Absent marking (Milestone 9);
-   - editing or cancelling a session;
-   - Parent pages (Milestone 13);
-   - the admin "Reset phone" button (Swagger for now);
-   - a full-screen/projector mode beyond a large QR (the browser's F11 works);
-   - CSV export.
+1. **Android only.** No API, Web MVC or database change. The app uses only the three endpoints above.
+2. **Stack from CLAUDE.md §3.6:** Kotlin, Jetpack Compose, min SDK 26, MVVM (`ViewModel` + `StateFlow`), a repository class around Retrofit, **kotlinx.serialization** (not Gson) for JSON, **CameraX + ML Kit barcode scanning** (the bundled model, so it works offline and without a Play services download), joined by CameraX's own `camera-mlkit-vision` artifact.
+3. **Kept small on purpose:**
+   - no Hilt or other DI library: one small `AppContainer` object builds Retrofit, the repository and the token store;
+   - no navigation library: three screens, picked by a `when` on the logged-in role in `MainActivity`;
+   - no Room / local database.
+4. **Who can use the app:**
+   - **Student** → Scan QR screen.
+   - **Parent** → a placeholder "Child overview comes in a later update" screen with **Log out** (the real screen is Milestone 13).
+   - **Admin / Teacher** → refused at login: "This app is for students and parents. Please use the Klasly website." The token is not saved.
+5. **Device binding (guide §27.8 check 6):**
+   - the device ID is the phone's **Android ID** (`Settings.Secure.ANDROID_ID`), as the `ScanRequest` DTO already documents;
+   - right after a Student logs in, the app calls `POST /api/students/me/device`;
+   - `409` ("Another device is already registered. Ask the admin to reset it.") → the message shows on the Login screen and the token is **not** saved, because every scan from this phone would fail anyway.
+6. **Session handling:**
+   - the JWT and its `expiresAtUtc`, role and name are stored in EncryptedSharedPreferences (see open question 2);
+   - on app start, a missing or expired token → Login screen;
+   - any `401` from the API → token cleared → Login screen with "Session expired – please log in";
+   - **Log out** clears the store. There is no logout endpoint (JWTs are stateless).
+7. **The API decides everything.** The app does not check the QR text, the time or Present/Late. It sends what the camera read and shows the API's answer. Error text comes from the problem-details `detail` field (or the first validation error), so the messages match guide §27.8 word for word.
+8. **API address:** `BuildConfig.API_BASE_URL`, default `http://10.0.2.2:5201/api/` (the emulator's name for the PC, CLAUDE.md §3.6). The API must run with the **`http` launch profile**. With the `https` profile, `UseHttpsRedirection` sends the emulator to `https://localhost:7256`, which the phone can't reach.
+9. **Cleartext HTTP only in debug builds:** `android:usesCleartextTraffic="true"` lives in `src/debug/AndroidManifest.xml`, not in the main manifest.
+10. **Times shown in Asia/Manila** (CLAUDE.md §3.1) with `java.time` (available from SDK 26). The API sends UTC.
+11. **Package name `com.klasly.app`**, app name "Klasly", in `android/KlaslyApp/`. Not added to `Klasly.slnx`; Android Studio's own `.gitignore` keeps `build/`, `.gradle/` and `local.properties` out of git.
+12. **Out of scope:**
+    - FCM grade pushes (Milestone 10);
+    - My attendance, My grades and Child overview (Milestone 13);
+    - a release build, signing, or the Play Store;
+    - an admin "Reset phone" button (Swagger: `DELETE /api/accounts/{id}/device`);
+    - offline scan queueing (a scan needs the network, by design: the QR expires in 30–60 s);
+    - dark/light theme options beyond what the Compose template gives.
 
 ## Objective
 
-A teacher logs in on the website, picks one of their classes and starts a session. The page then shows a QR code that changes every 30 seconds for students to scan. Next to it, a list fills in with Present / Late as students check in, without reloading the page. When class ends, the teacher clicks **End session**.
+A student opens the Klasly app, logs in once, and points the camera at the teacher's QR. Within a second or two, the app says **"Present"** or **"Late"** with the class and the time, and the teacher's page (Milestone 7) shows the check-in within 5 s.
 
-This is the web half of the vertical slice. After Milestone 8 (Android scanner), the whole flow works: the teacher opens a session, a student scans, the teacher sees the check-in.
+This completes the vertical slice: **teacher opens a session → student scans → teacher sees the check-in.**
 
-Functional requirements covered: guide §27.9 **#3** (open a session that shows a signed QR refreshing every 30 s) and the teacher side of **#4** (see Present / Late as scans arrive; the list "updates by polling", guide §27.8).
+Functional requirement covered: guide §27.9 **#4**, the student side (scan the QR in the Android app; the Web API records Present or Late).
 
 ### User stories
-- As a **teacher**, I see only my own classes, active term first.
-- As a **teacher**, I open a class and see its past and upcoming sessions with their status.
-- As a **teacher**, I start a session now. The start, end (default 90 min) and minutes-until-Late (default 15) come prefilled, and I can change the end and the Late minutes.
-- As a **teacher**, while the session is open, I see a large QR that changes every 30 s and a roster: who is Present, Late, or not yet scanned, and how many have checked in.
-- As a **teacher**, I end the session, and the page shows the final roster.
-- As a **teacher**, I open a Scheduled session (for example, one created earlier) with an **Open** button.
-- As **another teacher**, a URL to someone else's session gives me "Access denied".
 
-## Pages and actions
+- As a **student**, I log in with my email and password and stay logged in until my token expires.
+- As a **student**, the first phone I log in on becomes my registered phone. On another phone I'm told to ask the admin to reset it.
+- As a **student**, I tap nothing extra to scan: the Scan screen opens the camera, reads the QR and sends it once.
+- As a **student**, I see my result clearly: **Present** (green) or **Late** (amber), the subject code and section, and the scan time in Manila time. Then I tap **Done**.
+- As a **student**, when a scan is refused, I see the API's reason ("QR expired – rescan", "Already checked in", "Not enrolled in this class", …) and can tap **Scan again**.
+- As a **student** whose token has expired, I'm sent back to Login with "Session expired – please log in".
+- As a **parent**, I can log in and log out. My overview comes later.
+- As a **teacher or admin**, the app tells me to use the website.
 
-All under `/Teacher/...`; POSTs carry the anti-forgery token.
+## Screens
 
-| Route | What it does | API calls |
+| Screen | Shows | Calls |
 |---|---|---|
-| `GET /Teacher/Classes` | **My classes**: table with subject code + title, section, term, schedule, room, enrolled count, and a "Sessions" button | `GET api/teacher/classes` |
-| `GET /Teacher/Classes/Details/{id}` | Class header, a **Start session** form, and the session list (newest first): date, start–end (Manila), status badge, link | `GET api/teacher/classes` (header; not in the list → 404), `GET api/classes/{id}/sessions` |
-| `POST /Teacher/Sessions/Start` | ⓘ Creates and opens the session in one step, then redirects to its page. A `400` from the API shows on the form | `POST api/classes/{id}/sessions`, then `POST api/sessions/{id}/open` |
-| `GET /Teacher/Sessions/Details/{id}` | **The session page.** Scheduled: details + **Open** button. Open: QR panel + live roster + **End session**. Closed/ended: final roster | `GET api/sessions/{id}`, plus the live part below |
-| `GET /Teacher/Sessions/Live/{id}` | ⓘ Partial view the page polls: the QR (while open) + roster + "x of y checked in" | `GET api/sessions/{id}/qr` (409 → closed state), `GET api/sessions/{id}/attendance` |
-| `POST /Teacher/Sessions/Open/{id}` | Opens a Scheduled session → back to the page. `400` / `409` → TempData error | `POST api/sessions/{id}/open` |
-| `POST /Teacher/Sessions/Close/{id}` | "End session" (with `confirm()`) → back to the page, which shows the final roster | `POST api/sessions/{id}/close` |
+| **Login** | Email, password (hidden, with show/hide), **Log in** button, error text. Loading spinner on the button while waiting. Keyboard "Done" submits. | `POST auth/login`, then (Student only) `POST students/me/device` |
+| **Scan QR** (Student) | Greeting with the student's name, **Log out** in the top bar, camera preview filling the screen with a square guide. States below. | `POST attendance/scan` |
+| **Parent home** (placeholder) | "Hi, {name}. Your child overview comes in a later update." and **Log out** | none |
 
-### Session page behaviour (Open session)
+### Scan QR states
 
-- **QR panel:** the QR code drawn as inline SVG, at least 320 px square, with dark modules on white (scanners need contrast in both themes). Under it, small text: "Changes every 30 s". The token text itself is **not** shown, so nobody types it in.
-- **Polling:** every **5 s** ⓘ, the page fetches `Live/{id}` and swaps the panel's HTML.
-  - The QR changes within 5 s of each new 30-s step. The API accepts the previous step for another 30 s, so a phone that scanned an older QR still works.
-  - If the poll answer is a **redirect to login** (the JWT expired), the page goes to the login page, which shows the "session ended" message.
-  - If the session is **closed or ended** (`409` from the QR call), the partial shows "This session has ended." with the final roster, and polling stops.
-  - If the **network or API fails**, the page keeps the last QR and roster, shows "Reconnecting…", and keeps trying.
-- **Roster:**
-  - one row per Active student, by name: student no., name, status badge (Present green / Late amber / "Not yet" grey) and scan time (Manila);
-  - a summary line "12 of 30 checked in · 10 Present · 2 Late" inside an `aria-live="polite"` region (only the summary is announced, not the table).
-- The **End session** button sits away from the QR, so it doesn't get clicked by accident.
+| State | What the student sees | Next |
+|---|---|---|
+| **No camera permission** | "Klasly needs the camera to scan your teacher's QR code." + **Allow camera** button (asks again; if blocked for good, opens app settings) | Granted → Scanning |
+| **Scanning** | Live preview, "Point your camera at the QR code on the screen" | First QR read → Sending (the analyzer stops, so one QR = one request) |
+| **Sending** | Preview frozen behind a spinner, "Checking you in…" | 200 → Result; error → Error |
+| **Result** | Big **Present** (green) or **Late** (amber) badge, "ELECT3 · BSIT-2A", "9:03 AM", **Done** button | Done → Scanning |
+| **Error** | The API's message (or "Can't reach Klasly. Check your connection." when there's no response) + **Scan again** | Scan again → Scanning; a 401 goes to Login instead |
+
+The result and error text sit in a live region (`liveRegion = Polite`) so TalkBack reads them. Buttons are at least 48 dp tall.
+
+## API contract used (already built in Milestone 6)
+
+| Call | Body | Success | Errors the app shows |
+|---|---|---|---|
+| `POST auth/login` | `{ "email", "password" }` | `200 { token, expiresAtUtc, userId, fullName, role }` | `400` validation, `401` "Invalid email or password." |
+| `POST students/me/device` (Bearer) | `{ "deviceId" }` | `200 { deviceId }` | `409` "Another device is already registered. Ask the admin to reset it." |
+| `POST attendance/scan` (Bearer) | `{ "qrToken", "deviceId" }` | `200 { status: "Present" \| "Late", scannedAtUtc, subjectCode, section }` | `401`, `400` "Invalid QR code" / "QR expired – rescan", `403` "Not enrolled in this class" / "Unregistered device", `409` "Session is closed" / "Already checked in" |
 
 ## Commands
 
 ```bash
-dotnet add src/Klasly.Web package QRCoder --version 1.8.1        # only if open question 1 is approved
-dotnet build Klasly.slnx
-dotnet list Klasly.slnx package
-dotnet run --project src/Klasly.API --launch-profile https       # https://localhost:7256
-dotnet run --project src/Klasly.Web --launch-profile https       # https://localhost:7144
+# API for the emulator (http profile, see assumption 8)
+dotnet run --project src/Klasly.API --launch-profile http          # http://localhost:5201
+
+# Android build and unit test (PowerShell: $env:JAVA_HOME = "D:\Android Studio\jbr" first)
+cd android/KlaslyApp
+./gradlew assembleDebug
+./gradlew testDebugUnitTest
+./gradlew installDebug                                              # emulator or USB phone
+
+# Real phone over USB (open question 3)
+adb reverse tcp:5201 tcp:5201
 ```
 
-## Project structure (files this milestone touches)
+## Project structure (files this milestone creates)
 
 ```
-src/Klasly.Web/
-  Models/Api/SessionDtos.cs                      (new) CreateSessionRequest, SessionResponse, QrTokenResponse, SessionAttendanceRow
-  Repositories/SessionRepository.cs + Interfaces/ISessionRepository.cs   (new) the 8 teacher API calls
-  Services/SessionService.cs + Interfaces/ISessionService.cs             (new) page models, start = create + open, live = QR + roster, QR → SVG
-  Infrastructure/ManilaTime.cs                   (new) UTC ↔ Asia/Manila
-  ViewModels/TeacherClassViewModel.cs, StartSessionViewModel.cs, SessionPageViewModel.cs, SessionLiveViewModel.cs   (new)
-  Areas/Teacher/Controllers/ClassesController.cs, SessionsController.cs  (new)
-  Areas/Teacher/Views/_ViewImports.cshtml, _ViewStart.cshtml,
-        Classes/Index.cshtml, Classes/Details.cshtml,
-        Sessions/Details.cshtml, Sessions/_Live.cshtml                    (new)
-  Controllers/HomeController.cs                  (modified) Teacher → /Teacher/Classes
-  Views/Shared/_Layout.cshtml                    (modified) Teacher nav: "My classes"
-  Views/Home/Index.cshtml                        (modified) welcome text for Parents only
-  Program.cs                                     (modified) register the repository + service
-  Klasly.Web.csproj                              (modified, only if Q1 approved) QRCoder
+android/KlaslyApp/                         (new, from the Android Studio "Empty Activity" wizard: open question 1)
+  settings.gradle.kts, build.gradle.kts, gradle/libs.versions.toml, gradlew(.bat), gradle/wrapper/
+  app/build.gradle.kts                     (modified) libraries, BuildConfig.API_BASE_URL, kotlinx.serialization plugin
+  app/src/main/AndroidManifest.xml         (modified) INTERNET + CAMERA permissions
+  app/src/debug/AndroidManifest.xml        (new) usesCleartextTraffic = true, debug only
+  app/src/main/java/com/klasly/app/
+    MainActivity.kt                        (modified) picks Login / Scan / Parent home from the session state
+    AppContainer.kt                        (new) builds OkHttp (Bearer header), Retrofit, repository, token store
+    data/KlaslyApi.kt                      (new) Retrofit interface: login, registerDevice, scan
+    data/Dtos.kt                           (new) @Serializable request/response classes
+    data/ApiText.kt                        (new) errorMessage (problem-details → text) and parseUtc, no Android types
+    data/KlaslyRepository.kt               (new) calls the API, turns errors into ApiResult with the API's message
+    data/TokenStore.kt                     (new) EncryptedSharedPreferences: token, expiry, role, name
+    ui/login/LoginViewModel.kt, LoginScreen.kt     (new)
+    ui/scan/ScanViewModel.kt, ScanScreen.kt        (new) states above; CameraX LifecycleCameraController + MlKitAnalyzer
+                                                   (camera-mlkit-vision) reports the first QR once (plan decision 6)
+    ui/parent/ParentHomeScreen.kt          (new) placeholder + Log out
+  app/src/test/java/com/klasly/app/data/ApiTextTest.kt        (new) error-text and UTC-parsing rules
 ```
 
 ## Code style
 
-Same as Milestone 5: one-line repository methods on the `ApiResponse` helpers, services shape data for views, and controllers catch only `ApiException.IsFormError` on form posts. The live action:
+Kotlin official style, one screen = one `ViewModel` exposing a single `StateFlow<UiState>`, and screens stay stateless (state in, events out). The repository never throws to the UI: it returns a result with the message to show.
 
-```csharp
-// SessionsController (Teacher area)
-[HttpGet]
-public async Task<IActionResult> Live(int id, CancellationToken ct) =>
-    PartialView("_Live", await sessionService.GetLiveAsync(id, ct));
+```kotlin
+// data/KlaslyRepository.kt
+sealed interface ApiResult<out T> {
+    data class Ok<T>(val value: T) : ApiResult<T>
+    data class Failed(val message: String, val unauthorized: Boolean = false) : ApiResult<Nothing>
+}
 
-// SessionService
-public async Task<SessionLiveViewModel> GetLiveAsync(int sessionId, CancellationToken ct)
-{
-    QrTokenResponse? qr = null;
-    try { qr = await sessions.GetQrAsync(sessionId, ct); }
-    catch (ApiException e) when (e.StatusCode == StatusCodes.Status409Conflict) { } // closed or past its end
-    var roster = await sessions.GetAttendanceAsync(sessionId, ct);
-    return new SessionLiveViewModel(sessionId, qr is null ? null : QrSvg(qr.Token), roster);
+suspend fun scan(qrToken: String): ApiResult<ScanResponse> = call {
+    api.scan(ScanRequest(qrToken = qrToken, deviceId = deviceId))
+}
+
+private suspend fun <T> call(block: suspend () -> T): ApiResult<T> = try {
+    ApiResult.Ok(block())
+} catch (e: HttpException) {
+    ApiResult.Failed(errorMessage(e.response()?.errorBody()?.string()), unauthorized = e.code() == 401)
+} catch (e: IOException) {
+    ApiResult.Failed("Can't reach Klasly. Check your connection.")
 }
 ```
 
 ## Testing strategy
 
-- **Build:** `dotnet build Klasly.slnx` → 0 errors, 0 new warnings. `dotnet list package` → no Microsoft package below 10.x. `Klasly.Web.csproj` still has no EF Core package and no `Klasly.Core` / `Klasly.Infrastructure` reference.
-- **Manual smoke test** in the browser, with the API and the website running on LocalDB, using the seed teachers (`rosa.villanueva@klasly.test` for ELECT3, `mark.delossantos@klasly.test`) and students. The phone scan is simulated with curl / Swagger (`POST /api/attendance/scan` with the student's JWT and the token read from the page's QR, or from `GET /api/sessions/{id}/qr`).
-  1. Teacher A logs in → lands on **My classes** with only their classes. Teacher B's session URL → Access denied. An Admin opening `/Teacher/Classes` → Access denied. Parent → welcome page.
-  2. Class details shows the sessions created in Milestone 6 with Manila times and status badges.
-  3. Start session (defaults) → redirected to an Open session page with a QR and a roster of "Not yet" rows. End before start → the API's message on the form, values kept.
-  4. The QR changes within 5 s after each 30-s boundary (watch two boundaries). A phone app (or any QR reader) decodes it to the same token `GET /api/sessions/{id}/qr` returns.
-  5. A student scan (curl) → within 5 s the row turns **Present** with the Manila time, and the summary updates. A scan made 30 min after start, on a session created with start = now − 30 min (via Swagger), shows **Late**.
-  6. **End session** → `confirm()` → the page shows "This session has ended." with the final roster, and the browser's network tab shows polling stopped.
-  7. A session left open past its end time (created via Swagger ending in 2 min) → within 5 s of the end the page switches to "This session has ended." on its own.
-  8. A Scheduled session (created via Swagger) → **Open** button → QR appears. Opening a closed session (two tabs) → the API's message as a TempData error.
-  9. Stop the API while the page is open → "Reconnecting…", the last QR stays. Start the API → the page recovers by itself.
-  10. JWT expiry (temporarily set `Jwt:ExpiryMinutes` = 1 in the API, as in Milestone 5) → the next poll sends the browser to the login page with "Your session ended, please log in again."
-  11. Keyboard only: tab to Start, Open and End session; a screen reader announces the summary changes. The QR is readable in both light and dark mode.
-  12. `/impeccable` run on the four views; findings fixed or listed in the report.
+- **Build:** `./gradlew assembleDebug` → BUILD SUCCESSFUL. `dotnet build Klasly.slnx` still passes (nothing .NET changes).
+- **One JVM unit test class** (`ApiTextTest`), written first: the error-text and UTC-parsing rules are the only non-trivial logic outside the camera. It checks that `detail` wins, then the first validation error, then a fallback for an empty or non-JSON body; and that .NET's 7-decimal UTC times and times without an offset parse as UTC.
+- **Manual smoke test** with the API (`http` profile) and the website running on LocalDB, the seed accounts, and the teacher's session page from Milestone 7 open on the monitor. First, reset the test student's device in Swagger (`DELETE /api/accounts/{id}/device`): Milestone 6/7 testing registered `phone-1` / `phone-2` by curl.
+  1. App start with no token → Login. Wrong password → "Invalid email or password." Empty fields → the API's validation message. API stopped → "Can't reach Klasly…".
+  2. Teacher login → "This app is for students and parents…", stays on Login. Parent login → placeholder → Log out → Login.
+  3. Student login → device registered (the user's `RegisteredDeviceId` in the database = the phone's Android ID) → Scan screen. Kill and reopen the app → still on Scan (token kept).
+  4. Same student on a second device/emulator → the 409 message on Login. Reset in Swagger → login works on the second device.
+  5. Camera permission denied → explanation + **Allow camera**; granted → preview.
+  6. Scan the teacher's QR → **Present** with subject, section and Manila time; the teacher's roster shows the student within 5 s. *(The vertical slice.)*
+  7. Scan again → "Already checked in". A session created with start = now − 30 min → a different student scans → **Late**.
+  8. Any other QR (a URL) → "Invalid QR code". A QR photo kept for 2 min → "QR expired – rescan". End the session, then scan → "Session is closed". A student not in the class → "Not enrolled in this class".
+  9. Token expiry (API `Jwt:ExpiryMinutes` = 1, as in Milestone 5) → the next scan goes to Login with "Session expired – please log in".
+  10. TalkBack reads the result and error messages; rotate the phone mid-scan and the state is kept (ViewModel).
+  11. `/impeccable` run on the three screens; findings fixed or listed in the report.
 
 ## Boundaries
 
 - **Always:**
-  - Controller → Service → API-backed Repository (guide §2);
-  - no database or `Klasly.Core` access from the Web;
-  - `[ValidateAntiForgeryToken]` on every POST;
-  - show the API's error message on failure;
-  - Manila time for display and UTC on the wire;
-  - `dotnet build` after each change; the three reports when built.
+  - every rule decided by the API; the app only shows its answers;
+  - MVVM: no API call from a composable;
+  - loading, empty and error states on every screen (CLAUDE.md §3.6);
+  - the token only in EncryptedSharedPreferences, never in logs (OkHttp logging off, or headers redacted, in debug);
+  - `./gradlew assembleDebug` after every Android change; the three reports when built.
 - **Ask first:**
-  - any package other than QRCoder (Q1);
-  - any API or database change;
-  - any page not in the table above;
-  - more JavaScript than the polling script.
+  - any library not named in this spec (Hilt, navigation-compose, Room, Coil, …);
+  - any API or database change (for example, to make the API reachable on the LAN);
+  - Windows firewall or network changes (those are the team's to make);
+  - a screen not in the table above.
 - **Never:**
-  - call the API from browser JavaScript, or turn on CORS;
-  - expose the JWT or the QR token text to page scripts beyond the SVG drawing;
-  - poll faster than every 5 s;
-  - trust the browser's clock for Present / Late (the API decides).
+  - commit `local.properties`, keystores, `google-services.json` or any key;
+  - allow cleartext HTTP in the release build;
+  - decide Present / Late, or check the QR, on the phone;
+  - log the JWT or the QR token text.
 
 ## Success criteria
 
-- [x] All 12 smoke-test steps behave as written.
-- [x] A teacher can go from login to a scannable, rotating QR in three clicks (class → Start session → page).
-- [x] A scan shows on the teacher's roster within 5 s, with no page reload.
-- [x] The page stops polling on its own when the session is closed or past its end.
-- [x] Only the class's own teacher can see or control its sessions (the API enforces it; the website shows Access denied).
-- [x] No API or database change; only the QRCoder package added (if Q1 approved); every Microsoft package is 10.x.
-- [x] Reports written; `docs/reports/INDEX.md` updated.
+- [ ] `android/KlaslyApp` builds with `./gradlew assembleDebug` and installs on the `Pixel_9` emulator and on a real phone.
+- [ ] All 11 smoke-test steps behave as written.
+- [ ] Step 6 works end to end: teacher opens a session on the website → student scans with the app → the teacher's roster shows Present within 5 s.
+- [ ] Every refusal shows the guide's message word for word (§27.8 table).
+- [ ] No API, Web or database change; the .NET solution still builds.
+- [ ] The library list with versions is in the report.
+- [ ] Reports written; `docs/reports/INDEX.md` updated.
 
 ## Open questions (my recommendation first)
 
-1. **How is the QR drawn?** Nothing in the solution draws QR codes yet.
-   **Recommended:** the **QRCoder** NuGet package (v1.8.1, MIT, about 95 M downloads, pure .NET with no image library). The service turns the token into an **SVG string** on the server, and the partial view outputs it inline. The token never touches page JavaScript, and nothing is loaded from a CDN.
-   *Alternatives:* a small JavaScript QR library copied into `wwwroot/lib` (the token would have to reach page JavaScript); or a CDN script (an outside dependency at class time).
-2. **How often does the page poll?**
-   **Recommended:** **one poll every 5 s** that returns both the QR and the roster, so there is a single timer and a single partial view. That costs 2 API calls per 5 s per open session page, which is fine for a class.
-   *Alternative:* fetch the QR exactly at `expiresAtUtc` and the roster on its own 5-s timer: more precise rotation, but two timers and more JavaScript.
-3. **How does a teacher start a session?**
-   **Recommended:** a **Start session** form on the class page, prefilled with start = now, end = now + 90 min and Late after 15 min. One click **creates and opens** the session and goes to its page. Scheduled sessions (made through Swagger) still get an **Open** button.
-   *Alternative:* a separate "Schedule a session" form for later dates plus an Open step. That is more pages, and nothing in the guide asks for scheduling ahead.
+1. **How do we create the Android project?**
+   **Recommended:** one of you runs Android Studio's **New Project → Empty Activity** wizard (about 2 minutes): name `KlaslyApp`, package `com.klasly.app`, save location `…\Klasly\android\KlaslyApp`, minimum SDK **API 26**, build language **Kotlin DSL**. That gives a Gradle wrapper and plugin versions that are known to work with your Android Studio 2026.1.2. I then add everything else to it.
+   *Alternative:* I write all the Gradle files by hand. That works, but the Gradle wrapper (`gradle-wrapper.jar`) can't be written as text, so it needs a download or a first sync in Android Studio anyway, and version mismatches are likely.
+2. **EncryptedSharedPreferences is deprecated.** CLAUDE.md asks for it, but Google deprecated the whole `androidx.security:security-crypto` library in 2025 (version 1.1.0). It still works on SDK 26+; it just won't get fixes.
+   **Recommended:** use it anyway, as CLAUDE.md says, with a `shortcut:` comment in `TokenStore`. It's one file, and swapping it later only touches that file.
+   *Alternative:* DataStore + an AES key in the Android Keystore, written by hand (about 60 more lines of crypto code for a school project).
+3. **How do we test a real scan?** The emulator's camera can't easily see a QR on your monitor.
+   **Recommended:** a real Android phone on **USB** with `adb reverse tcp:5201 tcp:5201`. The phone then reaches the PC's API at `http://localhost:5201/api/`, with no LAN IP, no firewall change and no API change. The base URL becomes overridable from `local.properties` (`klasly.apiBaseUrl=http://localhost:5201/api/`, not committed). The default stays `10.0.2.2` for the emulator, as CLAUDE.md says. Login and all error cases are still tested on the emulator.
+   *Alternatives:* the emulator with the laptop webcam as its back camera (`hw.camera.back = webcam0`) pointed at the screen (awkward); or the phone on Wi-Fi with the API on `0.0.0.0` and a firewall rule (a system change, and really Milestone 14's "host the phone can reach").

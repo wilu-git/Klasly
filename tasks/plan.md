@@ -1,99 +1,122 @@
-# Implementation Plan: Milestone 7 — Web MVC Teacher session page (rotating QR + live attendance)
+# Implementation Plan: Milestone 8 — Android login + Scan QR screen
 
-> Built from [`SPEC.md`](../SPEC.md) (2026-11-09). **The spec is still a draft.** This plan follows the recommended answer to all 3 open questions (QRCoder, one 5-second poll, Start = create + open). If you choose differently, Tasks 3, 5 and 6 change. Task details, acceptance criteria and verification steps are in [`todo.md`](./todo.md).
-> Milestone 6's plan is in git history (commit `479dcc6`).
+> **Plan approved 2026-11-10.** Built from [`SPEC.md`](../SPEC.md) (approved 2026-11-10, open questions 1–3 as recommended). Task details, acceptance criteria and verification steps are in [`todo.md`](./todo.md).
+> Milestone 7's plan is in git history (commit `244deab`).
 
 ## Overview
 
-This is the teacher's half of QR check-in, on the website. A teacher sees their own classes, starts a session, and gets a page with a QR code that changes every 30 s and an attendance list that updates every 5 s without reloading. The work is **Web MVC only**: no API change, no database change, one new package (QRCoder).
+This milestone creates the Klasly Android app and gives it two jobs: log in, and scan the teacher's QR. A student logs in once (the phone gets registered), points the camera at the QR on the teacher's page, and sees **Present** or **Late**. That completes the vertical slice from Milestone 7. The work is **Android only**: no API, Web or database change.
 
 ## Facts from the code that shape the plan
 
-- **All 8 API calls already exist** in `Klasly.API/Controllers/SessionsController.cs` (TeacherOnly policy): `GET api/teacher/classes`, `GET`/`POST api/classes/{id}/sessions`, `GET api/sessions/{id}`, `POST …/open`, `POST …/close`, `GET …/qr`, `GET …/attendance`.
-- `api/teacher/classes` already sorts **active term first**, then by subject code and section. The website shows the list in the order it gets it.
-- The API returns sessions **newest first** (`SessionRepository.ListByClassAsync`).
-- The API sends enums as **strings** (`JsonStringEnumConverter`). The Web DTOs use `string Status`, the same way `EnrollmentResponse` does.
-- `GET …/qr` answers `409 "Session is closed"` for anything that is not Open, or is Open but past its end time (`IsOpenNow`). `POST …/close` accepts an Open session even after its end time, and answers `409` for any other status.
-- Creating a session checks that the end is after the start and is still in the future. The start may be in the past, which smoke-test step 5 needs.
-- `ApiExceptionFilter` turns a 401 into "sign out + TempData message + redirect to login", a 403 into a redirect to Access denied, a 404 into a 404, and "API unreachable" into the `ApiUnavailable` page with status 503. **The Live action reuses this filter, so it needs no error handling of its own.**
-- `ApiException.IsFormError` (400/409) is the only thing controllers catch. Admin's `ClassesController.Enroll` already shows the pattern: catch it → TempData error → redirect.
-- `Klasly.Web.csproj` has **no packages** today. QRCoder 1.8.1 is the latest version on NuGet (checked 2026-11-09).
+- **The three endpoints exist** (Milestone 6): `POST api/auth/login` (anonymous), `POST api/students/me/device` (`StudentOnly` policy), `POST api/attendance/scan` (`[Authorize]`; the service answers a non-Student role with 401).
+- **Errors are problem-details JSON.** `ApiExceptionHandler` puts the message in `detail`. Model validation (`[ApiController]`) puts it in `errors: { field: [messages] }`. The JWT challenge also writes problem-details for 401.
+- **Enums travel as names** (`JsonStringEnumConverter(allowIntegerValues: false)`), so `status` is `"Present"` / `"Late"`. The app keeps it as a `String`.
+- `ScanRequest` has **no validation attributes on purpose**, so an empty or junk QR text gets the guide's `400 "Invalid QR code"`, not a model-validation error.
+- Device registration is **idempotent**: the same phone again → `200`; another phone → `409 "Another device is already registered. Ask the admin to reset it."` Reset: `DELETE api/accounts/{id}/device` (Admin).
+- The API's `http` profile listens on `http://localhost:5201` only. `UseHttpsRedirection` doesn't redirect when the API runs without an HTTPS port.
+- **Toolchain:** Android Studio 2026.1.2 with JDK 21 at `D:\Android Studio\jbr` (`java` is not on PATH), SDK at `D:\Android\sdk` (platforms 35–37.1), emulators `Pixel_9` and `Pixel_7` (API 36.1, Google APIs).
 
 ## Architecture decisions
 
-1. **One repository and one service for the Teacher area:** `ISessionRepository` (the 8 API calls) and `ISessionService` (view models, start = create + open, live = QR + roster, QR → SVG). The teacher's class list comes from `api/teacher/classes`, so the Admin `ClassRepository` (AdminOnly endpoints) is not reused.
-2. **The session page draws the live part on the server the first time.** `Sessions/Details` calls `GetLiveAsync` and renders `_Live` inside the page. The QR and the roster are visible at once, with no blank first 5 s, and a Closed session gets its final roster from the same partial. Only an Open session adds the polling script.
-3. **The polling script uses `fetch(url, { redirect: "manual" })`.** A 401 or 403 from the Live action is a redirect. With `"manual"`, the script sees an opaque redirect and calls `location.reload()`. The browser then reloads the *page* (not the partial), so:
-   - after login, the teacher comes back to the session page, not to the bare partial;
-   - the "Your session ended" TempData message is still there for the login page, because the fetch never loaded the login page.
-
-   Any other non-OK answer (503 API down, 404) → show "Reconnecting…" and keep the last HTML.
-4. **The partial reports "closed" with `data-closed="true"`** on its root element. After each swap, the script checks it and stops the timer. No JSON endpoint, no second request.
-5. **Manila time helper:** `ManilaTime.ToLocal(DateTime utc)` for display, and `ManilaTime.ToOffset(DateTime local)` → `DateTimeOffset` with +08:00 for the create request. The zone comes from `TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila")`. Manila has no daylight saving, so the conversion is always exact.
-6. **If Start fails halfway** (the create works but the open fails), the session stays Scheduled. The page redirects to it with the API's message as a TempData error, and the **Open** button is there. Nothing is lost, and nothing is retried automatically.
-7. **Close and Open catch `IsFormError`** (for example, a session already closed in another tab) and show it as a TempData error, the same way Admin's `Enroll` does.
+1. **The session lives in one place.** `TokenStore` (EncryptedSharedPreferences) saves token, expiry, role and name. `AppContainer` exposes it as a `StateFlow<Session?>`, plus a one-off `loginMessage` ("Session expired – please log in"). `MainActivity` collects it and picks the screen with `when (session?.role)`. Logging out or a 401 just clears the store, and the screen switches by itself. No navigation library.
+2. **One OkHttp interceptor adds `Authorization: Bearer …`** from `TokenStore` when a token exists. No logging interceptor (the token must never reach Logcat).
+3. **The repository never throws to the UI.** It returns `ApiResult.Ok` or `ApiResult.Failed(message, unauthorized)`. A 401 on an authenticated call also clears the session.
+4. **API text rules are pure functions in `data/ApiText.kt`, with no Android types**, so a plain JVM unit test covers them, written test first:
+   - `errorMessage(body: String?)`: `detail` → the first message in `errors` → `title` → "Something went wrong. Please try again.";
+   - `parseUtc(text)`: `Instant.parse`, and a time without an offset is read as UTC.
+5. **Login is one ViewModel call that does two requests for students:** login, then register the device with the **new token passed explicitly** (not saved yet). The session is saved only after both succeed, so a 409 leaves nothing behind (spec assumption 5).
+6. **Camera: CameraX `LifecycleCameraController` + `MlKitAnalyzer`** (the `androidx.camera:camera-mlkit-vision` artifact, part of CameraX) with an ML Kit barcode scanner limited to `FORMAT_QR_CODE`. This replaces a hand-written `ImageAnalysis.Analyzer`. The callback hands the first QR text to `ScanViewModel.onQrRead()`, which ignores reads unless the state is `Scanning`. That gives one request per QR, and **Done** / **Scan again** turn scanning back on.
+7. **Times are shown in Manila** with `ZoneId.of("Asia/Manila")`, as "9:03 AM".
+8. **API address:** `buildConfigField("String", "API_BASE_URL", …)` reads `klasly.apiBaseUrl` from `local.properties` (not committed). The default is `http://10.0.2.2:5201/api/`. A real phone uses `adb reverse tcp:5201 tcp:5201` and `http://localhost:5201/api/`.
+9. **Library versions:** latest stable at build time, all in `gradle/libs.versions.toml`, added to what the wizard creates: Retrofit 3 + `converter-kotlinx-serialization`, OkHttp, `kotlinx-serialization-json` (+ the Kotlin serialization plugin), `lifecycle-viewmodel-compose`, CameraX (`camera-camera2`, `camera-lifecycle`, `camera-view`, `camera-mlkit-vision`), ML Kit `barcode-scanning` (bundled), `androidx.security:security-crypto` 1.1.0. Versions are listed in the report.
 
 ## Dependency graph
 
 ```
-Task 1  Teacher area + My classes        (repository, service, area shell, home redirect, nav)
+Task 0  (team) Android Studio wizard creates android/KlaslyApp
    │
-   └── Task 2  Class details + session list   (session DTOs, ManilaTime)
+   └── Task 1  Build setup (Gradle, permissions, debug cleartext, API_BASE_URL)
           │
-          └── Task 3  Start session → session page (static)
+          └── Task 2  API text rules, test first (ApiText.kt + ApiTextTest)
                  │
-                 ├── Task 4  Open (Scheduled) and End session buttons
-                 │
-                 └── Task 5  QR + roster partial, drawn on the server   ← QRCoder (main risk)
+                 └── Task 3  API client + session store (DTOs, Retrofit, TokenStore, repository, AppContainer)
                         │
-                        └── Task 6  5-second polling script
+                        └── Task 4  Student login → phone registered → stays logged in
                                │
-                               └── Task 7  Accessibility, /impeccable, full smoke test, reports
+                               └── Task 5  Parent home, teacher/admin refused, Log out
+                                      │
+                                      └── Task 6  Scan happy path: camera → QR → Present/Late   ← main risk, the vertical slice
+                                             │
+                                             └── Task 7  Scan refusals + expired session
+                                                    │
+                                                    └── Task 8  Accessibility, /impeccable, full smoke test, reports
 ```
 
-Tasks 4 and 5 both depend only on Task 3. They touch the same controller and view, so build them one after the other, not in parallel.
+**Order and risk.** The camera (Task 6) is the main risk, but it needs a real student token, so it can't come before login. Tasks 4–5 are small, so the risk is reached early anyway. The happy path (Task 6) is built and checked on a real phone *before* the error states (Task 7), so a camera problem shows up before any polish is done.
+
+**Parallel work:** none. Each task needs the one before it, and Tasks 4–7 all touch `MainActivity` and the same screens.
 
 ## Task list
 
-### Phase 1: Teacher can find their sessions
-- [x] Task 1: Teacher area + My classes page
-- [x] Task 2: Class details with the session list (Manila times)
+### Phase 1: Foundation
+- [x] Task 0: create the project (wizard files copied from a recent project on this PC, see `todo.md`)
+- [x] Task 1: Build setup
+- [x] Task 2: API text rules, test first
+- [x] Task 3: API client + session store
 
-### Checkpoint A (after Tasks 1–2)
-- [x] `dotnet build Klasly.slnx` clean
-- [x] Smoke steps 1–2 pass (role routing, Access denied, Manila times)
+### Checkpoint A (after Tasks 0–3)
+- [x] `./gradlew assembleDebug` and `./gradlew testDebugUnitTest` pass
+- [x] The app installs and starts on `Pixel_9`
 
-### Phase 2: Vertical slice, no live updates yet
-- [x] Task 3: Start session (create + open) → session page
-- [x] Task 4: Open a Scheduled session; End session
-- [x] Task 5: QR + roster partial, drawn on the server
+### Phase 2: Login
+- [x] Task 4: Student login → phone registered → stays logged in
+- [x] Task 5: Parent home, teacher/admin refused, Log out
 
-### Checkpoint B (after Tasks 3–5)
-- [x] A phone QR reader decodes the page's QR to the same token as `GET /api/sessions/{id}/qr`
-- [x] A curl scan shows up after a manual page refresh
-- [x] Smoke steps 3 and 8 pass
+### Checkpoint B (after Tasks 4–5)
+- [x] Smoke steps 1–4 pass on the emulator (API-stopped case in Task 7)
+- [x] Review with the team (skipped: build all tasks in one go)
 
-### Phase 3: Live, then finish
-- [x] Task 6: Polling script (5 s, reconnect, auto-stop, login redirect)
-- [x] Task 7: Accessibility + `/impeccable` + full smoke test + reports
+### Phase 3: Scan
+- [ ] Task 6: Scan happy path
+- [ ] Task 7: Scan refusals + expired session
 
-### Checkpoint C (complete)
-- [x] All 12 smoke-test steps and every success criterion in SPEC.md are met
-- [x] `dotnet list package`: QRCoder is the only new package; no Microsoft package below 10.x
-- [x] Reports written, `docs/reports/INDEX.md` updated, ready for review
+### Checkpoint C (after Tasks 6–7)
+- [ ] Teacher opens a session → student scans on a real phone → the teacher's roster shows Present within 5 s
+- [ ] Smoke steps 5–9 pass
+- [ ] Review with the team before continuing
+
+### Phase 4: Finish
+- [ ] Task 8: Accessibility, `/impeccable`, full smoke test, reports
+
+### Checkpoint D (complete)
+- [ ] All 11 smoke-test steps and every success criterion in SPEC.md are met
+- [ ] `dotnet build Klasly.slnx` still passes; no API, Web or database change
+- [ ] Reports written, `docs/reports/INDEX.md` updated, ready for `/review`
+
+## Definition of Done (every task)
+
+A task is checked off only when its acceptance criteria are met **and**:
+
+- `./gradlew assembleDebug` passes and `./gradlew testDebugUnitTest` still passes (CLAUDE.md §4);
+- the behaviour was seen running on the emulator or the phone, not only compiled;
+- error paths from the acceptance criteria were tried, not just the happy path;
+- no debug `Log` calls, commented-out code or `TODO`s left behind; a known limit has a `shortcut:` comment instead;
+- no token, QR text, key or `local.properties` value is logged or committed;
+- the changes stay inside the task's files (anything else is noted in the task first).
 
 ## Risks and mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| The QR doesn't scan: too small, low contrast in dark mode, or damaged by Bootstrap CSS on the `<svg>` | High (it breaks the whole flow) | Task 5 is checked with a real phone before the polling is built (Checkpoint B). The QR has a white background with a quiet zone, is at least 320 px, and uses error-correction level M. |
-| A poll that follows the redirect to login uses up the TempData message, and after logging in the teacher lands on the bare partial | Medium | `redirect: "manual"` + `location.reload()` (decision 3). Smoke step 10 checks it. |
-| `Asia/Manila` isn't found on a Windows machine without ICU | Low | .NET 10 on Windows 10 1903+ uses ICU, so the name works. If it throws, use `"Singapore Standard Time"` (also UTC+8, no DST) and add a `shortcut:` comment. |
-| The session ends while the page is open, but the poll still renders a QR between the end and the next poll | Low | The API decides (`IsOpenNow`). The page switches within 5 s, and a scan after the end gets `409` anyway. |
-| `datetime-local` posts a time with no time zone | Low | The form documents "Manila time". `ManilaTime.ToOffset` adds +08:00. The API checks the order of start and end. |
-| Polling 2 API calls every 5 s for each open page | Low | Fine for one class (the spec accepts it). The timer stops when the session is closed. |
+| The emulator camera can't see the QR on the monitor | High (the slice can't be shown) | Approved answer to open question 3: a real phone over USB with `adb reverse`. Login and error cases are tested on the emulator. |
+| Wizard Gradle/Kotlin versions clash with the newest library versions (for example, a library needs a newer `compileSdk` or AGP) | Medium | Keep the wizard's AGP and Kotlin versions. If a library needs more, use the newest library version that fits, and note it in the report. |
+| Gradle from the command line can't find Java | Low | `$env:JAVA_HOME = "D:\Android Studio\jbr"` before `./gradlew` (in the spec's commands). |
+| The seed students already have a device registered from Milestone 6/7 curl tests (`phone-1`, `phone-2`) | Medium (looks like a bug at first login) | Before Task 4's check, reset them in Swagger (`DELETE /api/accounts/{id}/device`). |
+| The Android ID depends on the signing key, so debug builds from your two PCs give the same phone two different IDs | Medium | Known limit, written in HOW-TO-USE: if you swap PCs, the admin resets the device. Release signing (one key) removes it later. |
+| EncryptedSharedPreferences throws on a rare device whose keystore is broken | Low | `TokenStore` catches the error, deletes the prefs file and treats it as logged out. The deprecation gets a `shortcut:` comment (approved answer to open question 2). |
+| A second QR read arrives while the first request is still in flight | Low | `onQrRead` ignores reads unless the state is `Scanning` (decision 6). The API also answers a double scan with 409. |
 
 ## Open questions
 
-1. **Approve SPEC.md's open questions 1–3 as recommended?** This plan assumes yes. Question 1 (adding the QRCoder package) needs an explicit yes under CLAUDE.md §4.
-2. Should the spec's status be changed to "Approved" in the same commit as this plan? That is how Milestone 6 did it.
+None. The spec's three questions are approved. **Task 0 needs one of you:** run Android Studio's New Project → Empty Activity wizard with the settings in `todo.md` Task 0, then say it's done.

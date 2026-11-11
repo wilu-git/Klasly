@@ -1,0 +1,4 @@
+# gradlew is a shell script: CRLF breaks it on macOS/Linux; the .bat wants CRLF.
+gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary
