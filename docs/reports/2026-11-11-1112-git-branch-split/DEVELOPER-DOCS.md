@@ -51,7 +51,7 @@ Deleted (hash kept here for recovery with `git branch <name> <hash>`):
 | Branch | Hash | Note |
 |--------|------|------|
 | `backendDev` | `2dfd15e` | "Start over" docs commit, not in dev |
-| `claude/database-connection-issue-a557aa` | `9d8dc42` | PR #1, reverted on master; also deleted on GitHub |
+| `claude/database-connection-issue-a557aa` | `9d8dc42` | PR #1, reverted on master; already gone from GitHub |
 | `claude/erd-functions-completeness-9d38e9` | `9b70479` | old EF Core attempt, not in dev |
 | `claude/file-structure-milestone-check-b7bc1b` | `2dfd15e` | same commit as backendDev |
 | `claude/klasly-milestone-2-9baad5` | `81fe685` | already in dev; its uncommitted M3 draft saved as `stash@{0}` |
