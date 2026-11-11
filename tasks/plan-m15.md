@@ -69,29 +69,29 @@ T7 and T8 both touch `src/Klasly.API/Program.cs` only if a finding points there.
 ## Task list
 
 ### Phase 1: Baseline
-- [ ] Task 1: Baseline (build warnings, tests, Android, packages, secrets scan, schema script) + `review-m15.md` skeleton — S
+- [x] Task 1: Baseline (build warnings, tests, Android, packages, secrets scan, schema script) + `review-m15.md` skeleton — S
 
 ### Phase 2: Review (read-only)
-- [ ] Task 2: Review `Klasly.Core` + `Klasly.Infrastructure`, incl. the §27.7 schema comparison — M
-- [ ] Task 3: Review `Klasly.API` (inline + one `security-auditor` pass) — M
-- [ ] Task 4: Review `Klasly.Worker` (Hangfire job, risk, outbox, Brevo) — S
-- [ ] Task 5: Review `Klasly.Web` (no DB access, anti-forgery, cookie, error display) — M
-- [ ] Task 6: Review `android/KlaslyApp` + `tests/Klasly.Tests`, and fill in the traceability tables — M
+- [x] Task 2: Review `Klasly.Core` + `Klasly.Infrastructure`, incl. the §27.7 schema comparison — M
+- [x] Task 3: Review `Klasly.API` (inline + one `security-auditor` pass) — M
+- [x] Task 4: Review `Klasly.Worker` (Hangfire job, risk, outbox, Brevo) — S
+- [x] Task 5: Review `Klasly.Web` (no DB access, anti-forgery, cookie, error display) — M
+- [x] Task 6: Review `android/KlaslyApp` + `tests/Klasly.Tests`, and fill in the traceability tables — M
 
 ### Checkpoint A
-- [ ] `review-m15.md` covers all 6 areas, every row has a severity, and the traceability tables are filled in.
-- [ ] Review with the team. Every Medium finding is marked "fix" or "defer: reason". No code has changed yet.
+- [x] `review-m15.md` covers all 6 areas, every row has a severity, and the traceability tables are filled in.
+- [x] Review with the team. Every Medium finding is marked "fix" or "defer: reason". No code has changed yet.
 
 ### Phase 3: Fix
-- [ ] Task 7: Serilog in the API and the Worker (console sink), plus a check that no secrets or personal data are logged — S
-- [ ] Task 8: Fix group: Core / Infrastructure / API findings (Critical + High + agreed Medium) — size set at Checkpoint A
-- [ ] Task 9: Fix group: Worker findings — size set at Checkpoint A
-- [ ] Task 10: Fix group: Web findings — size set at Checkpoint A
-- [ ] Task 11: Fix group: Android findings + missing tests from the traceability tables — size set at Checkpoint A
+- [x] Task 7: Serilog in the API and the Worker (console sink), plus a check that no secrets or personal data are logged — S
+- [x] Task 8: Fix group: Core / Infrastructure / API findings (Critical + High + agreed Medium) — done (see todo-m15)
+- [x] Task 9: Fix group: Worker findings — done (see todo-m15)
+- [x] Task 10: Fix group: Web findings — done (see todo-m15)
+- [x] Task 11: Fix group: Android findings + missing tests from the traceability tables — done (see todo-m15)
 
 ### Checkpoint B
-- [ ] `dotnet build` no more warnings than the baseline; `dotnet test` and `./gradlew assembleDebug testDebugUnitTest` green; `dotnet list package` shows Microsoft 10.x and no vulnerable packages.
-- [ ] Every finding in `review-m15.md` has an outcome (fixed + commit / deferred + reason / won't fix + reason).
+- [x] `dotnet build` no more warnings than the baseline; `dotnet test` and `./gradlew assembleDebug testDebugUnitTest` green; `dotnet list package` shows Microsoft 10.x and no vulnerable packages.
+- [x] Every finding in `review-m15.md` has an outcome (fixed + commit / deferred + reason / won't fix + reason).
 
 ### Phase 4: Rehearse and close
 - [ ] Task 12: Real-phone end-to-end run (team, with me guiding) + tick the M15 and M14 criteria — S

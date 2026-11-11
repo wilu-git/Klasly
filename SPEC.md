@@ -142,13 +142,13 @@ Fix commits follow the existing style (`fix(api): …`, `fix(web): …`, `fix(an
 
 ## Success criteria
 
-- [ ] `tasks/review-m15.md` exists and covers all 6 areas, each checked against the full checklist in Assumption 2.
-- [ ] Every §27.9 requirement and every §27.8 scan check is mapped to code and a test, or logged as a finding.
-- [ ] `dotnet ef migrations script` matches `Klasly_Schema.sql` on every §27.7 convention, or each difference is a finding with an outcome.
-- [ ] No secret is found in tracked files or git history (`Jwt:Key`, `Qr:SigningKey`, Brevo api-key, FCM JSON, connection strings with passwords).
-- [ ] Every Critical and High finding is **fixed** and has a test. Every Medium finding is fixed or has a written reason. Every Low finding is logged.
-- [ ] *(Q1 = yes)* Serilog writes structured logs in the API and the Worker. A test or a log sample shows that no password, JWT, key or guardian email is logged.
-- [ ] `dotnet build` has no more warnings than the baseline; `dotnet test` and `./gradlew assembleDebug testDebugUnitTest` are green; `dotnet list package` shows no Microsoft package below 10.x and `--vulnerable` shows none.
+- [x] `tasks/review-m15.md` exists and covers all 6 areas, each checked against the full checklist in Assumption 2.
+- [x] Every §27.9 requirement and every §27.8 scan check is mapped to code and a test, or logged as a finding.
+- [x] `dotnet ef migrations script` matches `Klasly_Schema.sql` on every §27.7 convention, or each difference is a finding with an outcome.
+- [x] No secret is found in tracked files or git history (`Jwt:Key`, `Qr:SigningKey`, Brevo api-key, FCM JSON, connection strings with passwords).
+- [x] Every Critical and High finding is **fixed** and has a test. Every Medium finding is fixed or has a written reason. Every Low finding is logged.
+- [x] *(Q1 = yes)* Serilog writes structured logs in the API and the Worker. A test or a log sample shows that no password, JWT, key or guardian email is logged.
+- [x] `dotnet build` has no more warnings than the baseline; `dotnet test` and `./gradlew assembleDebug testDebugUnitTest` are green; `dotnet list package` shows no Microsoft package below 10.x and `--vulnerable` shows none.
 - [ ] *(Q4 = yes)* The end-to-end run on a real phone passes, with screenshots in the report.
 
 ## Open questions (my recommendation first)

@@ -67,25 +67,26 @@ The seed data is fictional: `@klasly.test` addresses and `+63917000000x` numbers
 
 | ID | Sev | Where | Rule | Finding | Outcome |
 |---|---|---|---|---|---|
-| F-01 | High | `src/Klasly.API/Program.cs`, `src/Klasly.Worker/Program.cs` | CLAUDE.md §3.3, guide §16 | Serilog is not installed. Both hosts use the default console logger. | fixed — Task 7 |
-| F-02 | High | `src/Klasly.Infrastructure/Repositories/UserRepository.cs:21`, `src/Klasly.API/Program.cs:58` | §27.5, §27.7 (soft delete) | A deactivated account keeps full API access until its JWT expires (≤ 60 min). Only the scan checks `IsActive`. A deactivated teacher could still post grades, and a deactivated parent could still read a child's overview. *(security-auditor, verified)* | fixed — Task 8 |
-| F-03 | Medium | `src/Klasly.API/Services/AuthService.cs:19` | `AuthController.cs:23` ("so emails can't be probed") | An unknown or inactive email returns before the password hash check runs, so the response time shows which emails exist. *(security-auditor, verified)* | fixed — Task 8 |
+| F-01 | High | `src/Klasly.API/Program.cs`, `src/Klasly.Worker/Program.cs` | CLAUDE.md §3.3, guide §16 | Serilog is not installed. Both hosts use the default console logger. | **fixed** `512493f` (Task 7) |
+| F-02 | High | `src/Klasly.Infrastructure/Repositories/UserRepository.cs:21`, `src/Klasly.API/Program.cs:58` | §27.5, §27.7 (soft delete) | A deactivated account keeps full API access until its JWT expires (≤ 60 min). Only the scan checks `IsActive`. A deactivated teacher could still post grades, and a deactivated parent could still read a child's overview. *(security-auditor, verified)* | **fixed** `cf32c74`: `OnTokenValidated` refuses a token whose account is inactive → 401 "Session expired – please log in"; test `LoginTests.Deactivated_account_loses_access_at_once_with_its_old_token` failed before (200) |
+| F-03 | Medium | `src/Klasly.API/Services/AuthService.cs:19` | `AuthController.cs:23` ("so emails can't be probed") | An unknown or inactive email returns before the password hash check runs, so the response time shows which emails exist. *(security-auditor, verified)* | **fixed** `cf32c74`: hashes against a dummy hash when the email is unknown or inactive |
 | F-04 | Medium | `src/Klasly.API/Controllers/AuthController.cs:14` | §27.5 | No rate limit or lockout on `POST /api/auth/login`. *(security-auditor)* | **deferred:** a limit per email needs the request body read before model binding. A limit per IP would throttle the MVC server, which logs every web user in from one IP. The demo runs on a private hotspot. Upgrade path: a failed-attempt counter + lockout on `Users` (a schema change, so ask first). |
 | F-05 | Medium | `src/Klasly.API/Properties/launchSettings.json` (`lan`) | CLAUDE.md §3.3 (Swagger in Development only) | The `lan` profile serves Development (Swagger UI) over plain HTTP on `0.0.0.0`. *(security-auditor)* | **won't fix:** accepted in the M14 plan (risk table) for a demo on the team's own hotspot. HTTPS on the LAN needs a trusted certificate on every phone. The report notes it as a known limit. |
-| F-06 | Medium | `android/KlaslyApp/app/src/main/res/xml/backup_rules.xml`, `data_extraction_rules.xml` | §3.6 (JWT in EncryptedSharedPreferences) | The backup rules are still the template stubs, so the encrypted session file `klasly_session.xml` goes into cloud backups and device transfers. Its Keystore key can't follow it there, so a restored copy can never be read (the app already recovers from that by deleting it). | fixed — Task 11 |
-| F-07 | Medium | `tests/Klasly.Tests` | §27.9 FR1 traceability | Login failures are not tested over HTTP: a wrong password and an inactive account should both get 401 "Invalid email or password.". | fixed — Task 11 |
-| F-08 | Medium | `tests/Klasly.Tests` | §27.9 FR2, §27.7 soft delete | Admin rules are only covered by the role sweep: one active term, an enrollment drop staying a row (Dropped) with re-enroll reusing it, a deactivated account staying listed, and no self-deactivation. | fixed — Task 11 |
-| F-09 | Medium | `tests/Klasly.Tests` | §27.10 item 1, FR3 | The vertical slice (teacher opens → QR from the API → student registers phone and scans → teacher's list shows it) has no single HTTP test. Each piece is tested separately. | fixed — Task 11 |
+| F-06 | Medium | `android/KlaslyApp/app/src/main/res/xml/backup_rules.xml`, `data_extraction_rules.xml` | §3.6 (JWT in EncryptedSharedPreferences) | The backup rules are still the template stubs, so the encrypted session file `klasly_session.xml` goes into cloud backups and device transfers. Its Keystore key can't follow it there, so a restored copy can never be read (the app already recovers from that by deleting it). | **fixed** `27a506b` |
+| F-07 | Medium | `tests/Klasly.Tests` | §27.9 FR1 traceability | Login failures are not tested over HTTP: a wrong password and an inactive account should both get 401 "Invalid email or password.". | **fixed** `cf32c74` (`LoginTests`, 2 tests) |
+| F-08 | Medium | `tests/Klasly.Tests` | §27.9 FR2, §27.7 soft delete | Admin rules are only covered by the role sweep: one active term, an enrollment drop staying a row (Dropped) with re-enroll reusing it, a deactivated account staying listed, and no self-deactivation. | **fixed** `823d725` (`AdminRulesTests` 3, `TermActivationTests` 1, runs alone) |
+| F-09 | Medium | `tests/Klasly.Tests` | §27.10 item 1, FR3 | The vertical slice (teacher opens → QR from the API → student registers phone and scans → teacher's list shows it) has no single HTTP test. Each piece is tested separately. | **fixed** `823d725` (`VerticalSliceTests`) |
 | F-10 | Low | `src/Klasly.API/Services/AccountService.cs:117`, `UserConfiguration.cs:22` | §27.8 check 6 | `RegisteredDeviceId` is not unique, so one phone can be registered to several students. *(security-auditor)* | **deferred:** needs a filtered unique index (a schema change, so ask first). §27.8 already lists device binding as a mitigation, not a guarantee. |
 | F-11 | Low | `src/Klasly.Infrastructure/Repositories/UserRepository.cs:33` | — | A student holding a classmate's FCM token could take over that classmate's grade pushes. *(security-auditor)* | won't fix: needs physical access to the other phone. |
 | F-12 | Low | `src/Klasly.Core/DTOs/GradeDtos.cs` | — | `SaveGradesRequest.Grades` has no maximum row count (Teacher-only, capped by Kestrel's 30 MB body limit). *(security-auditor)* | logged |
 | F-13 | Low | `src/Klasly.API/Middleware/ApiExceptionHandler.cs:32,37` | guide §15 | Any framework `KeyNotFoundException` / `UnauthorizedAccessException` is mapped to 404/401 with its message. No current request path throws one. *(security-auditor)* | logged |
 | F-14 | Low | `src/Klasly.API/Program.cs:77` | — | `ValidAlgorithms` is not pinned to HS256. The symmetric key already rules out other key types. *(security-auditor)* | logged |
-| F-15 | Low | `src/Klasly.Infrastructure/Repositories/UserRepository.cs:73` | §27.7 soft delete | Unlinking a parent from a student deletes the `StudentGuardians` row. | won't fix: the join table has no status column, nothing references the row, and soft delete covers Users / AcademicTerms / Enrollments only. |
+| F-15 | Low | `src/Klasly.Infrastructure/Repositories/UserRepository.cs:73` | §27.7 soft delete | Unlinking a parent from a student deletes the `StudentGuardians` row. | won't fix: approved earlier as "the one hard delete in Klasly" (`IUserRepository.RemoveLinkAsync`). The join table has no status column and nothing references the row. |
 | F-16 | Low | `src/Klasly.Infrastructure/Data/KlaslySeed.cs` | §27.5 | Every seeded account shares the known password `Klasly@123`. | won't fix: fictional demo data. Change the passwords (or skip the seed) before any real deployment. |
 | F-17 | Low | developer machine | CLAUDE.md §3.2 | The `dotnet-ef` tool is 10.0.11, older than the 10.0.14 runtime (it still prints a warning). | logged: `dotnet tool update --global dotnet-ef` |
 | F-18 | Low | `src/Klasly.Web/Areas/**/Controllers/*.cs` | — | Read-only actions have no explicit `[HttpGet]`. Every state change is POST with `[ValidateAntiForgeryToken]`. | logged |
 | F-19 | Low | `android/KlaslyApp` (lint) | — | 17 lint warnings: UnusedResources ×7 (`colors.xml`), NewerVersionAvailable ×3, GradleDependency ×2, AndroidGradlePluginVersion, OldTargetApi, ObsoleteSdkInt, UseKtx, RedundantLabel. | logged |
+| F-20 | Low | `src/Klasly.Core/Interfaces/IUserRepository.cs:19` | — | `AddAsync`'s doc comment sat on `SetFcmTokenAsync` (two `<summary>` tags). | fixed in passing, `cf32c74` (the file was already being changed for F-02) |
 
 ### Accepted limits (`shortcut:` comments)
 
@@ -163,9 +164,9 @@ Each `shortcut:` comment in the code was reviewed. All of them are still fine fo
 
 | FR | Requirement | Code | Tests |
 |---|---|---|---|
-| 1 | Log in with 4 roles; access restricted by role and ownership | `AuthService`, policies + fallback, `*Service` ownership checks | `ApiFactoryTests`, `RoleAccessTests` (5), `OwnershipTests` (3); failure paths → **F-07**; deactivated token → **F-02** |
-| 2 | Admin manages terms, subjects, classes, enrollments | `TermService`, `SubjectService`, `ClassService`, `EnrollmentService`, `AccountService` | `RoleAccessTests` (own role passes) → rules **F-08** |
-| 3 | Signed QR that refreshes every 30 s | `QrTokenService`, `SessionService.GetQrAsync`, MVC `_Live` poll | `ScanTests` (signature, step, grace); QR endpoint over HTTP → **F-09** |
+| 1 | Log in with 4 roles; access restricted by role and ownership | `AuthService`, policies + fallback, `OnTokenValidated` active check, `*Service` ownership checks | `ApiFactoryTests`, `RoleAccessTests` (5), `OwnershipTests` (3), `LoginTests` (3) |
+| 2 | Admin manages terms, subjects, classes, enrollments | `TermService`, `SubjectService`, `ClassService`, `EnrollmentService`, `AccountService` | `RoleAccessTests` (own role passes), `AdminRulesTests` (3), `TermActivationTests` (1) |
+| 3 | Signed QR that refreshes every 30 s | `QrTokenService`, `SessionService.GetQrAsync`, MVC `_Live` poll | `ScanTests` (signature, step, grace), `VerticalSliceTests` (QR endpoint, 30 s step, scan, teacher's list) |
 | 4 | Present/Late on a valid scan; clear refusals | `AttendanceService.ScanAsync` | `ScanTests` (7 checks + late cut-off), `OwnershipTests`, `RoleAccessTests` (scan 401) |
 | 5 | Auto-absent after the session closes | `AttendanceFinalizer` | `AttendanceFinalizerTests` (10) |
 | 6 | Weighted assessments; score 0–max | `AssessmentService` | `AssessmentServiceTests` (7), `GradeTests` (6) |
@@ -186,3 +187,22 @@ Each `shortcut:` comment in the code was reviewed. All of them are still fine fo
 | 6 | Registered device | 403 "Unregistered device" | `ScanTests.Another_phone_is_403_unregistered_device` |
 | 7 | Not already checked in | 409 "Already checked in" | `ScanTests.Second_scan_is_409_already_checked_in` |
 | — | Late cut-off | Present / Late | `ScanTests.Scan_at_the_late_cut_off` (±1 min) |
+
+## After the fixes (Checkpoint B)
+
+| Check | Baseline | Now |
+|---|---|---|
+| `dotnet build` warnings | 0 | **0** |
+| `dotnet test` | 154 / 154 | **162 / 162** (run twice) |
+| Android `assembleDebug testDebugUnitTest lintDebug` | OK, 11 / 11, lint 17 warnings / 0 errors | **OK, 11 / 11, lint 17 warnings / 0 errors** |
+| Microsoft packages | 10.0.14 | **10.0.14** (no `Microsoft.AspNetCore.*`, `EntityFrameworkCore.*` or `Extensions.*` below 10.x, direct or transitive) |
+| New packages | — | Serilog.AspNetCore 10.0.0; Serilog.Extensions.Hosting 10.0.0, Serilog.Settings.Configuration 10.0.1, Serilog.Sinks.Console 6.1.1 |
+| `--vulnerable --include-transitive` | none | **none** |
+
+Fix groups:
+- **Task 8** (Core/Infrastructure/API): `cf32c74`.
+- **Task 9** (Worker): nothing to fix. Every Worker item passed or is Low.
+- **Task 10** (Web): nothing to fix. F-18 is Low.
+- **Task 11** (Android + test gaps): `27a506b`, `823d725`.
+
+Every row above now has an outcome.
