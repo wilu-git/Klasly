@@ -254,7 +254,8 @@ fun ChildClassCard(c: ClassOverview) = ClassCard {
 @Composable
 private fun Expandable(label: String, content: @Composable () -> Unit) {
     var open by rememberSaveable(label) { mutableStateOf(false) }
-    TextButton(onClick = { open = !open }, modifier = Modifier.heightIn(min = 48.dp)) {
+    // No side padding, so the label lines up with the card's text; the height keeps a 48 dp tap target.
+    TextButton(onClick = { open = !open }, contentPadding = PaddingValues(vertical = 12.dp), modifier = Modifier.heightIn(min = 48.dp)) {
         Text(if (open) "Hide $label" else "Show $label")
     }
     if (open) content()

@@ -204,8 +204,8 @@ if (!await users.IsLinkedAsync(guardianId, studentId, ct)) throw new ForbiddenEx
 - [x] `GET /api/students/me/overview` returns the logged-in student's active-term classes with attendance counts + records, all assessments with scores (null = ungraded), and the latest risk values (per Q2).
 - [x] `GET /api/parent/children` lists only the parent's linked students. `GET /api/parent/children/{id}/overview` returns the same shape for a linked child and 403 for any other id.
 - [x] MVC: a parent lands on My children (or straight on the only child), sees per-class attendance, grades and an At risk / On track badge with the early-warning line, times in Manila. API errors are shown with `_Alerts`.
-- [ ] Android, Student: Scan / Attendance / Grades tabs. Attendance and Grades show the API data, with loading, empty and error states and pull-to-refresh. *(Built, unit-tested and `assembleDebug` passes; the on-device check is still open, see Task 9.)*
-- [ ] Android, Parent: the child overview replaces the placeholder, with a child picker when there are several. *(Built and `assembleDebug` passes; the on-device check is still open, see Task 9.)*
+- [x] Android, Student: Scan / Attendance / Grades tabs. Attendance and Grades show the API data, with loading, empty and error states and pull-to-refresh. *(Checked on the Pixel_7 emulator, 2026-11-11.)*
+- [x] Android, Parent: the child overview replaces the placeholder, with a child picker when there are several. *(Checked on the Pixel_7 emulator, 2026-11-11.)*
 - [x] No migration, no new package, Microsoft.* all 10.x; `dotnet build`, `dotnet test`, `./gradlew assembleDebug testDebugUnitTest` pass.
 - [x] Reports written; INDEX line added.
 

@@ -138,11 +138,11 @@
 **Files:** the files above. **Depends on:** Task 7 (shared `ClassCards`).
 
 ## Task 9: Android polish
-- [x] `/impeccable` on `StudentHome`, the tabs and `ParentHomeScreen`: static code review against the craft floor (touch targets, headings, TalkBack labels, contrast); no changes needed. A visual pass on a device is still open with the smoke below.
-- [ ] **Open (team):** Emulator smoke (the headless Pixel_7 emulator was too unstable to drive from this session; see the Task 9 report): student 1 (tabs match the web data, refresh), parent user 10 (chips), TalkBack labels on the badges, touch targets ≥ 48 dp.
+- [x] `/impeccable` on `StudentHome`, the tabs and `ParentHomeScreen`: static code review against the craft floor (touch targets, headings, TalkBack labels, contrast); no code issues. The on-device visual pass found one: Show/Hide buttons indented from the card text (fixed).
+- [x] Emulator smoke (Pixel_7 with its window, second try; see the device-check report): student 1 (tabs match the web data, refresh), parent user 10 (chips), TalkBack labels on the badges, touch targets ≥ 48 dp.
 
 **Depends on:** Task 8.
 
 ## Checkpoint B
-- [x] Every spec success criterion ticked in `SPEC.md`, except the two Android ones waiting on the device check.
+- [x] Every spec success criterion ticked in `SPEC.md`.
 - [x] `dotnet list Klasly.slnx package` shows nothing new and Microsoft.* at 10.x. No migration.

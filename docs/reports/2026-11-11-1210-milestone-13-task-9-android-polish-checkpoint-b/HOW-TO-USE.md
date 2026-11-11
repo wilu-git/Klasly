@@ -1,10 +1,10 @@
 # How to use — Milestone 13 Task 9 (checking the app on a phone or emulator)
 
-The app's new screens are built and tested on the computer, but nobody has looked at them on a device yet. This is how a teammate can do that check.
+This is how to check the app's new screens on a phone or emulator. The check passed on the Pixel_7 emulator on a second try (see `docs/reports/2026-11-11-1150-milestone-13-device-check/`); repeat it on a real phone before the demo.
 
 ## Prerequisites
 - SQL Server LocalDB with the `Klasly` database.
-- The Web API running: `dotnet run --project src/Klasly.API --launch-profile https` (listens on `http://localhost:5201` for the emulator).
+- The Web API running with the **http** profile: `dotnet run --project src/Klasly.API --launch-profile http` (`http://localhost:5201`). The `https` profile redirects the app to `https://localhost:7256`, which the emulator can't reach.
 - Android Studio with an emulator opened **in its window** (Device Manager → ▶), or a phone set up as in Milestone 8.
 
 ## Step by step

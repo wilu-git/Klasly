@@ -94,7 +94,7 @@ Milestone 13 adds one read-only "student overview" in the API and shows it in th
 - [x] Task 9: `/impeccable` on the Compose screens + emulator smoke (S)
 
 ### Checkpoint B
-- [x] Every spec success criterion met except the two on-device Android checks; nothing new in `dotnet list package`; Microsoft.* 10.x
+- [x] Every spec success criterion met; nothing new in `dotnet list package`; Microsoft.* 10.x
 
 ## Risks and mitigations
 

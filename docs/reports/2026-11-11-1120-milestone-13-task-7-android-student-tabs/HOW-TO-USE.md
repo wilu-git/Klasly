@@ -3,7 +3,7 @@
 Students can now see their attendance and grades in the Klasly app, not just scan.
 
 ## Prerequisites
-- SQL Server LocalDB, and the Web API running (`dotnet run --project src/Klasly.API --launch-profile https`).
+- SQL Server LocalDB, and the Web API running with the **http** profile: `dotnet run --project src/Klasly.API --launch-profile http`. With `https`, the API redirects the app to `https://localhost:7256`, which the emulator can't reach ("Can't reach Klasly").
 - The Android emulator (or a phone) with the debug app installed: in `android/KlaslyApp`, `$env:JAVA_HOME = "D:\Android Studio\jbr"; ./gradlew installDebug`.
 
 ## Step by step

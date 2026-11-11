@@ -3,7 +3,7 @@
 Parents can now see their children's attendance, grades and at-risk status in the Klasly app.
 
 ## Prerequisites
-- SQL Server LocalDB, the Web API running, and optionally the Worker (for up-to-date at-risk badges).
+- SQL Server LocalDB, the Web API running with `dotnet run --project src/Klasly.API --launch-profile http` (not `https`: the emulator can't follow its redirect), and optionally the Worker (for up-to-date at-risk badges).
 - The debug app on the emulator: in `android/KlaslyApp`, `$env:JAVA_HOME = "D:\Android Studio\jbr"; ./gradlew installDebug`.
 
 ## Step by step
