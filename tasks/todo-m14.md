@@ -215,11 +215,11 @@
   - created (Manila time), recipient, type, subject, attempts, last error;
   - an empty state: "No failed emails. Every alert reached Brevo."
 - [x] Data comes through an API-backed repository (typed `HttpClient` + `BearerTokenHandler`). The API's error messages show through `_Alerts`.
-- [ ] `/impeccable` pass on the view.
+- [x] `/impeccable` pass on the view. *(Done 2026-11-11 in a follow-up: one defect fixed (long errors collapsed on phones). See `docs/reports/2026-11-11-1605-failed-emails-page-checks/`.)*
 
 **Verification:**
 - [x] `dotnet build` green.
-- [ ] Manual in the browser pane: as admin, the page lists a seeded Failed row; as a teacher, the URL is refused.
+- [x] Manual in the browser pane: as admin, the page lists a seeded Failed row; as a teacher, the URL is refused. *(Done 2026-11-11, same report.)*
 
 **Dependencies:** Task 7
 

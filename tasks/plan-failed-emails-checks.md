@@ -28,10 +28,10 @@ Close the two open boxes of Milestone 14 Task 8: the `/impeccable` pass on `Admi
 - [x] Task 3: Fix the defects and measure again (only if Task 2 found any)
 
 ### Phase 3: Wrap-up
-- [ ] Task 4: Build, tests, tick boxes, reports, graph
+- [x] Task 4: Build, tests, tick boxes, reports, graph
 
 ### Checkpoint: Complete
-- [ ] Every success criterion in `SPEC.md` is ticked, with its evidence in the report.
+- [x] Every success criterion in `SPEC.md` is ticked, with its evidence in the report.
 
 ## Risks and mitigations
 

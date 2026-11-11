@@ -73,20 +73,20 @@ Same as the M13 Task 5 polish: Bootstrap utility classes first, and a `site.css`
 ## Success criteria
 
 **`/impeccable` pass**
-- [ ] Rendered at 375, 480 and 1280 px: the page itself never scrolls sideways (the table may scroll inside `table-responsive`; the Last error text wraps at a readable width; the recipient email stays whole and readable. *Corrected in Task 2: breaking an address mid-word hurts reading and copying*).
-- [ ] Text and secondary text contrast meet WCAG AA (4.5:1) in the light theme.
-- [ ] Heading order is correct (one `h1`), table headers use `scope="col"`, and the "—" for no error is announced sensibly or is fine as-is.
-- [ ] `impeccable detect --json` on the view returns `[]`.
-- [ ] Every defect found is fixed in the view (or `site.css`), with before/after numbers in the report. If none is found, the report says so and no file changes.
+- [x] Rendered at 375, 480 and 1280 px: the page itself never scrolls sideways (the table may scroll inside `table-responsive`; the Last error text wraps at a readable width; the recipient email stays whole and readable. *Corrected in Task 2: breaking an address mid-word hurts reading and copying*).
+- [x] Text and secondary text contrast meet WCAG AA (4.5:1) in the light theme.
+- [x] Heading order is correct (one `h1`), table headers use `scope="col"`, and the "—" for no error is announced sensibly or is fine as-is.
+- [x] `impeccable detect --json` on the view returns `[]`.
+- [x] Every defect found is fixed in the view (or `site.css`), with before/after numbers in the report. If none is found, the report says so and no file changes.
 
 **Browser check**
-- [ ] As **admin**: `/Admin/FailedEmails` lists the seeded Failed rows with Manila time, recipient and last error (screenshot).
-- [ ] As a **teacher**: opening `/Admin/FailedEmails` directly is refused (Access denied page, no data shown; screenshot).
-- [ ] No console errors from the page.
+- [x] As **admin**: `/Admin/FailedEmails` lists the seeded Failed rows with Manila time, recipient and last error (screenshot).
+- [x] As a **teacher**: opening `/Admin/FailedEmails` directly is refused (Access denied page, no data shown; screenshot).
+- [x] No console errors from the page.
 
 **Wrap-up**
-- [ ] `dotnet build` green, `dotnet test` 162/162.
-- [ ] Both boxes ticked in `tasks/todo-m14.md`; report folder + `INDEX.md` line written; `graphify update .` run.
+- [x] `dotnet build` green, `dotnet test` 162/162.
+- [x] Both boxes ticked in `tasks/todo-m14.md`; report folder + `INDEX.md` line written; `graphify update .` run.
 
 ## Open questions
 

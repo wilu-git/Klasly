@@ -113,14 +113,14 @@
 **Description:** Prove nothing else broke and record the evidence.
 
 **Done when:**
-- [ ] `dotnet build Klasly.slnx` is green and `dotnet test Klasly.slnx` is 162/162.
-- [ ] `tasks/todo-m14.md` Task 8: both open boxes ticked (`/impeccable` pass, browser check).
-- [ ] Every success criterion in `SPEC.md` is ticked. Anything not done is written as not done.
-- [ ] `docs/reports/<yyyy-MM-dd-HHmm>-failed-emails-page-checks/` has `DEVELOPER-DOCS.md`, `HOW-TO-USE.md` and `FLOWCHARTS.md`, plus the screenshots. One line is added to `docs/reports/INDEX.md`.
-- [ ] `graphify update .` has been run.
+- [x] `dotnet build Klasly.slnx` is green (0 warnings, 0 errors) and `dotnet test Klasly.slnx` is 162/162.
+- [x] `tasks/todo-m14.md` Task 8: both open boxes ticked (`/impeccable` pass, browser check).
+- [x] Every success criterion in `SPEC.md` is ticked. The not-done items (empty state not rendered, no real Brevo error text) are in the report's Known limits.
+- [x] `docs/reports/2026-11-11-1605-failed-emails-page-checks/` has the three files plus 5 screenshots. One line added to `docs/reports/INDEX.md`.
+- [x] `graphify update .` has been run.
 
 **Verification:**
-- [ ] The command output is written in `DEVELOPER-DOCS.md` → "How it was verified".
+- [x] The command output is written in `DEVELOPER-DOCS.md` → "How it was verified".
 
 **Dependencies:** Task 3 (or Task 2 if Task 3 was skipped)
 **Files touched:** `tasks/todo-m14.md`, `SPEC.md`, the report folder, `docs/reports/INDEX.md`
@@ -129,5 +129,5 @@
 ---
 
 ## Checkpoint: Complete
-- [ ] All spec success criteria are ticked, with the evidence in the report.
-- [ ] Ready for the team's review and commit.
+- [x] All spec success criteria are ticked, with the evidence in the report.
+- [x] Ready for the team's review (committed on `dev`).
