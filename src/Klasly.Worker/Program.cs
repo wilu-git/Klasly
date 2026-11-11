@@ -3,8 +3,12 @@ using Klasly.Infrastructure;
 using Klasly.Worker.Email;
 using Klasly.Worker.Jobs;
 using Klasly.Worker.Services;
+using Serilog;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+// Serilog (guide §16): levels from the "Serilog" config section, console only.
+builder.Services.AddSerilog((_, logger) => logger.ReadFrom.Configuration(builder.Configuration).WriteTo.Console());
 
 var connectionString = builder.Configuration.GetConnectionString("Klasly")
     ?? throw new InvalidOperationException("Connection string 'Klasly' is missing.");

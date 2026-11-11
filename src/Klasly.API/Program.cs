@@ -12,8 +12,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Serilog (guide §16): levels from the "Serilog" config section, console only. No request logging, so no bodies or tokens.
+builder.Services.AddSerilog((_, logger) => logger.ReadFrom.Configuration(builder.Configuration).WriteTo.Console());
 
 // Enums travel as names ("Student", "Dropped"), the same strings the database stores; numbers are rejected.
 builder.Services.AddControllers().AddJsonOptions(options =>
