@@ -73,7 +73,7 @@ Same as the M13 Task 5 polish: Bootstrap utility classes first, and a `site.css`
 ## Success criteria
 
 **`/impeccable` pass**
-- [ ] Rendered at 375, 480 and 1280 px: the page itself never scrolls sideways (the table may scroll inside `table-responsive`, and the Last error and recipient text wrap instead of stretching it).
+- [ ] Rendered at 375, 480 and 1280 px: the page itself never scrolls sideways (the table may scroll inside `table-responsive`; the Last error text wraps at a readable width; the recipient email stays whole and readable. *Corrected in Task 2: breaking an address mid-word hurts reading and copying*).
 - [ ] Text and secondary text contrast meet WCAG AA (4.5:1) in the light theme.
 - [ ] Heading order is correct (one `h1`), table headers use `scope="col"`, and the "—" for no error is announced sensibly or is fine as-is.
 - [ ] `impeccable detect --json` on the view returns `[]`.
