@@ -138,11 +138,11 @@
 **Files:** the files above. **Depends on:** Task 7 (shared `ClassCards`).
 
 ## Task 9: Android polish
-- [ ] `/impeccable` on `StudentHome`, the tabs and `ParentHomeScreen`; fixes applied.
-- [ ] Emulator smoke: student 1 (tabs match the web data, refresh), parent user 10 (chips), TalkBack labels on the badges, touch targets ≥ 48 dp.
+- [x] `/impeccable` on `StudentHome`, the tabs and `ParentHomeScreen`: static code review against the craft floor (touch targets, headings, TalkBack labels, contrast); no changes needed. A visual pass on a device is still open with the smoke below.
+- [ ] **Open (team):** Emulator smoke (the headless Pixel_7 emulator was too unstable to drive from this session; see the Task 9 report): student 1 (tabs match the web data, refresh), parent user 10 (chips), TalkBack labels on the badges, touch targets ≥ 48 dp.
 
 **Depends on:** Task 8.
 
 ## Checkpoint B
-- [ ] Every spec success criterion ticked in `SPEC.md`.
-- [ ] `dotnet list Klasly.slnx package` shows nothing new and Microsoft.* at 10.x. No migration.
+- [x] Every spec success criterion ticked in `SPEC.md`, except the two Android ones waiting on the device check.
+- [x] `dotnet list Klasly.slnx package` shows nothing new and Microsoft.* at 10.x. No migration.
