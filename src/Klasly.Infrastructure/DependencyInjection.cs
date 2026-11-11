@@ -1,4 +1,6 @@
-﻿using Klasly.Infrastructure.Data;
+﻿using Klasly.Core.Interfaces;
+using Klasly.Infrastructure.Data;
+using Klasly.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,6 +12,19 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.AddDbContext<KlaslyDbContext>(options => options.UseSqlServer(connectionString));
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ISubjectRepository, SubjectRepository>();
+        services.AddScoped<ITermRepository, TermRepository>();
+        services.AddScoped<IClassRepository, ClassRepository>();
+        services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+        services.AddScoped<ISystemSettingRepository, SystemSettingRepository>();
+        services.AddScoped<ISessionRepository, SessionRepository>();
+        services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+        services.AddScoped<IAssessmentRepository, AssessmentRepository>();
+        services.AddScoped<IGradeRepository, GradeRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IRiskRepository, RiskRepository>();
+        services.AddScoped<IOverviewRepository, OverviewRepository>();
         return services;
     }
 }

@@ -1,6 +1,255 @@
 @Klasly.API_HostAddress = http://localhost:5201
 
-GET {{Klasly.API_HostAddress}}/weatherforecast/
-Accept: application/json
+# Seed accounts all use the test password Klasly@123 (fictional data, RA 10173).
 
-###
+### 1. Admin login -> 200
+# @name adminLogin
+POST {{Klasly.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@klasly.test", "password": "Klasly@123" }
+
+### 2. Student login -> 200, role = Student
+# @name studentLogin
+POST {{Klasly.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "aira.mendoza@klasly.test", "password": "Klasly@123" }
+
+### 3. Wrong password -> 401 "Invalid email or password."
+POST {{Klasly.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@klasly.test", "password": "wrong-password" }
+
+### 4. Blank password -> 400 validation problem
+POST {{Klasly.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@klasly.test", "password": "" }
+
+### 5. Who am I, no token -> 401
+GET {{Klasly.API_HostAddress}}/api/auth/me
+
+### 6. Who am I, with the token from request 1 -> 200 (run request 1 first)
+GET {{Klasly.API_HostAddress}}/api/auth/me
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+
+# ======================================================================
+# Milestone 4 - admin CRUD. Run request 1 (admin login) first; every
+# request below reuses its token. Ids assume a fresh seed and running
+# these requests top to bottom once.
+# ======================================================================
+
+### Subjects: list -> 200 (ELECT3, IT302)
+GET {{Klasly.API_HostAddress}}/api/subjects
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Subjects: create -> 201 (subjectId 3)
+POST {{Klasly.API_HostAddress}}/api/subjects
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "code": "CPE401", "title": "Embedded Systems", "units": 3 }
+
+### Subjects: duplicate code -> 409
+POST {{Klasly.API_HostAddress}}/api/subjects
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "code": "ELECT3", "title": "Duplicate", "units": 3 }
+
+### Subjects: units out of range -> 400
+POST {{Klasly.API_HostAddress}}/api/subjects
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "code": "X101", "title": "Too many units", "units": 11 }
+
+### Subjects: edit -> 200
+PUT {{Klasly.API_HostAddress}}/api/subjects/3
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "code": "CPE401", "title": "Embedded Systems Design", "units": 3 }
+
+### Subjects: unknown id -> 404
+GET {{Klasly.API_HostAddress}}/api/subjects/999
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Subjects: student token -> 403 (run request 2 first)
+GET {{Klasly.API_HostAddress}}/api/subjects
+Authorization: Bearer {{studentLogin.response.body.$.token}}
+
+### Terms: list -> 200
+GET {{Klasly.API_HostAddress}}/api/terms
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Terms: create -> 201 (termId 2, isActive false)
+POST {{Klasly.API_HostAddress}}/api/terms
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "name": "2nd Sem 2026-27", "startDate": "2027-01-11", "endDate": "2027-05-21" }
+
+### Terms: end date before start date -> 400
+POST {{Klasly.API_HostAddress}}/api/terms
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "name": "Bad dates", "startDate": "2027-05-21", "endDate": "2027-01-11" }
+
+### Terms: activate term 2 -> 200; term 1 becomes inactive
+POST {{Klasly.API_HostAddress}}/api/terms/2/activate
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Terms: activate term 1 again -> 200; term 2 becomes inactive
+POST {{Klasly.API_HostAddress}}/api/terms/1/activate
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Terms: soft delete term 2 -> 204 (still listed, isActive false)
+DELETE {{Klasly.API_HostAddress}}/api/terms/2
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Accounts: list teachers -> 200
+GET {{Klasly.API_HostAddress}}/api/accounts?role=Teacher
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Accounts: create Teacher -> 201 (userId 13, teacherId 3)
+POST {{Klasly.API_HostAddress}}/api/accounts
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "fullName": "Gina Torres", "email": "gina.torres@klasly.test", "password": "Teacher@123", "role": "Teacher",
+  "employeeNo": "EMP-1003", "department": "College of Computing" }
+
+### Accounts: create Student -> 201 (userId 14, studentId 7)
+POST {{Klasly.API_HostAddress}}/api/accounts
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "fullName": "Bianca Reyes", "email": "bianca.reyes@klasly.test", "password": "Student@123", "role": "Student",
+  "studentNumber": "2026-00007", "yearLevel": 3, "program": "BSCpE" }
+
+### Accounts: create Parent -> 201 (userId 15; contactEmail defaults to email)
+POST {{Klasly.API_HostAddress}}/api/accounts
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "fullName": "Nora Reyes", "email": "nora.reyes@klasly.test", "password": "Parent@123", "role": "Parent",
+  "contactNumber": "+639170000004" }
+
+### Accounts: Student without student number -> 400
+POST {{Klasly.API_HostAddress}}/api/accounts
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "fullName": "No Number", "email": "no.number@klasly.test", "password": "Student@123", "role": "Student",
+  "yearLevel": 3, "program": "BSCpE" }
+
+### Accounts: duplicate student number -> 409 (and no new account is created)
+POST {{Klasly.API_HostAddress}}/api/accounts
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "fullName": "Dup Number", "email": "dup.number@klasly.test", "password": "Student@123", "role": "Student",
+  "studentNumber": "2026-00001", "yearLevel": 3, "program": "BSCpE" }
+
+### Accounts: edit + reset password + keep active -> 200
+PUT {{Klasly.API_HostAddress}}/api/accounts/14
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "fullName": "Bianca Reyes", "email": "bianca.reyes@klasly.test", "isActive": true, "newPassword": "NewPass@456",
+  "studentNumber": "2026-00007", "yearLevel": 4, "program": "BSCpE" }
+
+### Accounts: soft delete (deactivate) -> 204; that student can no longer log in (401)
+DELETE {{Klasly.API_HostAddress}}/api/accounts/14
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Accounts: reactivate -> 200
+PUT {{Klasly.API_HostAddress}}/api/accounts/14
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "fullName": "Bianca Reyes", "email": "bianca.reyes@klasly.test", "isActive": true,
+  "studentNumber": "2026-00007", "yearLevel": 4, "program": "BSCpE" }
+
+### Accounts: admin deactivating their own account -> 400
+DELETE {{Klasly.API_HostAddress}}/api/accounts/1
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Links: a seeded parent's children -> 200
+GET {{Klasly.API_HostAddress}}/api/accounts/10/students
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Links: link Nora to Bianca -> 201 (again -> 409)
+POST {{Klasly.API_HostAddress}}/api/accounts/15/students
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "studentId": 7, "relationship": "Mother", "receivesAlerts": true }
+
+### Links: unlink -> 204 (again -> 404)
+DELETE {{Klasly.API_HostAddress}}/api/accounts/15/students/7
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Links: not a Parent account -> 404
+GET {{Klasly.API_HostAddress}}/api/accounts/1/students
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Classes: list -> 200 (activeEnrollmentCount 6 and 3 for the seeded classes)
+GET {{Klasly.API_HostAddress}}/api/classes?termId=1
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Classes: create -> 201 (classId 3)
+POST {{Klasly.API_HostAddress}}/api/classes
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "subjectId": 3, "teacherId": 3, "termId": 1, "section": "BSCpE 3-A", "schedule": "MWF 10:00-11:30", "room": "CL-110" }
+
+### Classes: same subject + section + term -> 409
+POST {{Klasly.API_HostAddress}}/api/classes
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "subjectId": 3, "teacherId": 3, "termId": 1, "section": "BSCpE 3-A" }
+
+### Classes: unknown teacher -> 400
+POST {{Klasly.API_HostAddress}}/api/classes
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "subjectId": 3, "teacherId": 999, "termId": 1, "section": "BSCpE 3-B" }
+
+### Classes: edit -> 200
+PUT {{Klasly.API_HostAddress}}/api/classes/3
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "subjectId": 3, "teacherId": 3, "termId": 1, "section": "BSCpE 3-A", "schedule": "MWF 10:00-11:30", "room": "CL-111" }
+
+### Enrollments: list a class -> 200
+GET {{Klasly.API_HostAddress}}/api/classes/2/enrollments
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Enrollments: enroll Bianca in class 3 -> 201 (again -> 409)
+# @name enroll
+POST {{Klasly.API_HostAddress}}/api/enrollments
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "classId": 3, "studentId": 7 }
+
+### Enrollments: drop -> 204 (Status = Dropped; the row stays)
+DELETE {{Klasly.API_HostAddress}}/api/enrollments/{{enroll.response.body.$.enrollmentId}}
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+
+### Enrollments: enroll again after drop -> 200, status Active (same row reused)
+POST {{Klasly.API_HostAddress}}/api/enrollments
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{ "classId": 3, "studentId": 7 }

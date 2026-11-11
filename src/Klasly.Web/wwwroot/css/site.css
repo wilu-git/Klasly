@@ -8,7 +8,7 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-select:focus, .form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
@@ -28,4 +28,51 @@ body {
 
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
+}
+
+/* Same-width digits so ID numbers, dates and counts line up in columns. */
+.table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Parent overview: expandable tables get a full-size tap target on phones. */
+.overview-toggle {
+  padding-block: 0.75rem;
+}
+
+/* The validation summary box only shows when it has messages. */
+.validation-summary-valid {
+  display: none;
+}
+
+.validation-summary-errors ul {
+  margin-bottom: 0;
+  padding-left: 1.25rem;
+}
+
+/* Check-in QR: at least 320 px, black on white whatever surrounds it, so phone cameras can read it. */
+.qr-code {
+  width: 100%;
+  min-width: 320px;
+  max-width: 440px;
+  margin-inline: auto;
+  background: #fff;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+}
+
+.qr-code svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Long text cells keep a readable width on phones; the table scrolls inside .table-responsive instead of squeezing them. */
+.cell-readable {
+  min-width: 12rem;
+}
+
+/* Grade sheet: room for "9999.99" without stretching across the row. */
+.score-input {
+  width: 7.5rem;
 }

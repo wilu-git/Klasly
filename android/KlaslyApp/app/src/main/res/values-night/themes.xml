@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark window behind the launch splash, so dark-mode users don't get a white flash. -->
+    <style name="Theme.Klasly" parent="android:Theme.Material.NoActionBar" />
+</resources>

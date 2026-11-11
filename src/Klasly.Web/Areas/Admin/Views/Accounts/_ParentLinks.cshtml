@@ -1,0 +1,74 @@
+@model ParentLinksViewModel
+
+<section class="mt-5 col-12 col-lg-10" aria-labelledby="linked-students">
+    <h2 id="linked-students" class="h5">Linked students</h2>
+    <p class="text-body-secondary small">This parent sees these children's attendance and grades, and gets their alerts if "Receives alerts" is on.</p>
+
+    @if (Model.Linked.Count == 0)
+    {
+        <p class="text-body-secondary">No students linked yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Student no.</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Relationship</th>
+                        <th scope="col">Receives alerts</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.Linked)
+                    {
+                        <tr>
+                            <td>@s.StudentNumber</td>
+                            <td>@s.StudentName</td>
+                            <td>@(s.Relationship ?? "—")</td>
+                            <td>@(s.ReceivesAlerts ? "Yes" : "No")</td>
+                            <td class="text-end">
+                                <form asp-action="UnlinkStudent" asp-route-id="@Model.ParentUserId" asp-route-studentId="@s.StudentId" method="post"
+                                      data-confirm="Unlink @s.StudentName from this parent?">
+                                    <button type="submit" class="btn btn-sm btn-link link-danger">Unlink</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <h3 class="h6 mt-4">Link a student</h3>
+    @if (Model.StudentOptions.Count == 0)
+    {
+        <p class="text-body-secondary">Every active student is already linked to this parent.</p>
+    }
+    else
+    {
+        <form asp-action="LinkStudent" asp-route-id="@Model.ParentUserId" method="post" class="row g-2 align-items-end">
+            <div class="col-12 col-md-5">
+                <label for="studentId" class="form-label">Student</label>
+                <select id="studentId" name="studentId" class="form-select" asp-items="Model.StudentOptions" required>
+                    <option value="">Choose a student…</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label for="relationship" class="form-label">Relationship</label>
+                <input id="relationship" name="relationship" class="form-control" maxlength="30" placeholder="Mother" />
+            </div>
+            <div class="col-12 col-md-2">
+                <div class="form-check mb-2">
+                    <input id="receivesAlerts" name="receivesAlerts" type="checkbox" value="true" class="form-check-input" checked />
+                    <label for="receivesAlerts" class="form-check-label">Receives alerts</label>
+                </div>
+            </div>
+            <div class="col-12 col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">Link</button>
+            </div>
+        </form>
+    }
+</section>

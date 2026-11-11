@@ -1,0 +1,55 @@
+@using Klasly.Web.Infrastructure
+@model List<FailedEmailResponse>
+@{
+    ViewData["Title"] = "Failed emails";
+}
+
+<div class="mb-3">
+    <h1 class="h3 mb-1">Failed emails</h1>
+    <p class="text-body-secondary mb-0">
+        Parent alerts that Brevo refused or that ran out of retries. Check the address in Accounts; new alerts are sent as usual.
+    </p>
+</div>
+
+@if (Model.Count == 0)
+{
+    <p class="text-body-secondary">No failed emails. Every alert reached Brevo.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Created</th>
+                    <th scope="col">Recipient</th>
+                    <th scope="col">Alert</th>
+                    <th scope="col" class="text-end">Attempts</th>
+                    <th scope="col">Last error</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var email in Model)
+                {
+                    <tr>
+                        <td class="text-nowrap">@ManilaTime.Format(email.CreatedAtUtc)</td>
+                        <td>
+                            <div>@email.RecipientName</div>
+                            <div class="small text-body-secondary">@email.RecipientEmail</div>
+                        </td>
+                        <td class="cell-readable">
+                            <div>@(email.Type == "AtRisk" ? "At risk" : email.Type)</div>
+                            <div class="small text-body-secondary">@email.Subject</div>
+                        </td>
+                        <td class="text-end">@email.Attempts</td>
+                        <td class="small text-break cell-readable">@(email.LastError ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.Count == 100)
+    {
+        <p class="small text-body-secondary">Showing the newest 100.</p>
+    }
+}

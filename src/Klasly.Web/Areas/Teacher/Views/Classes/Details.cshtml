@@ -1,0 +1,120 @@
+@model TeacherClassViewModel
+@{
+    var c = Model.Class;
+    ViewData["Title"] = $"{c.SubjectCode} – {c.Section}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">My classes</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@c.SubjectCode – @c.Section</li>
+    </ol>
+</nav>
+
+<div class="mb-4">
+    <h1 class="h3 mb-1">@c.SubjectCode @c.SubjectTitle – @c.Section</h1>
+    <p class="text-body-secondary mb-0">
+        @c.TermName@(c.Schedule is null ? "" : $" · {c.Schedule}")@(c.Room is null ? "" : $" · {c.Room}") · @c.ActiveEnrollmentCount enrolled
+    </p>
+</div>
+
+<partial name="_StartSession" model="Model.Start" />
+
+<h2 class="h5" id="assessments">Assessments</h2>
+@{
+    var total = Model.WeightTotal;
+}
+<p class="mb-2">
+    Weights: <strong>@total.ToString("0.##") of 100%</strong>
+</p>
+@if (total < 100)
+{
+    <div class="alert alert-warning py-2" role="status">
+        The weights add up to @total.ToString("0.##")%. Add assessments until they reach 100%; you can enter grades before then.
+    </div>
+}
+
+@if (Model.Assessments.Count == 0)
+{
+    <p class="text-body-secondary">No assessments yet. Add the first one below.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Title</th>
+                    <th scope="col" class="d-none d-sm-table-cell">Type</th>
+                    <th scope="col" class="text-end text-nowrap">Max score</th>
+                    <th scope="col" class="text-end">Weight</th>
+                    <th scope="col">Graded</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model.Assessments)
+                {
+                    <tr>
+                        <td>@a.Title</td>
+                        <td class="d-none d-sm-table-cell">@a.Type</td>
+                        <td class="text-end">@a.MaxScore.ToString("0.##")</td>
+                        <td class="text-end">@a.WeightPercent.ToString("0.##")%</td>
+                        <td>@a.GradedCount of @a.ActiveCount</td>
+                        <td class="text-end">
+                            <a asp-controller="Assessments" asp-action="Details" asp-route-id="@a.AssessmentId"
+                               class="btn btn-sm btn-outline-primary">Grades<span class="visually-hidden"> for @a.Title</span></a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<section class="card mb-4" aria-labelledby="add-assessment-heading">
+    <div class="card-body">
+        <h3 id="add-assessment-heading" class="h6 card-title">Add an assessment</h3>
+        <partial name="_AssessmentForm" model="Model.NewAssessment" />
+    </div>
+</section>
+
+<h2 class="h5 mt-5">Sessions</h2>
+
+@if (Model.Sessions.Count == 0)
+{
+    <p class="text-body-secondary">No sessions yet.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Time (Manila)</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.Sessions)
+                {
+                    <tr>
+                        <td>@ManilaTime.ToLocal(s.StartTimeUtc).ToString("ddd, MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture)</td>
+                        <td>@ManilaTime.FormatTime(s.StartTimeUtc) – @ManilaTime.FormatTime(s.EndTimeUtc)</td>
+                        <td><partial name="_SessionStatusBadge" model="s" /></td>
+                        <td class="text-end">
+                            <a asp-controller="Sessions" asp-action="Details" asp-route-id="@s.SessionId"
+                               class="btn btn-sm @(s.IsLive ? "btn-primary" : "btn-outline-primary")">@(s.IsLive ? "Show QR" : "View")</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

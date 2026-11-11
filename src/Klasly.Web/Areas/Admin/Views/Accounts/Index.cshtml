@@ -1,0 +1,76 @@
+@model List<AccountResponse>
+@using Klasly.Web.Areas.Admin.Controllers
+@{
+    ViewData["Title"] = "Accounts";
+    var selected = ViewData["Role"] as string;
+    var myUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0">Accounts</h1>
+    <div class="d-flex flex-wrap gap-2" aria-label="Create an account">
+        @foreach (var role in new[] { "Teacher", "Student", "Parent", "Admin" })
+        {
+            <a asp-action="Create" asp-route-role="@role" class="btn btn-sm @(role == "Teacher" ? "btn-primary" : "btn-outline-primary")">New @role.ToLowerInvariant()</a>
+        }
+    </div>
+</div>
+
+<ul class="nav nav-pills mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(selected is null ? "active" : "")" aria-current="@(selected is null ? "page" : null)" asp-action="Index">All</a>
+    </li>
+    @foreach (var role in AccountsController.Roles)
+    {
+        <li class="nav-item">
+            <a class="nav-link @(selected == role ? "active" : "")" aria-current="@(selected == role ? "page" : null)"
+               asp-action="Index" asp-route-role="@role">@role</a>
+        </li>
+    }
+</ul>
+
+@if (Model.Count == 0)
+{
+    <p class="text-body-secondary">No @(selected?.ToLowerInvariant() ?? "") accounts yet.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">ID no.</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr class="@(a.IsActive ? "" : "text-body-secondary")">
+                        <td>@a.FullName</td>
+                        <td>@a.Email</td>
+                        <td>@a.Role</td>
+                        <td>@(a.StudentNumber ?? a.EmployeeNo ?? "—")</td>
+                        <td>
+                            <span class="badge @(a.IsActive ? "text-bg-success" : "text-bg-secondary")">@(a.IsActive ? "Active" : "Inactive")</span>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <a asp-action="Edit" asp-route-id="@a.UserId" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            @if (a.IsActive && a.UserId.ToString() != myUserId)
+                            {
+                                <form asp-action="Deactivate" asp-route-id="@a.UserId" asp-route-role="@selected" method="post" class="d-inline"
+                                      data-confirm="Deactivate @a.FullName? They will no longer be able to log in.">
+                                    <button type="submit" class="btn btn-sm btn-link link-danger">Deactivate</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

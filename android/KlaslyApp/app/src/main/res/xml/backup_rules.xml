@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older. The session file is encrypted with a Keystore key that never leaves the phone,
+     so a backed-up copy could never be read: leave it out (TokenStore). -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="klasly_session.xml" />
+</full-backup-content>
