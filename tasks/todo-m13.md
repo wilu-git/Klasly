@@ -115,10 +115,10 @@
 - `MainActivity.kt` (Student → `StudentHome`).
 
 **Acceptance:**
-- [ ] A bottom bar with Scan / Attendance / Grades. The tab survives rotation. Scan works exactly as before.
-- [ ] Attendance and Grades show loading, empty ("No classes this term") and error (API text) states, plus a Ready list per class.
-- [ ] Pull-to-refresh reloads. A 401 returns to Login with the message.
-- [ ] No risk badge on student screens (`isAtRisk` is null).
+- [x] A bottom bar with Scan / Attendance / Grades. The tab survives rotation. Scan works exactly as before.
+- [x] Attendance and Grades show loading, empty ("No classes this term") and error (API text) states, plus a Ready list per class.
+- [x] Pull-to-refresh reloads. A 401 returns to Login with the message.
+- [x] No risk badge on student screens (`isAtRisk` is null).
 
 **Verify:** `./gradlew assembleDebug testDebugUnitTest`; emulator as student 1.
 

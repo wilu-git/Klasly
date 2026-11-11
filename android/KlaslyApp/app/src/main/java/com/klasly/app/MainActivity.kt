@@ -13,6 +13,8 @@ import com.klasly.app.ui.login.LoginViewModel
 import com.klasly.app.ui.parent.ParentHomeScreen
 import com.klasly.app.ui.scan.ScanScreen
 import com.klasly.app.ui.scan.ScanViewModel
+import com.klasly.app.ui.student.StudentHome
+import com.klasly.app.ui.student.StudentOverviewViewModel
 import com.klasly.app.ui.theme.KlaslyTheme
 
 class MainActivity : ComponentActivity() {
@@ -30,7 +32,10 @@ class MainActivity : ComponentActivity() {
                         // Keyed by token: the next login starts with a fresh scan state.
                         val vm = viewModel(key = current.token) { ScanViewModel(container) }
                         val state by vm.state.collectAsState()
-                        ScanScreen(current.fullName, state, vm::onQrRead, vm::scanAgain, onLogOut = { container.logOut() })
+                        val overview = viewModel(key = "overview-${current.token}") { StudentOverviewViewModel(container) }
+                        StudentHome(overview, onLogOut = { container.logOut() }) {
+                            ScanScreen(current.fullName, state, vm::onQrRead, vm::scanAgain, onLogOut = { container.logOut() })
+                        }
                     }
                     "Parent" -> ParentHomeScreen(current.fullName, onLogOut = { container.logOut() })
                     else -> {
