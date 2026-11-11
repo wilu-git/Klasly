@@ -21,6 +21,9 @@ public class UserRepository(KlaslyDbContext context) : IUserRepository
     public Task<User?> GetByIdAsync(int userId, CancellationToken ct) =>
         WithProfiles(context.Users).FirstOrDefaultAsync(u => u.UserId == userId, ct);
 
+    public Task<bool> IsActiveAsync(int userId, CancellationToken ct) =>
+        context.Users.AnyAsync(u => u.UserId == userId && u.IsActive, ct);
+
     public Task<bool> EmailExistsAsync(string email, int? excludeUserId, CancellationToken ct) =>
         context.Users.AnyAsync(u => u.Email == email && u.UserId != excludeUserId, ct);
 

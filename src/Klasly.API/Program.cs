@@ -5,6 +5,7 @@ using Klasly.API.Middleware;
 using Klasly.API.Services;
 using Klasly.API.Services.Interfaces;
 using Klasly.Core.Entities;
+using Klasly.Core.Interfaces;
 using Klasly.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -61,6 +62,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.MapInboundClaims = false; // keep the short JWT claim names (sub, role, name) as issued
         options.Events = new JwtBearerEvents
         {
+            // A deactivated account loses access at once, not when its token expires (soft delete = no more access).
+            // Failing here sends the request to OnChallenge below: 401 "Session expired – please log in".
+            OnTokenValidated = async context =>
+            {
+                var users = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                if (!int.TryParse(context.Principal?.FindFirst("sub")?.Value, out var userId)
+                    || !await users.IsActiveAsync(userId, context.HttpContext.RequestAborted))
+                    context.Fail("The account is deactivated.");
+            },
             // Missing or expired token: a problem-details body the Android app can show, instead of an empty 401.
             OnChallenge = async context =>
             {

@@ -12,16 +12,19 @@ public interface IUserRepository
     /// <summary>Tracked, with Student / Teacher / Guardian loaded.</summary>
     Task<User?> GetByIdAsync(int userId, CancellationToken ct);
 
+    /// <summary>True when the account exists and is not deactivated. Checked on every API call.</summary>
+    Task<bool> IsActiveAsync(int userId, CancellationToken ct);
+
     Task<bool> EmailExistsAsync(string email, int? excludeUserId, CancellationToken ct);
     Task<bool> StudentNumberExistsAsync(string studentNumber, int? excludeStudentId, CancellationToken ct);
     Task<bool> EmployeeNoExistsAsync(string employeeNo, int? excludeTeacherId, CancellationToken ct);
 
-    /// <summary>Inserts the user together with any profile set on its navigation properties.</summary>
     /// <summary>
     /// Saves this phone's FCM token on the user and clears it from anyone else who had it (a shared phone), in one transaction.
     /// </summary>
     Task SetFcmTokenAsync(int userId, string token, CancellationToken ct);
 
+    /// <summary>Inserts the user together with any profile set on its navigation properties.</summary>
     Task AddAsync(User user, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 

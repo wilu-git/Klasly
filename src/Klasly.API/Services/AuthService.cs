@@ -16,13 +16,16 @@ public class AuthService(IUserRepository users, IPasswordHasher<User> hasher, IC
     public async Task<LoginResponse?> LoginAsync(LoginRequest request, CancellationToken ct)
     {
         var user = await users.GetByEmailAsync(request.Email.Trim(), ct);
-        if (user is null || !user.IsActive) return null;
 
-        var result = hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
-        if (result == PasswordVerificationResult.Failed) return null;
+        // Hash even for an unknown or inactive email, so the response time doesn't show which emails exist.
+        var result = hasher.VerifyHashedPassword(user ?? TimingDummy, user?.PasswordHash ?? DummyHash, request.Password);
+        if (user is not { IsActive: true } || result == PasswordVerificationResult.Failed) return null;
 
         return CreateToken(user);
     }
+
+    private static readonly User TimingDummy = new();
+    private static readonly string DummyHash = new PasswordHasher<User>().HashPassword(TimingDummy, Guid.NewGuid().ToString());
 
     private LoginResponse CreateToken(User user)
     {
