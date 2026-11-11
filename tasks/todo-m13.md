@@ -99,9 +99,9 @@
 - `data/DisplayText.kt` + `test/.../data/DisplayTextTest.kt`.
 
 **Acceptance:**
-- [ ] `percent(0.2) = "20%"`, `percent(null) = "—"`, `average(null) = "No grades yet"`, `average(87.5) = "87.5"`, `score(87.5, 100) = "87.5 / 100"`, `score(null, 100) = "Not graded yet"`.
-- [ ] `manilaDateTime("2026-11-10T01:00:00Z")` = "Nov 10, 9:00 AM".
-- [ ] The DTOs parse a sample JSON body (nullable fields included).
+- [x] `percent(0.2) = "20%"`, `percent(null) = "—"`, `average(null) = "No grades yet"`, `average(87.5) = "87.5"`, `score(87.5, 100) = "87.5 / 100"`, `score(null, 100) = "Not graded yet"`.
+- [x] `manilaDateTime("2026-11-10T01:00:00Z")` = "Nov 10, 9:00 AM".
+- [x] The DTOs parse a sample JSON body (nullable fields included).
 
 **Verify:** `./gradlew assembleDebug testDebugUnitTest`
 

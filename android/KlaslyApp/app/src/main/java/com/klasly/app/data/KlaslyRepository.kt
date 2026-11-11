@@ -37,6 +37,12 @@ class KlaslyRepository(
     suspend fun setFcmToken(token: String): ApiResult<Unit> =
         call(endsSessionOn401 = false) { api.setFcmToken(FcmTokenRequest(token)) }
 
+    suspend fun myOverview(): ApiResult<StudentOverview> = call { api.myOverview() }
+
+    suspend fun children(): ApiResult<List<LinkedStudent>> = call { api.children() }
+
+    suspend fun childOverview(studentId: Int): ApiResult<StudentOverview> = call { api.childOverview(studentId) }
+
     private suspend fun <T> call(endsSessionOn401: Boolean = true, block: suspend () -> T): ApiResult<T> = try {
         ApiResult.Ok(block())
     } catch (e: HttpException) {
