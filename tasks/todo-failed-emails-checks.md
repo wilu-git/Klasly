@@ -1,0 +1,103 @@
+# Tasks: Failed emails page checks (`/impeccable` pass + browser check)
+
+> Plan: [`plan-failed-emails-checks.md`](./plan-failed-emails-checks.md) · Spec: [`SPEC.md`](../SPEC.md). Web MVC only.
+> Run: `preview_start "api"` and then `preview_start "web"` (`https://localhost:7144`). LocalDB must be running.
+> Log in with the seeded fictional admin and teacher accounts. Change no dev data.
+
+---
+
+## Task 1: Browser check (admin list, teacher refused, API-down error)
+
+**Description:** Confirm the page behaves correctly for each role before touching it. Read-only.
+
+**Done when:**
+- [x] As **admin**, `/Admin/FailedEmails` lists the seeded Failed rows: Manila time, recipient name + email, alert + subject, attempts, last error. Screenshot saved.
+- [x] As a **teacher**, typing `/Admin/FailedEmails` in the address bar shows the Access denied page and no email data. Screenshot saved.
+- [x] With the `api` server stopped, the admin page shows a clear error, not a crash or a blank table. Screenshot saved, then the API is started again.
+  - **Correction:** an unreachable API doesn't go through `_Alerts`. The shared `ApiExceptionFilter` shows the house **"Klasly can't reach the server right now."** page (`ApiUnavailable`, HTTP 503, with a Try again button). `_Alerts` is for error *replies* from a running API. This is the intended behaviour, so nothing needs fixing.
+- [x] `read_console_messages` shows no errors from the page. With the API up there were none. With the API down, the only entry is the browser noting the page's own 503 status.
+
+**Verification:**
+- [x] Manual in the browser pane (2026-11-11, seeded admin `admin@klasly.test` and teacher `rosa.villanueva@klasly.test`). Screenshots are in `docs/reports/2026-11-11-1605-failed-emails-page-checks/`: `1-admin-list.jpg`, `2-teacher-refused.jpg`, `3-api-down.jpg`. A signed-out visit also redirects to the login page with `ReturnUrl=/Admin/FailedEmails`.
+
+**Dependencies:** None
+**Files touched:** none (screenshots only)
+**Scope:** XS
+
+---
+
+## Task 2: `/impeccable` measurement and defect list
+
+**Description:** Run a narrow `/impeccable polish` review of the view against the house style (Terms / Accounts pages). Measure only, change nothing.
+
+**Done when:**
+- [ ] At 375, 480 and 1280 px:
+  - the page has no sideways scroll (`document.documentElement.scrollWidth <= clientWidth`);
+  - the last error and recipient email wrap inside their cells.
+- [ ] Contrast measured for body text and `text-body-secondary` on the page background: each ≥ 4.5:1 (WCAG AA).
+- [ ] Structure checked: one `h1`, every `<th>` has `scope="col"`, the "—" for no error makes sense to a screen reader.
+- [ ] Empty-state markup read and confirmed (not rendered, see spec question 1).
+- [ ] `npx impeccable detect --json src/Klasly.Web/Areas/Admin/Views/FailedEmails/Index.cshtml` was run and its output recorded.
+- [ ] A defect list (or "none found") is written down, with a measured number for each defect.
+
+**Verification:**
+- [ ] DOM measurements + detector output recorded, to go in the report.
+
+**Dependencies:** Task 1
+**Files touched:** none
+**Scope:** XS
+
+---
+
+## Checkpoint A (after Tasks 1–2)
+- [x] The teacher was refused. **If not:** stop, report it as a security finding, and wait for the team.
+- [ ] The defect list exists. **If it says "none found":** skip Task 3 and go to Task 4.
+
+---
+
+## Task 3: Fix the defects and measure again
+
+**Description:** Fix only the defects from Task 2, with Bootstrap utilities first. Keep the Terms table pattern.
+
+**Done when:**
+- [ ] Every defect from Task 2 is fixed, with a before → after number for each.
+- [ ] Every Task 2 check is run again and passes at 375 / 480 / 1280 px.
+- [ ] `impeccable detect --json` on the view returns `[]`.
+- [ ] Admin page screenshot taken again after the fix.
+
+**Verification:**
+- [ ] `dotnet build Klasly.slnx` → Build succeeded.
+- [ ] Manual: page reloaded in the browser pane, no console errors.
+
+**Dependencies:** Task 2 (only if it found defects)
+**Files touched:**
+- `src/Klasly.Web/Areas/Admin/Views/FailedEmails/Index.cshtml`
+- `src/Klasly.Web/wwwroot/css/site.css` (only if no utility class works)
+
+**Scope:** S
+
+---
+
+## Task 4: Wrap-up (build, tests, ticks, reports, graph)
+
+**Description:** Prove nothing else broke and record the evidence.
+
+**Done when:**
+- [ ] `dotnet build Klasly.slnx` is green and `dotnet test Klasly.slnx` is 162/162.
+- [ ] `tasks/todo-m14.md` Task 8: both open boxes ticked (`/impeccable` pass, browser check).
+- [ ] Every success criterion in `SPEC.md` is ticked. Anything not done is written as not done.
+- [ ] `docs/reports/<yyyy-MM-dd-HHmm>-failed-emails-page-checks/` has `DEVELOPER-DOCS.md`, `HOW-TO-USE.md` and `FLOWCHARTS.md`, plus the screenshots. One line is added to `docs/reports/INDEX.md`.
+- [ ] `graphify update .` has been run.
+
+**Verification:**
+- [ ] The command output is written in `DEVELOPER-DOCS.md` → "How it was verified".
+
+**Dependencies:** Task 3 (or Task 2 if Task 3 was skipped)
+**Files touched:** `tasks/todo-m14.md`, `SPEC.md`, the report folder, `docs/reports/INDEX.md`
+**Scope:** S
+
+---
+
+## Checkpoint: Complete
+- [ ] All spec success criteria are ticked, with the evidence in the report.
+- [ ] Ready for the team's review and commit.
