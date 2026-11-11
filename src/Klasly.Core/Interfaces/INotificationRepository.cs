@@ -35,5 +35,8 @@ public interface INotificationRepository
     /// </summary>
     Task<List<AtRiskAlert>> ListAtRiskAlertsAsync(CancellationToken ct);
 
+    /// <summary>Email rows with Status = Failed, newest first, at most <paramref name="take"/>. Push rows are never returned.</summary>
+    Task<List<FailedEmailResponse>> ListFailedEmailsAsync(int take, CancellationToken ct);
+
     Task SaveChangesAsync(CancellationToken ct);
 }

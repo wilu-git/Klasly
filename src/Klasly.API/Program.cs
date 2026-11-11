@@ -104,6 +104,7 @@ builder.Services.AddScoped<IQrTokenService, QrTokenService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IAssessmentService, AssessmentService>();
 builder.Services.AddScoped<IOverviewService, OverviewService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Grade push (guide §27.8): saved with the grade, sent in the background through FCM HTTP v1. Fcm:ServiceAccountPath is a user-secret.
 builder.Services.Configure<FcmOptions>(builder.Configuration.GetSection("Fcm"));

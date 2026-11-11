@@ -60,5 +60,16 @@ public class NotificationRepository(KlaslyDbContext context) : INotificationRepo
              e.Class.Subject.Code, e.Class.Subject.Title, e.Class.Section, latest.AbsenceRate, latest.WeightedAverage))
         .ToListAsync(ct);
 
+    public Task<List<FailedEmailResponse>> ListFailedEmailsAsync(int take, CancellationToken ct) =>
+        context.Notifications
+            .Where(n => n.Channel == NotificationChannel.Email && n.Status == NotificationStatus.Failed)
+            .OrderByDescending(n => n.NotificationId) // identity order = newest first
+            .Take(take)
+            .Select(n => new FailedEmailResponse(
+                n.NotificationId, n.CreatedAt, n.User.FullName,
+                n.User.Guardian != null ? n.User.Guardian.ContactEmail : n.User.Email, // the address the sender used
+                n.Type.ToString(), n.Subject, n.Attempts, n.LastError))
+            .ToListAsync(ct);
+
     public Task SaveChangesAsync(CancellationToken ct) => context.SaveChangesAsync(ct);
 }
