@@ -34,3 +34,7 @@ data class ScanResponse(
     val subjectCode: String,
     val section: String,
 )
+
+/** Body of PUT students/me/fcm-token. */
+@Serializable
+data class FcmTokenRequest(val token: String)
