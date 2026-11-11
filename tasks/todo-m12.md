@@ -29,20 +29,20 @@
 - `src/Klasly.Worker/Services/EmailSender.cs`, with `SendDueAsync(nowUtc, ct)` → `(Sent, Retrying, Failed)`.
 
 **Acceptance:**
-- [ ] Accepted → Status Accepted, Attempts 1, `ExternalMessageId` set. Permanent → Failed + LastError (≤ 500 chars).
-- [ ] Transient → stays Pending, Attempts 1, NextAttemptAt between now + 5 min and now + 6 min. The next transient (Attempts 2) → between now + 10 min and now + 11 min. The transient that brings Attempts to `MaxEmailAttempts` → Failed.
-- [ ] Unauthorized → the row is unchanged (Attempts 0, Pending), the rows after it aren't sent, and an error is logged.
-- [ ] Not configured → listed rows Failed "Brevo is not configured", with no send.
-- [ ] Rows with a future `NextAttemptAt`, Push rows, and Accepted/Failed rows are never sent. At most 50 sends per run.
-- [ ] Each row is saved right after its send (a fake client that throws on the 2nd row leaves the 1st Accepted).
-- [ ] `MaxEmailAttempts` missing or outside 1–20 → throws with the key in the message.
+- [x] Accepted → Status Accepted, Attempts 1, `ExternalMessageId` set. Permanent → Failed + LastError (≤ 500 chars).
+- [x] Transient → stays Pending, Attempts 1, NextAttemptAt between now + 5 min and now + 6 min. The next transient (Attempts 2) → between now + 10 min and now + 11 min. The transient that brings Attempts to `MaxEmailAttempts` → Failed.
+- [x] Unauthorized → the row is unchanged (Attempts 0, Pending), the rows after it aren't sent, and an error is logged.
+- [x] Not configured → listed rows Failed "Brevo is not configured", with no send.
+- [x] Rows with a future `NextAttemptAt`, Push rows, and Accepted/Failed rows are never sent. At most 50 sends per run.
+- [x] Each row is saved right after its send (a fake client that throws on the 2nd row leaves the 1st Accepted).
+- [x] `MaxEmailAttempts` missing or outside 1–20 → throws with the key in the message.
 
 **Verify:** `dotnet test --solution Klasly.slnx --filter-class Klasly.Tests.EmailSenderTests`
 
 **Files:** `src/Klasly.Core/Interfaces/INotificationRepository.cs`, `src/Klasly.Infrastructure/Repositories/NotificationRepository.cs`, `src/Klasly.Worker/Services/EmailSender.cs`, `tests/Klasly.Tests/EmailSenderTests.cs`. **Depends on:** Task 1.
 
 ## Checkpoint A
-- [ ] Build clean, all tests pass, no pending model changes; `dotnet list Klasly.slnx package` shows the new package at 10.0.14 and nothing else new.
+- [x] Build clean, all tests pass, no pending model changes; `dotnet list Klasly.slnx package` shows the new package at 10.0.14 and nothing else new.
 
 ## Task 3: Absence alerts (test first)
 

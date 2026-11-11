@@ -14,5 +14,11 @@ public interface INotificationRepository
     /// <summary>Tracked, with User loaded; null when the row isn't a Pending push any more.</summary>
     Task<Notification?> GetPendingPushAsync(int notificationId, CancellationToken ct);
 
+    /// <summary>
+    /// Tracked Email rows still Pending whose retry time has come (<c>NextAttemptAt</c> null or ≤ now), oldest first,
+    /// with User and Guardian loaded for the address. Push rows are never returned.
+    /// </summary>
+    Task<List<Notification>> ListDueEmailsAsync(DateTime nowUtc, int take, CancellationToken ct);
+
     Task SaveChangesAsync(CancellationToken ct);
 }

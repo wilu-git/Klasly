@@ -21,5 +21,14 @@ public class NotificationRepository(KlaslyDbContext context) : INotificationRepo
         context.Notifications.Include(n => n.User).FirstOrDefaultAsync(n =>
             n.NotificationId == notificationId && n.Channel == NotificationChannel.Push && n.Status == NotificationStatus.Pending, ct);
 
+    public Task<List<Notification>> ListDueEmailsAsync(DateTime nowUtc, int take, CancellationToken ct) =>
+        context.Notifications
+            .Include(n => n.User).ThenInclude(u => u.Guardian)
+            .Where(n => n.Channel == NotificationChannel.Email && n.Status == NotificationStatus.Pending
+                        && (n.NextAttemptAt == null || n.NextAttemptAt <= nowUtc))
+            .OrderBy(n => n.NotificationId) // identity order = oldest first
+            .Take(take)
+            .ToListAsync(ct);
+
     public Task SaveChangesAsync(CancellationToken ct) => context.SaveChangesAsync(ct);
 }
