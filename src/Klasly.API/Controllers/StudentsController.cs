@@ -20,6 +20,14 @@ public class StudentsController(IAccountService accountService) : ControllerBase
     public Task<DeviceResponse> RegisterDevice(RegisterDeviceRequest request, CancellationToken ct) =>
         accountService.RegisterDeviceAsync(CurrentUserId, request.DeviceId, ct);
 
+    /// <summary>Saves this phone's FCM token for grade pushes. The app sends it after login and when Firebase renews it.</summary>
+    [HttpPut("fcm-token")]
+    public async Task<IActionResult> SetFcmToken(FcmTokenRequest request, CancellationToken ct)
+    {
+        await accountService.SetFcmTokenAsync(CurrentUserId, request.Token, ct);
+        return NoContent();
+    }
+
     // The StudentOnly policy guarantees a valid token here.
     private int CurrentUserId => int.Parse(User.FindFirstValue("sub")!);
 }

@@ -1,3 +1,4 @@
+using Klasly.API.Push;
 using System.Text;
 using System.Text.Json.Serialization;
 using Klasly.API.Middleware;
@@ -98,6 +99,15 @@ builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<IQrTokenService, QrTokenService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IAssessmentService, AssessmentService>();
+
+// Grade push (guide §27.8): saved with the grade, sent in the background through FCM HTTP v1. Fcm:ServiceAccountPath is a user-secret.
+builder.Services.Configure<FcmOptions>(builder.Configuration.GetSection("Fcm"));
+builder.Services.AddSingleton<FcmCredentials>();
+builder.Services.AddHttpClient<IFcmPushClient, FcmPushClient>(client => client.Timeout = TimeSpan.FromSeconds(10));
+builder.Services.AddSingleton<PushQueue>();
+builder.Services.AddScoped<PushNotificationSender>();
+builder.Services.AddHostedService<PushSender>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 
 var app = builder.Build();

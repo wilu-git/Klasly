@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Firebase config and keys: per developer, never committed (Milestone 10)
+android/KlaslyApp/app/google-services.json
+*-firebase-adminsdk-*.json

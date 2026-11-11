@@ -15,6 +15,18 @@ public class ApiExceptionHandler(IProblemDetailsService problemDetails) : IExcep
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken ct)
     {
+        // Field/row errors: the same "errors" shape as model validation, so clients show them next to the inputs.
+        if (exception is FieldValidationException fields)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return await problemDetails.TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = context,
+                Exception = exception,
+                ProblemDetails = new ValidationProblemDetails(fields.Errors) { Status = StatusCodes.Status400BadRequest }
+            });
+        }
+
         var (status, detail) = exception switch
         {
             KeyNotFoundException e => (StatusCodes.Status404NotFound, e.Message),

@@ -20,7 +20,66 @@
 
 <partial name="_StartSession" model="Model.Start" />
 
-<h2 class="h5">Sessions</h2>
+<h2 class="h5" id="assessments">Assessments</h2>
+@{
+    var total = Model.WeightTotal;
+}
+<p class="mb-2">
+    Weights: <strong>@total.ToString("0.##") of 100%</strong>
+</p>
+@if (total < 100)
+{
+    <div class="alert alert-warning py-2" role="status">
+        The weights add up to @total.ToString("0.##")%. Add assessments until they reach 100%; you can enter grades before then.
+    </div>
+}
+
+@if (Model.Assessments.Count == 0)
+{
+    <p class="text-body-secondary">No assessments yet. Add the first one below.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Title</th>
+                    <th scope="col" class="d-none d-sm-table-cell">Type</th>
+                    <th scope="col" class="text-end text-nowrap">Max score</th>
+                    <th scope="col" class="text-end">Weight</th>
+                    <th scope="col">Graded</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model.Assessments)
+                {
+                    <tr>
+                        <td>@a.Title</td>
+                        <td class="d-none d-sm-table-cell">@a.Type</td>
+                        <td class="text-end">@a.MaxScore.ToString("0.##")</td>
+                        <td class="text-end">@a.WeightPercent.ToString("0.##")%</td>
+                        <td>@a.GradedCount of @a.ActiveCount</td>
+                        <td class="text-end">
+                            <a asp-controller="Assessments" asp-action="Details" asp-route-id="@a.AssessmentId"
+                               class="btn btn-sm btn-outline-primary">Grades<span class="visually-hidden"> for @a.Title</span></a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<section class="card mb-4" aria-labelledby="add-assessment-heading">
+    <div class="card-body">
+        <h3 id="add-assessment-heading" class="h6 card-title">Add an assessment</h3>
+        <partial name="_AssessmentForm" model="Model.NewAssessment" />
+    </div>
+</section>
+
+<h2 class="h5 mt-5">Sessions</h2>
 
 @if (Model.Sessions.Count == 0)
 {

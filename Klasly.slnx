@@ -7,6 +7,6 @@
     <Project Path="src/Klasly.Worker/Klasly.Worker.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Klasly.Worker.Tests/Klasly.Worker.Tests.csproj" />
+    <Project Path="tests/Klasly.Tests/Klasly.Tests.csproj" />
   </Folder>
 </Solution>

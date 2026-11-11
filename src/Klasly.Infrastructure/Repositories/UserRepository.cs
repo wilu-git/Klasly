@@ -30,6 +30,16 @@ public class UserRepository(KlaslyDbContext context) : IUserRepository
     public Task<bool> EmployeeNoExistsAsync(string employeeNo, int? excludeTeacherId, CancellationToken ct) =>
         context.Teachers.AnyAsync(t => t.EmployeeNo == employeeNo && t.TeacherId != excludeTeacherId, ct);
 
+    public async Task SetFcmTokenAsync(int userId, string token, CancellationToken ct)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        await context.Users.Where(u => u.FcmToken == token && u.UserId != userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.FcmToken, (string?)null), ct);
+        await context.Users.Where(u => u.UserId == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.FcmToken, token).SetProperty(u => u.UpdatedAt, (DateTime?)DateTime.UtcNow), ct);
+        await transaction.CommitAsync(ct);
+    }
+
     public async Task AddAsync(User user, CancellationToken ct)
     {
         context.Users.Add(user); // profile rows come along through the navigation properties, same transaction

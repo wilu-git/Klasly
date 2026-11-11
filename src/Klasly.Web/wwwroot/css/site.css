@@ -61,3 +61,8 @@ body {
   width: 100%;
   height: auto;
 }
+
+/* Grade sheet: room for "9999.99" without stretching across the row. */
+.score-input {
+  width: 7.5rem;
+}

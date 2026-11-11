@@ -20,6 +20,9 @@ public static class DependencyInjection
         services.AddScoped<ISystemSettingRepository, SystemSettingRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+        services.AddScoped<IAssessmentRepository, AssessmentRepository>();
+        services.AddScoped<IGradeRepository, GradeRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         return services;
     }
 }

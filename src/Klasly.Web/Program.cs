@@ -60,6 +60,7 @@ AddApiClient<ISubjectRepository, SubjectRepository>();
 AddApiClient<IAccountRepository, AccountRepository>();
 AddApiClient<IClassRepository, ClassRepository>();
 AddApiClient<ISessionRepository, SessionRepository>();
+AddApiClient<IAssessmentRepository, AssessmentRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITermService, TermService>();
@@ -67,6 +68,7 @@ builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IAssessmentService, AssessmentService>();
 
 var app = builder.Build();
 
