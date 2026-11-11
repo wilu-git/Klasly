@@ -48,14 +48,20 @@ public class SessionService(ISessionRepository sessions) : ISessionService
     public async Task<SessionPageViewModel> GetSessionAsync(int sessionId, CancellationToken ct)
     {
         var session = await sessions.GetAsync(sessionId, ct);
-        // Scheduled: nothing to show yet. Closed/ended: the final roster, no QR call needed.
-        var live = session.Status == "Scheduled" ? null : await BuildLiveAsync(sessionId, tryQr: session.IsLive, ct);
+        // Scheduled or Cancelled (never opened): no roster. Closed/ended: the final roster, no QR call needed.
+        // Corrections only once the API says the session ended (Closed/Finalized), not merely past its end time.
+        var live = session.Status is "Scheduled" or "Cancelled"
+            ? null
+            : await BuildLiveAsync(sessionId, tryQr: session.IsLive, ct, canCorrect: session.Status is "Closed" or "Finalized");
         return new SessionPageViewModel(session, live);
     }
 
     public Task<SessionLiveViewModel> GetLiveAsync(int sessionId, CancellationToken ct) => BuildLiveAsync(sessionId, tryQr: true, ct);
 
-    private async Task<SessionLiveViewModel> BuildLiveAsync(int sessionId, bool tryQr, CancellationToken ct)
+    public Task<SessionAttendanceRow> CorrectAttendanceAsync(int sessionId, int studentId, string? status, CancellationToken ct) =>
+        sessions.CorrectAttendanceAsync(sessionId, studentId, new CorrectAttendanceRequest(status), ct);
+
+    private async Task<SessionLiveViewModel> BuildLiveAsync(int sessionId, bool tryQr, CancellationToken ct, bool canCorrect = false)
     {
         QrTokenResponse? qr = null;
         if (tryQr)
@@ -65,7 +71,7 @@ public class SessionService(ISessionRepository sessions) : ISessionService
         }
 
         var roster = await sessions.GetAttendanceAsync(sessionId, ct);
-        return new SessionLiveViewModel(sessionId, qr is null ? null : QrSvg(qr.Token), roster);
+        return new SessionLiveViewModel(sessionId, qr is null ? null : QrSvg(qr.Token), roster, canCorrect);
     }
 
     // Drawn on the server so the token never reaches page JavaScript. White background with the quiet zone,

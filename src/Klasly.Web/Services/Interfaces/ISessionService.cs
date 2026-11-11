@@ -14,6 +14,8 @@ public interface ISessionService
 
     /// <summary>The QR (null when closed or past its end) and the roster, for the 5-second poll.</summary>
     Task<SessionLiveViewModel> GetLiveAsync(int sessionId, CancellationToken ct);
+    /// <summary>The teacher's correction after the session ended; returns the updated row.</summary>
+    Task<SessionAttendanceRow> CorrectAttendanceAsync(int sessionId, int studentId, string? status, CancellationToken ct);
     Task OpenAsync(int sessionId, CancellationToken ct);
     Task CloseAsync(int sessionId, CancellationToken ct);
 }

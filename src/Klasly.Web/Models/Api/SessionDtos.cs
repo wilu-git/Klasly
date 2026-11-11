@@ -17,6 +17,9 @@ public record SessionResponse(
 /// <summary>The QR token to show now; it rotates every <see cref="StepSeconds"/>.</summary>
 public record QrTokenResponse(string Token, DateTime ExpiresAtUtc, int StepSeconds);
 
+/// <summary>Body of <c>PUT /api/sessions/{id}/attendance/{studentId}</c>. Status: Present, Late, Absent or Excused.</summary>
+public record CorrectAttendanceRequest(string? Status);
+
 /// <summary>One actively enrolled student on the roster. <see cref="Status"/> null = not scanned yet.</summary>
 public record SessionAttendanceRow(
     int StudentId, string StudentNumber, string FullName, string? Status, DateTime? ScannedAtUtc, string? Source);

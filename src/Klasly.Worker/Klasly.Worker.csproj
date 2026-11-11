@@ -8,6 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Hangfire.Core" Version="1.8.25" />
+    <PackageReference Include="Hangfire.NetCore" Version="1.8.25" />
+    <PackageReference Include="Hangfire.SqlServer" Version="1.8.25" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
   </ItemGroup>
 
@@ -16,7 +19,4 @@
     <ProjectReference Include="..\Klasly.Infrastructure\Klasly.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Jobs\" />
-  </ItemGroup>
 </Project>
