@@ -59,8 +59,8 @@
 - registrations in `Program.cs` (typed client with `BearerTokenHandler`, like the others).
 
 **Acceptance:**
-- [ ] `ParentService` returns the children list, and a view model with the overview + the children (for the sibling switcher).
-- [ ] API errors pass through as `ApiException`, so the existing filter shows them.
+- [x] `ParentService` returns the children list, and a view model with the overview + the children (for the sibling switcher).
+- [x] API errors pass through as `ApiException`, so the existing filter shows them.
 
 **Verify:** `dotnet build Klasly.slnx`
 
