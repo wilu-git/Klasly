@@ -45,5 +45,20 @@ public class NotificationRepository(KlaslyDbContext context) : INotificationRepo
              r.Session.StartTime, r.Session.EndTime))
         .ToListAsync(ct);
 
+    public Task<List<AtRiskAlert>> ListAtRiskAlertsAsync(CancellationToken ct) =>
+        (from e in context.Enrollments
+         where e.Status == EnrollmentStatus.Active && e.Class.Term.IsActive
+         let latest = e.RiskFlags.OrderByDescending(f => f.ComputedAt).ThenByDescending(f => f.RiskFlagId).FirstOrDefault()
+         let previousAtRisk = e.RiskFlags.OrderByDescending(f => f.ComputedAt).ThenByDescending(f => f.RiskFlagId)
+             .Skip(1).Select(f => (bool?)f.IsAtRisk).FirstOrDefault()
+         where latest != null && latest.IsAtRisk && previousAtRisk != true // newly at-risk: no repeat while it stays so
+         from sg in e.Student.StudentGuardians
+         where sg.ReceivesAlerts && sg.Guardian.User.IsActive
+         let key = "atrisk:" + latest.RiskFlagId + ":" + sg.GuardianId
+         where !context.Notifications.Any(n => n.DedupKey == key)
+         select new AtRiskAlert(key, sg.Guardian.UserId, sg.Guardian.User.FullName, e.Student.User.FullName,
+             e.Class.Subject.Code, e.Class.Subject.Title, e.Class.Section, latest.AbsenceRate, latest.WeightedAverage))
+        .ToListAsync(ct);
+
     public Task SaveChangesAsync(CancellationToken ct) => context.SaveChangesAsync(ct);
 }

@@ -9,7 +9,7 @@ namespace Klasly.Tests;
 /// <summary>
 /// Queueing parent alert emails (spec assumptions 2, 3, 5, 6) on the real schema. A run queues alerts for every recent
 /// absence in the database, so the class shares the "Outbox" collection with <see cref="EmailSenderTests"/> and checks
-/// only the DedupKeys of its own sessions. Seed links: student 1 (Aira) and 2 → guardian 1 (Marites, user 10);
+/// only the DedupKeys of its own sessions and flags. Seed links: student 1 (Aira) and 2 → guardian 1 (Marites, user 10);
 /// 3 and 4 → guardian 2 (user 11); 5 and 6 → guardian 3 (user 12).
 /// </summary>
 [Collection("Outbox")]
@@ -122,12 +122,133 @@ public class AlertQueuerTests(DatabaseFixture db)
         Assert.Empty(await RowsAsync($"absent:{sessionId}:1:1"));
     }
 
+    // ---------- at-risk alerts ----------
+    // Flags here are dated in the future (FlagAt) so a RiskCalculatorTests run in parallel, which snapshots every active
+    // enrollment at the real time, can never become the "latest" row of these enrollments.
+
+    [Fact]
+    public async Task A_first_at_risk_snapshot_queues_one_email_per_guardian()
+    {
+        var classId = await TestData.NewClassAsync(db, (1, EnrollmentStatus.Active));
+        var flag = await FlagAsync(classId, 1, atRisk: true, minute: 0, rate: 0.25m, average: 72.5m);
+
+        var (_, atRisk) = await QueueAsync();
+
+        Assert.True(atRisk >= 1);
+        var n = Assert.Single(await RowsAsync($"atrisk:{flag}:1"));
+        Assert.Equal((10, NotificationChannel.Email, NotificationType.AtRisk, NotificationStatus.Pending),
+            (n.UserId, n.Channel, n.Type, n.Status));
+        Assert.Equal("Klasly: Aira Mendoza may need support in ELECT3", n.Subject);
+        Assert.Contains("Absence rate: 25%", n.Body);
+        Assert.Contains("Weighted average: 72.50", n.Body);
+        Assert.Contains("This is an early-warning indicator for review, not a final grade.", n.Body);
+        Assert.Contains($"section {await SectionAsync(classId)}", n.Body);
+    }
+
+    [Fact]
+    public async Task Without_grades_the_body_says_no_grades_yet()
+    {
+        var classId = await TestData.NewClassAsync(db, (1, EnrollmentStatus.Active));
+        var flag = await FlagAsync(classId, 1, atRisk: true, minute: 0, rate: 1m, average: null);
+
+        await QueueAsync();
+
+        var n = Assert.Single(await RowsAsync($"atrisk:{flag}:1"));
+        Assert.Contains("Absence rate: 100%", n.Body);
+        Assert.Contains("Weighted average: no grades yet", n.Body);
+    }
+
+    [Fact]
+    public async Task Becoming_at_risk_after_a_safe_snapshot_queues_one_email()
+    {
+        var classId = await TestData.NewClassAsync(db, (3, EnrollmentStatus.Active));
+        var safe = await FlagAsync(classId, 3, atRisk: false, minute: 0);
+        var risky = await FlagAsync(classId, 3, atRisk: true, minute: 5);
+
+        await QueueAsync();
+
+        Assert.Single(await RowsAsync($"atrisk:{risky}:2"));
+        Assert.Empty(await RowsAsync($"atrisk:{safe}:2"));
+    }
+
+    [Fact]
+    public async Task A_safe_latest_snapshot_queues_nothing()
+    {
+        var classId = await TestData.NewClassAsync(db, (1, EnrollmentStatus.Active), (3, EnrollmentStatus.Active));
+        var onlySafe = await FlagAsync(classId, 1, atRisk: false, minute: 0);
+        var wasRisky = await FlagAsync(classId, 3, atRisk: true, minute: 0);
+        var recovered = await FlagAsync(classId, 3, atRisk: false, minute: 5);
+
+        await QueueAsync();
+
+        Assert.Empty(await RowsAsync($"atrisk:{onlySafe}:1", $"atrisk:{wasRisky}:2", $"atrisk:{recovered}:2"));
+    }
+
+    [Fact]
+    public async Task Staying_at_risk_queues_no_repeat()
+    {
+        var classId = await TestData.NewClassAsync(db, (3, EnrollmentStatus.Active));
+        var first = await FlagAsync(classId, 3, atRisk: true, minute: 0);
+        var second = await FlagAsync(classId, 3, atRisk: true, minute: 5); // e.g. the rate went up
+
+        await QueueAsync();
+
+        Assert.Empty(await RowsAsync($"atrisk:{first}:2", $"atrisk:{second}:2"));
+    }
+
+    [Fact]
+    public async Task Recovering_then_becoming_at_risk_again_queues_one_more_email()
+    {
+        var classId = await TestData.NewClassAsync(db, (1, EnrollmentStatus.Active));
+        var first = await FlagAsync(classId, 1, atRisk: true, minute: 0);
+        await QueueAsync();
+        await FlagAsync(classId, 1, atRisk: false, minute: 5);
+        var again = await FlagAsync(classId, 1, atRisk: true, minute: 10);
+
+        await QueueAsync();
+
+        Assert.Single(await RowsAsync($"atrisk:{first}:1"));
+        Assert.Single(await RowsAsync($"atrisk:{again}:1"));
+    }
+
+    [Fact]
+    public async Task At_risk_alerts_are_queued_once_and_never_for_dropped_or_past_term_enrollments()
+    {
+        var classId = await TestData.NewClassAsync(db, (1, EnrollmentStatus.Active), (2, EnrollmentStatus.Dropped));
+        var active = await FlagAsync(classId, 1, atRisk: true, minute: 0);
+        var dropped = await FlagAsync(classId, 2, atRisk: true, minute: 0);
+        var pastTerm = await FlagAsync(await NewClassInInactiveTermAsync(1), 1, atRisk: true, minute: 0);
+
+        await QueueAsync();
+        await QueueAsync();
+
+        Assert.Single(await RowsAsync($"atrisk:{active}:1"));
+        Assert.Empty(await RowsAsync($"atrisk:{dropped}:1", $"atrisk:{pastTerm}:1"));
+    }
+
     // ---------- helpers ----------
 
-    private async Task QueueAsync()
+    private static readonly DateTime FlagAt = Now.AddDays(1);
+
+    private async Task<int> FlagAsync(int classId, int studentId, bool atRisk, int minute, decimal rate = 0.5m, decimal? average = 60m)
     {
         await using var context = db.CreateContext();
-        await new AlertQueuer(new NotificationRepository(context), new SystemSettingRepository(context)).QueueAsync(Now, Ct);
+        var enrollmentId = await context.Enrollments
+            .Where(e => e.ClassId == classId && e.StudentId == studentId).Select(e => e.EnrollmentId).SingleAsync(Ct);
+        var flag = new RiskFlag
+        {
+            EnrollmentId = enrollmentId, AbsenceRate = rate, WeightedAverage = average, IsAtRisk = atRisk,
+            ComputedAt = FlagAt.AddMinutes(minute)
+        };
+        context.RiskFlags.Add(flag);
+        await context.SaveChangesAsync(Ct);
+        return flag.RiskFlagId;
+    }
+
+    private async Task<(int Absence, int AtRisk)> QueueAsync()
+    {
+        await using var context = db.CreateContext();
+        return await new AlertQueuer(new NotificationRepository(context), new SystemSettingRepository(context)).QueueAsync(Now, Ct);
     }
 
     private async Task<List<Notification>> RowsAsync(params string[] keys)

@@ -28,5 +28,12 @@ public interface INotificationRepository
     /// </summary>
     Task<List<AbsenceAlert>> ListAbsenceAlertsAsync(DateTime sinceUtc, CancellationToken ct);
 
+    /// <summary>
+    /// At-risk emails not yet queued: Active enrollments in active-term classes whose latest RiskFlags row is at-risk
+    /// and whose previous row is missing or not at-risk, one per guardian with ReceivesAlerts and an active account.
+    /// Alerts whose DedupKey already exists are left out.
+    /// </summary>
+    Task<List<AtRiskAlert>> ListAtRiskAlertsAsync(CancellationToken ct);
+
     Task SaveChangesAsync(CancellationToken ct);
 }

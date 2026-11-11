@@ -66,10 +66,10 @@
 **What:** an `AtRiskAlert` record, `ListAtRiskAlertsAsync()`, and the at-risk part of `AlertQueuer`.
 
 **Acceptance:**
-- [ ] The only snapshot is at-risk → one Email/AtRisk row per opted-in guardian, with DedupKey `atrisk:{RiskFlagId}:{GuardianId}`.
-- [ ] Not at-risk → at-risk → one row. At-risk → at-risk (latest) → none. At-risk → not → at-risk → one more row (new RiskFlagId).
-- [ ] The body shows the rate as a percent, the average or "no grades yet", and the early-warning sentence.
-- [ ] Running twice → no new rows. Dropped and inactive-term enrollments → none.
+- [x] The only snapshot is at-risk → one Email/AtRisk row per opted-in guardian, with DedupKey `atrisk:{RiskFlagId}:{GuardianId}`.
+- [x] Not at-risk → at-risk → one row. At-risk → at-risk (latest) → none. At-risk → not → at-risk → one more row (new RiskFlagId).
+- [x] The body shows the rate as a percent, the average or "no grades yet", and the early-warning sentence.
+- [x] Running twice → no new rows. Dropped and inactive-term enrollments → none.
 
 **Verify:** `dotnet test --solution Klasly.slnx --filter-class Klasly.Tests.AlertQueuerTests`
 

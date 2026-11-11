@@ -6,8 +6,9 @@ using Klasly.Core.Interfaces;
 namespace Klasly.Worker.Services;
 
 /// <summary>
-/// The Worker's alert step (spec assumptions 2–6): turns recent absences into Pending Email rows in the Notifications
-/// outbox, one per opted-in guardian, with the text written now in the school's time zone. One save per run.
+/// The Worker's alert step (spec assumptions 2–6): turns recent absences and new at-risk flags into Pending Email rows
+/// in the Notifications outbox, one per opted-in guardian, with the text written now in the school's time zone.
+/// One save per run.
 /// </summary>
 public class AlertQueuer(INotificationRepository notifications, ISystemSettingRepository settings)
 {
@@ -31,8 +32,25 @@ public class AlertQueuer(INotificationRepository notifications, ISystemSettingRe
                  Klasly
                  """));
 
+        var atRisk = await notifications.ListAtRiskAlertsAsync(ct);
+        foreach (var a in atRisk)
+            notifications.Add(NewEmail(a.DedupKey, a.GuardianUserId, NotificationType.AtRisk, nowUtc,
+                $"Klasly: {a.StudentName} may need support in {a.SubjectCode}",
+                $"""
+                 Good day, {a.GuardianName}.
+
+                 {a.StudentName} may need support in {a.SubjectCode} {a.SubjectTitle}, section {a.Section}.
+
+                 Absence rate: {(a.AbsenceRate * 100).ToString("0.##", CultureInfo.InvariantCulture)}%
+                 Weighted average: {a.WeightedAverage?.ToString("0.00", CultureInfo.InvariantCulture) ?? "no grades yet"}
+
+                 This is an early-warning indicator for review, not a final grade. Please talk with {a.StudentName} and the teacher.
+
+                 Klasly
+                 """));
+
         await notifications.SaveChangesAsync(ct);
-        return (absences.Count, 0); // at-risk alerts: Task 4
+        return (absences.Count, atRisk.Count);
     }
 
     private static Notification NewEmail(string dedupKey, int userId, NotificationType type, DateTime nowUtc, string subject, string body) => new()
