@@ -58,29 +58,29 @@ T7 failed-emails API ─── T8 failed-emails MVC page
 ## Task list
 
 ### Phase 1: Fail-fast foundation
-- [ ] Task 1: API reachable from a real phone over Wi-Fi (`lan` profile + firewall + real-phone check) — XS
-- [ ] Task 2: In-memory API test host (`ApiFactory`, package, smoke test) — S
+- [ ] Task 1: API reachable from a real phone over Wi-Fi (`lan` profile + firewall + real-phone check) — XS · code done (`67deaac`); firewall + phone check by the team
+- [x] Task 2: In-memory API test host (`ApiFactory`, package, smoke test) — S
 
 ### Checkpoint A
 - [ ] `dotnet test` green. A real phone with no cable can log in through the PC's LAN address.
 
 ### Phase 2: Role and ownership
-- [ ] Task 3: Fallback policy + endpoint sweep (no token → 401, wrong role → 403, scan → 401) — S
-- [ ] Task 4: Ownership tests over HTTP (Rosa on Mark's class, unlinked child, not-enrolled scan) — S
+- [x] Task 3: Fallback policy + endpoint sweep (no token → 401, wrong role → 403, scan → 401) — S
+- [x] Task 4: Ownership tests over HTTP (Rosa on Mark's class, unlinked child, not-enrolled scan) — S
 
 ### Phase 3: Scan and boundaries
-- [ ] Task 5: Scan tests (7 checks in order, grace step, late cut-off ±1 min) — S
-- [ ] Task 6: Boundary additions (risk end to end with seeded settings, MaxScore + 0.01) — S
+- [x] Task 5: Scan tests (7 checks in order, grace step, late cut-off ±1 min) — S
+- [x] Task 6: Boundary additions (risk end to end with seeded settings, MaxScore + 0.01) — S
 
 ### Checkpoint B
 - [ ] `dotnet test` green. Every security and boundary criterion in the spec has a passing test. Review with the team.
 
 ### Phase 4: Failed-emails list
-- [ ] Task 7: `GET /api/notifications/failed` (AdminOnly) + tests — M
-- [ ] Task 8: MVC Admin › Failed emails page — M
+- [x] Task 7: `GET /api/notifications/failed` (AdminOnly) + tests — M
+- [x] Task 8: MVC Admin › Failed emails page — M
 
 ### Checkpoint C (complete)
-- [ ] All spec success criteria ticked; `dotnet build`, `dotnet test`, `dotnet list package` and `./gradlew assembleDebug` clean.
+- [x] All spec success criteria ticked; `dotnet build`, `dotnet test`, `dotnet list package` and `./gradlew assembleDebug` clean.
 - [ ] Final real-phone run of the whole flow (scan → teacher's live list → student tabs → parent overview), with screenshots in the report.
 
 ## Parallelization

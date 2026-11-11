@@ -180,17 +180,17 @@ public async Task Teacher_cannot_open_another_teachers_session()
 
 ## Success criteria
 
-- [ ] Every API controller endpoint except Login returns `401` with no token. The test finds the endpoints by itself.
-- [ ] Every role-policy endpoint returns `403` for each of the 3 wrong roles; scan returns `401` for non-Students.
-- [ ] Teacher ownership: `403` on all session, attendance and assessment endpoints of another teacher's class. Parent unlinked child → `403`. Not-enrolled scan → `403`.
-- [ ] Each of the 7 scan checks has a test with the exact §27.8 status and message. A 1-step-old QR is accepted and a 2-step-old one is refused.
-- [ ] Late cut-off: 1 min inside → Present, 1 min after → Late.
-- [ ] Through `RiskCalculator` + seeded settings: exactly 20% → at-risk; exactly 75.00 → not at-risk.
-- [ ] MaxScore + 0.01 → `400`.
-- [ ] A fallback policy is in place, and all current tests still pass.
-- [ ] `dotnet test` green. `dotnet list package` shows no Microsoft package below 10.x.
+- [x] Every API controller endpoint except Login returns `401` with no token. The test finds the endpoints by itself.
+- [x] Every role-policy endpoint returns `403` for each of the 3 wrong roles; scan returns `401` for non-Students.
+- [x] Teacher ownership: `403` on all session, attendance and assessment endpoints of another teacher's class. Parent unlinked child → `403`. Not-enrolled scan → `403`.
+- [x] Each of the 7 scan checks has a test with the exact §27.8 status and message. A 1-step-old QR is accepted and a 2-step-old one is refused.
+- [x] Late cut-off: 1 min inside → Present, 1 min after → Late.
+- [x] Through `RiskCalculator` + seeded settings: exactly 20% → at-risk; exactly 75.00 → not at-risk.
+- [x] MaxScore + 0.01 → `400`.
+- [x] A fallback policy is in place, and all current tests still pass.
+- [x] `dotnet test` green. `dotnet list package` shows no Microsoft package below 10.x.
 - [ ] A real Android phone, with no USB cable, logs in and scans on the PC's LAN address. The teacher's live list shows the scan (screenshots in the report).
-- [ ] *(Q3 = yes)* An admin sees failed emails with their last error; non-admins get `403`.
+- [x] *(Q3 = yes)* An admin sees failed emails with their last error; non-admins get `403`.
 
 ## Open questions (my recommendation first)
 
