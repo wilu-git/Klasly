@@ -20,4 +20,19 @@ public static class TestData
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return cls.ClassId;
     }
+
+    /// <summary>A 90-minute session of the class starting at <paramref name="startUtc"/>, with a fresh QR nonce.</summary>
+    public static async Task<ClassSession> NewSessionAsync(
+        DatabaseFixture db, int classId, SessionStatus status, DateTime startUtc, int lateAfterMinutes = 15)
+    {
+        await using var context = db.CreateContext();
+        var session = new ClassSession
+        {
+            ClassId = classId, StartTime = startUtc, EndTime = startUtc.AddMinutes(90), LateAfterMinutes = lateAfterMinutes,
+            QrNonce = Guid.NewGuid().ToString("N"), Status = status
+        };
+        context.ClassSessions.Add(session);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return session;
+    }
 }
