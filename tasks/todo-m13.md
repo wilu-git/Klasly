@@ -129,9 +129,9 @@
 **What:** `ui/parent/ParentViewModel.kt`; rewrite `ui/parent/ParentHomeScreen.kt`; `MainActivity.kt` (Parent → view model).
 
 **Acceptance:**
-- [ ] Loads the children. None → "No children are linked to your account yet." One → that child's overview directly. Several → FilterChips that switch the overview.
-- [ ] Per-class cards with the attendance summary, weighted average, At risk / On track / Not computed yet badge + the early-warning line, and expandable grades and records.
-- [ ] Loading, empty, error and pull-to-refresh, as for students. Log out kept.
+- [x] Loads the children. None → "No children are linked to your account yet." One → that child's overview directly. Several → FilterChips that switch the overview.
+- [x] Per-class cards with the attendance summary, weighted average, At risk / On track / Not computed yet badge + the early-warning line, and expandable grades and records.
+- [x] Loading, empty, error and pull-to-refresh, as for students. Log out kept.
 
 **Verify:** `./gradlew assembleDebug testDebugUnitTest`; emulator as parent user 10.
 
