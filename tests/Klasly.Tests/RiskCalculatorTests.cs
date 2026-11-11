@@ -57,6 +57,23 @@ public class RiskCalculatorTests(DatabaseFixture db)
         Assert.False(two[1].IsAtRisk);
     }
 
+    [Fact]
+    public async Task Exactly_20_percent_absent_is_at_risk_and_exactly_75_is_not_with_the_seeded_settings()
+    {
+        // Guide §27.8 boundaries, through the real step and the SystemSettings rows (0.20 / 75), not constants.
+        var classId = await TestData.NewClassAsync(db, (1, EnrollmentStatus.Active), (2, EnrollmentStatus.Active));
+        await AbsentInFinalizedSessionAsync(classId, 1);
+        for (var i = 0; i < 4; i++) await AbsentInFinalizedSessionAsync(classId, 1, AttendanceStatus.Present); // 1 of 5
+        await GradeAsync(classId, 2, score: 75, max: 100, weight: 100);                                       // 75.00
+
+        await RunAsync(Now);
+
+        var one = Assert.Single(await FlagsAsync(classId, 1));
+        Assert.Equal((0.2000m, true), (one.AbsenceRate, one.IsAtRisk));
+        var two = Assert.Single(await FlagsAsync(classId, 2));
+        Assert.Equal((0m, (decimal?)75.00m, false), (two.AbsenceRate, two.WeightedAverage, two.IsAtRisk));
+    }
+
     [Theory]
     [InlineData(null, "75", "AbsenceThreshold")]
     [InlineData("0.20", "seventy-five", "PassingGrade")]
@@ -93,7 +110,7 @@ public class RiskCalculatorTests(DatabaseFixture db)
             .ToListAsync(Ct);
     }
 
-    private async Task AbsentInFinalizedSessionAsync(int classId, int studentId)
+    private async Task AbsentInFinalizedSessionAsync(int classId, int studentId, AttendanceStatus status = AttendanceStatus.Absent)
     {
         await using var context = db.CreateContext();
         var session = new ClassSession
@@ -103,7 +120,7 @@ public class RiskCalculatorTests(DatabaseFixture db)
         };
         session.AttendanceRecords.Add(new AttendanceRecord
         {
-            StudentId = studentId, Status = AttendanceStatus.Absent, Source = AttendanceSource.Auto, MarkedAt = Now
+            StudentId = studentId, Status = status, Source = AttendanceSource.Auto, MarkedAt = Now
         });
         context.ClassSessions.Add(session);
         await context.SaveChangesAsync(Ct);
