@@ -18,7 +18,7 @@
                     var navArea = User.IsInRole("Admin") ? "Admin" : User.IsInRole("Teacher") ? "Teacher" : User.IsInRole("Parent") ? "Parent" : null;
                     var navItems = navArea switch
                     {
-                        "Admin" => new[] { ("Terms", "Terms"), ("Subjects", "Subjects"), ("Accounts", "Accounts"), ("Classes", "Classes") },
+                        "Admin" => new[] { ("Terms", "Terms"), ("Subjects", "Subjects"), ("Accounts", "Accounts"), ("Classes", "Classes"), ("FailedEmails", "Failed emails") },
                         "Teacher" => new[] { ("Classes", "My classes") },
                         "Parent" => new[] { ("Children", "My children") },
                         _ => []
