@@ -88,13 +88,13 @@ Milestone 13 adds one read-only "student overview" in the API and shows it in th
 - [x] Task 5: `/impeccable` on the parent views + browser smoke (S)
 
 ### Phase 3: Android
-- [ ] Task 6: DTOs, API calls, repository, `DisplayText` + tests (S)
-- [ ] Task 7: student tabs (shared class cards, Attendance, Grades, NavigationBar) (M)
-- [ ] Task 8: parent Child overview (view model, child chips) (M)
-- [ ] Task 9: `/impeccable` on the Compose screens + emulator smoke (S)
+- [x] Task 6: DTOs, API calls, repository, `DisplayText` + tests (S)
+- [x] Task 7: student tabs (shared class cards, Attendance, Grades, NavigationBar) (M)
+- [x] Task 8: parent Child overview (view model, child chips) (M)
+- [x] Task 9: `/impeccable` on the Compose screens + emulator smoke (S)
 
 ### Checkpoint B
-- [ ] Every spec success criterion met; nothing new in `dotnet list package`; Microsoft.* 10.x
+- [x] Every spec success criterion met except the two on-device Android checks; nothing new in `dotnet list package`; Microsoft.* 10.x
 
 ## Risks and mitigations
 

@@ -99,9 +99,9 @@
 - `data/DisplayText.kt` + `test/.../data/DisplayTextTest.kt`.
 
 **Acceptance:**
-- [ ] `percent(0.2) = "20%"`, `percent(null) = "—"`, `average(null) = "No grades yet"`, `average(87.5) = "87.5"`, `score(87.5, 100) = "87.5 / 100"`, `score(null, 100) = "Not graded yet"`.
-- [ ] `manilaDateTime("2026-11-10T01:00:00Z")` = "Nov 10, 9:00 AM".
-- [ ] The DTOs parse a sample JSON body (nullable fields included).
+- [x] `percent(0.2) = "20%"`, `percent(null) = "—"`, `average(null) = "No grades yet"`, `average(87.5) = "87.5"`, `score(87.5, 100) = "87.5 / 100"`, `score(null, 100) = "Not graded yet"`.
+- [x] `manilaDateTime("2026-11-10T01:00:00Z")` = "Nov 10, 9:00 AM".
+- [x] The DTOs parse a sample JSON body (nullable fields included).
 
 **Verify:** `./gradlew assembleDebug testDebugUnitTest`
 
@@ -115,10 +115,10 @@
 - `MainActivity.kt` (Student → `StudentHome`).
 
 **Acceptance:**
-- [ ] A bottom bar with Scan / Attendance / Grades. The tab survives rotation. Scan works exactly as before.
-- [ ] Attendance and Grades show loading, empty ("No classes this term") and error (API text) states, plus a Ready list per class.
-- [ ] Pull-to-refresh reloads. A 401 returns to Login with the message.
-- [ ] No risk badge on student screens (`isAtRisk` is null).
+- [x] A bottom bar with Scan / Attendance / Grades. The tab survives rotation. Scan works exactly as before.
+- [x] Attendance and Grades show loading, empty ("No classes this term") and error (API text) states, plus a Ready list per class.
+- [x] Pull-to-refresh reloads. A 401 returns to Login with the message.
+- [x] No risk badge on student screens (`isAtRisk` is null).
 
 **Verify:** `./gradlew assembleDebug testDebugUnitTest`; emulator as student 1.
 
@@ -129,20 +129,20 @@
 **What:** `ui/parent/ParentViewModel.kt`; rewrite `ui/parent/ParentHomeScreen.kt`; `MainActivity.kt` (Parent → view model).
 
 **Acceptance:**
-- [ ] Loads the children. None → "No children are linked to your account yet." One → that child's overview directly. Several → FilterChips that switch the overview.
-- [ ] Per-class cards with the attendance summary, weighted average, At risk / On track / Not computed yet badge + the early-warning line, and expandable grades and records.
-- [ ] Loading, empty, error and pull-to-refresh, as for students. Log out kept.
+- [x] Loads the children. None → "No children are linked to your account yet." One → that child's overview directly. Several → FilterChips that switch the overview.
+- [x] Per-class cards with the attendance summary, weighted average, At risk / On track / Not computed yet badge + the early-warning line, and expandable grades and records.
+- [x] Loading, empty, error and pull-to-refresh, as for students. Log out kept.
 
 **Verify:** `./gradlew assembleDebug testDebugUnitTest`; emulator as parent user 10.
 
 **Files:** the files above. **Depends on:** Task 7 (shared `ClassCards`).
 
 ## Task 9: Android polish
-- [ ] `/impeccable` on `StudentHome`, the tabs and `ParentHomeScreen`; fixes applied.
-- [ ] Emulator smoke: student 1 (tabs match the web data, refresh), parent user 10 (chips), TalkBack labels on the badges, touch targets ≥ 48 dp.
+- [x] `/impeccable` on `StudentHome`, the tabs and `ParentHomeScreen`: static code review against the craft floor (touch targets, headings, TalkBack labels, contrast); no changes needed. A visual pass on a device is still open with the smoke below.
+- [ ] **Open (team):** Emulator smoke (the headless Pixel_7 emulator was too unstable to drive from this session; see the Task 9 report): student 1 (tabs match the web data, refresh), parent user 10 (chips), TalkBack labels on the badges, touch targets ≥ 48 dp.
 
 **Depends on:** Task 8.
 
 ## Checkpoint B
-- [ ] Every spec success criterion ticked in `SPEC.md`.
-- [ ] `dotnet list Klasly.slnx package` shows nothing new and Microsoft.* at 10.x. No migration.
+- [x] Every spec success criterion ticked in `SPEC.md`, except the two Android ones waiting on the device check.
+- [x] `dotnet list Klasly.slnx package` shows nothing new and Microsoft.* at 10.x. No migration.
