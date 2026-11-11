@@ -1,9 +1,9 @@
 @{
     ViewData["Title"] = "Welcome";
-    var role = User.FindFirstValue(ClaimTypes.Role)?.ToLowerInvariant();
 }
 
+@* Admins, teachers and parents are redirected to their portals; only students land here. *@
 <section class="py-5">
     <h1 class="h3">Hi, @User.Identity?.Name.</h1>
-    <p class="text-body-secondary">Your @role pages are coming soon.</p>
+    <p class="text-body-secondary">Use the Klasly app on your phone to scan and see your records.</p>
 </section>

@@ -10,8 +10,13 @@ namespace Klasly.API.Controllers;
 [ApiController]
 [Route("api/students/me")]
 [Authorize(Policy = "StudentOnly")]
-public class StudentsController(IAccountService accountService) : ControllerBase
+public class StudentsController(IAccountService accountService, IOverviewService overviewService) : ControllerBase
 {
+    /// <summary>My attendance and grades for the active term (My attendance / My grades tabs). No at-risk flag.</summary>
+    [HttpGet("overview")]
+    public Task<StudentOverviewResponse> Overview(CancellationToken ct) =>
+        overviewService.GetForStudentAsync(CurrentUserId, ct);
+
     /// <summary>
     /// Registers this phone for scanning. The app calls it after every login: the first phone is saved,
     /// the same phone again changes nothing, another phone gets 409 until the admin resets it.

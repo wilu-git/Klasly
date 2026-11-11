@@ -1,211 +1,219 @@
-# Spec: Milestone 12 — Worker: parent alerts outbox + Brevo email sender
+# Spec: Milestone 13 — Dashboards: Parent portal (MVC) + My attendance / My grades / Child overview (Android)
 
 > Status: **Approved** (2026-11-11). Open questions 1–6 answered as recommended:
-> - add `Microsoft.Extensions.Http` 10.0.14;
-> - 401/403 stops the batch and leaves rows Pending;
-> - absence alerts reach back 48 h;
-> - unconfigured Brevo → Failed "Brevo is not configured";
-> - Brevo account setup is the last task;
-> - 50 emails per tick (constant).
+> - one shared `StudentOverviewResponse` for students and parents;
+> - students get `IsAtRisk = null` (they still see absence rate and weighted average);
+> - rate, average and badge come from the latest `RiskFlags` snapshot; counts and lists are live;
+> - an unlinked or unknown child → 403 "You can only view your own children";
+> - no admin/teacher dashboards in this milestone (failed-emails list → Milestone 14);
+> - Android tabs use the Material 3 `NavigationBar` + `rememberSaveable`; no new package.
 >
-> Plan: `tasks/plan-m12.md` + `tasks/todo-m12.md`.
-> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "Email outbox (Brevo)" and "Risk calculation", §27.6 Notifications / Guardians / StudentGuardians / SystemSettings, §27.9 #9, §13 `BrevoEmailClient` + 10 s timeout, §14 `Brevo:ApiKey` and config) → `CLAUDE.md` (§3.5 Console Worker, §6 Milestone 12) → this spec.
-> Milestone 11's spec is in git history (commit `9d7dacb`) and in `docs/reports/2026-11-11-0055-milestone-11-worker-risk-flags/`.
+> Plan: `tasks/plan-m13.md` + `tasks/todo-m13.md`.
+> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.2 "Role dashboards", §27.5 parents see only linked students + at-risk is an early warning, §27.6 RiskFlags "dashboards read the latest", §27.8 risk rules, §11 MVC has no database) → `CLAUDE.md` (§3.3 status codes, §3.4 Parent pages, §3.6 Android screens, §6 Milestone 13) → this spec.
+> Milestone 12's spec is in git history (commit `56d0fe5`) and in `docs/reports/2026-11-11-0854-milestone-12-task-5-wire-tick-smoke/`.
 
 ## What exists today
 
-- **The outbox table is ready.** `Notifications` has every column (Channel, Type, Subject, Body, Status, Attempts, NextAttemptAt, LastError, DedupKey, ExternalMessageId, CreatedAt), plus:
-  - CHECKs on the Channel, Type, Status and Attempts values;
-  - a unique `DedupKey` (150 chars);
-  - the `(Status, NextAttemptAt)` index.
-  
-  The Web API already writes and sends `Push / GradePosted` rows (Milestone 10). Nothing writes `Email` rows yet.
-- **Recipients exist.** `Guardians.ContactEmail` (required), `StudentGuardians.ReceivesAlerts` (default true). The seed links students 1–5 to 3 fictional guardians at `@klasly.test`; student 6 has no guardian.
-- **Triggers exist:**
-  - Absent records from the Worker (`Source = Auto`) or a teacher correction (`Source = Manual`, `MarkedAt` = correction time);
-  - `RiskFlags` snapshots written only on change (Milestone 11), so "became at-risk" = the latest row is at-risk and the row before it is not (or there is none).
-- **Settings:** `MaxEmailAttempts = 5`, `TimeZoneId = Asia/Manila` are seeded.
-- **The Worker:** `WorkerTickJob` runs close → Absent + finalize → risk, with a `// Milestone 12` placeholder. It has `[DisableConcurrentExecution]` and `[AutomaticRetry(Attempts = 0)]` (no Hangfire retries; the outbox retries).
-- **Pattern to copy:** the API's `IFcmPushClient` / `FcmPushClient` (typed `HttpClient`, 10 s timeout, returns a result, never throws on HTTP errors) and `PushTests` (fake client).
-- **Missing:** the Worker has **no `AddHttpClient`**. The Worker SDK doesn't include `Microsoft.Extensions.Http` (see Q1).
+- **Data is all there, but nobody can read it as a student or parent.**
+  - `AttendanceRecords` (Present / Late / Absent / Excused) from scans, the Worker and teacher corrections.
+  - `Assessments` + `Grades` from Milestone 10.
+  - `RiskFlags` snapshots from Milestone 11: `AbsenceRate`, `WeightedAverage` (null until a grade is posted), `IsAtRisk`, `ComputedAt`. Written only when a value changes.
+- **Web API:**
+  - The `StudentOnly` and `ParentOnly` policies exist. `ParentOnly` is not used yet.
+  - `api/students/me` has only `POST device` and `PUT fcm-token`.
+  - The JWT `sub` is the UserId. `IUserRepository.GetByIdAsync` loads the Student / Guardian profile. `GetLinksAsync(guardianId)` lists a parent's linked students.
+  - `LinkedStudentResponse(StudentId, StudentNumber, StudentName, Relationship, ReceivesAlerts)` already exists (admin parent-links page).
+- **Web MVC:**
+  - `HomeController.Index` sends Admin and Teacher to their areas. Parent and Student see a "Your pages are coming soon" placeholder.
+  - Pattern to copy: the `Teacher` area (controller → service → API-backed repository → typed `HttpClient`), `ManilaTime`, `_Alerts`, `ApiExceptionFilter`.
+- **Android:**
+  - `MainActivity` picks a screen by role: Student → `ScanScreen` only; Parent → `ParentHomeScreen`, a placeholder that says "Your child overview comes in a later update".
+  - No navigation library. Material 3 from Compose BOM 2026.02.01, which includes `NavigationBar` and `PullToRefreshBox`.
+  - Manila time formatting is in `ScanViewModel`. `ApiText` + `ApiTextTest` cover API error text.
 
 ## Assumptions (correct these before we build)
 
-1. **Two new steps, in this order, after risk:** **queue alerts** → **send emails**. Each is its own service; the job only calls them (CLAUDE.md §3.5).
-2. **Who gets an alert:** each guardian linked to the student with `ReceivesAlerts = 1` whose user is active (`Users.IsActive = 1`). Only for **Active** enrollments in classes of the **active term**. One email per guardian per alert; a guardian with two children gets separate emails.
-3. **Absence alert:**
-   - **Trigger:** an `Absent` record in a **Finalized** session, with `MarkedAt` inside the last **48 hours** (see Q3).
-   - **DedupKey:** `absent:{SessionId}:{StudentId}:{GuardianId}` (the guide's format).
-   - **Corrections:** a teacher correcting Present → Absent sets `MarkedAt` to now, so it is picked up on the next tick. Correcting back to Present after the email is queued doesn't take it back.
-   - **Excused:** never alerts.
-4. **At-risk alert:**
-   - **Trigger:** the enrollment's **latest** `RiskFlags` row is at-risk and the row before it is not at-risk or missing.
-   - **DedupKey:** `atrisk:{RiskFlagId}:{GuardianId}`.
-   - **Repeats:** a student who recovers and becomes at-risk again gets a new snapshot, so a new alert. A student still at-risk gets no repeat.
-5. **"Never twice":** the queue query skips alerts whose DedupKey already exists. The unique index is the backstop. The Worker is the only writer and ticks never overlap, so there is no race.
-6. **Email text** is stored in `Subject` / `Body` when queued, with times in `TimeZoneId` (Asia/Manila). Sent as Brevo `textContent` (plain text, no HTML template).
-   - Absence: subject `Klasly: Aira Santos was absent from ELECT3`, body: who, subject + section, the session date and time (Manila), and that the teacher marked or confirmed the absence.
-   - At-risk: subject `Klasly: Aira Santos may need support in ELECT3`, body: absence rate (%), weighted average (or "no grades yet"), and "This is an early-warning indicator for review, not a final grade" (§27.5).
-7. **Sending:**
-   - **Which rows:** `Channel = Email`, `Status = Pending`, `NextAttemptAt` null or ≤ now, oldest first, at most **50 per tick**. Push rows are never touched (the API owns them).
-   - **Recipient:** read at send time from the guardian's `ContactEmail`.
-   - **The call:** `POST {Brevo:BaseUrl}smtp/email` with the `api-key` header, JSON `sender {name, email}`, `to [{email, name}]`, `subject`, `textContent`; 10 s timeout.
-8. **Results (guide §27.8):** every try does `Attempts++`, then:
-   - **2xx** → `Accepted` + `ExternalMessageId` = Brevo `messageId`.
-   - **400** and any other 4xx except 401/403/429 → `Failed` + `LastError` (status + Brevo's message, cut to 500 chars).
-   - **429, 5xx, timeout, network error** → transient:
-     - stays `Pending`;
-     - `NextAttemptAt = now + 5 min × 2^(Attempts − 1)` (5, 10, 20, 40 min…), plus a random 0–60 s jitter;
-     - when `Attempts ≥ MaxEmailAttempts` → `Failed` + LastError.
-   - **401 / 403** → see Q2.
-9. **Configuration:**
-   - `appsettings.json`: `Brevo:BaseUrl` (`https://api.brevo.com/v3/`), `Brevo:SenderEmail`, `Brevo:SenderName` (`Klasly`).
-   - User-secrets: `Brevo:ApiKey` only (§14).
-   - `MaxEmailAttempts` is read from `SystemSettings` with the same "missing or out of range fails the step" rule as Milestone 11 (range 1–20).
-10. **No schema change.** No API endpoint and no page. "Failed rows shown on the admin dashboard" (§27.8) waits for the dashboards; until then they are visible in the table and the Worker log.
-11. **Saving:** the queue step saves once per tick; the send step saves **after each email**, so a crash never re-sends an already Accepted email.
+1. **One read model for both roles.** A "student overview" covers one student in the **active term**, with one entry per **Active** enrollment (dropped classes are hidden). Each entry has:
+   - class: subject code + title, section, teacher name;
+   - attendance: counts of Present / Late / Absent / Excused, plus every record, newest first (session start time + status);
+   - grades: every assessment of the class (title, type, max score, weight) with the student's score, or null = "not graded yet";
+   - risk: `AbsenceRate`, `WeightedAverage`, `IsAtRisk`, `ComputedAt` from the **latest** RiskFlags snapshot (see Q3). All null if the Worker hasn't run yet.
+2. **Read-only.** No new tables, no migration, no new package, no writes. Parents cannot change alert settings (the admin does that).
+3. **Endpoints (REST, under `/api/`):**
+   - `GET /api/students/me/overview`: `StudentOnly`. The logged-in student's overview.
+   - `GET /api/parent/children`: `ParentOnly`. The linked students (`List<LinkedStudentResponse>`, reused), ordered by name.
+   - `GET /api/parent/children/{studentId}/overview`: `ParentOnly`. Same response shape. A student not linked to this parent → **403** "You can only view your own children" (Q4).
+   - No active term → `200` with an empty `Classes` list and `TermName = null`. The clients show "No classes this term".
+4. **Ownership comes from the token, never from the client.** The student endpoint has no id in the URL. The parent endpoints look up the guardian from `sub`, then check the `StudentGuardians` link. An inactive parent/student user can't log in, so it needs no extra check here.
+5. **Times are UTC in JSON.** MVC shows them with `ManilaTime`; Android with `ZoneId.of("Asia/Manila")` (CLAUDE.md §3.1).
+6. **MVC Parent area** (Bootstrap, same look as the Teacher area):
+   - `HomeController` sends Parent → `Parent/Children/Index`. The nav shows "My children".
+   - **Index:** linked children (name, student number). Exactly one child → redirect straight to that child's page. None → "No children are linked to your account yet. Ask the school admin."
+   - **Details (child overview):** one card per class with:
+     - attendance counts;
+     - absence rate;
+     - weighted average (or "No grades yet");
+     - an **At risk** / **On track** badge, with the line "This is an early-warning indicator for review, not a final grade" (§27.5) and "Updated <Manila time>";
+     - two tables you can expand: attendance records (date, time, status) and grades (assessment, score / max, weight).
+   - Student users who log into MVC see "Use the Klasly app on your phone to scan and see your records" instead of "coming soon". No student pages on the web.
+7. **Android, Student:** a bottom `NavigationBar` with three tabs: **Scan** (today's screen, unchanged), **Attendance**, **Grades**. The selected tab is kept with `rememberSaveable`; no navigation library (Q6).
+   - **Attendance tab:** per class, the counts, the absence rate and the list of records (date, time in Manila, status).
+   - **Grades tab:** per class, each assessment with score / max and weight, plus the weighted average ("No grades yet" when null).
+   - Both tabs share one `StudentOverviewViewModel`, which loads `students/me/overview` once. Pull-to-refresh (`PullToRefreshBox`) reloads it.
+8. **Android, Parent:** `ParentHomeScreen` becomes the **Child overview**.
+   - It loads `parent/children`. One child → shows the overview directly. Several → a row of filter chips to pick the child.
+   - It shows the same per-class cards as the MVC Details page (attendance summary, weighted average, at-risk badge + the early-warning line), with grades and records you can expand.
+   - Pull-to-refresh. Log out stays.
+9. **Every Android screen** shows loading, empty and error states. Error text comes from `ApiText`, same as scan; a 401 sends the user back to Login as today.
+10. **Thresholds aren't sent.** Clients show `IsAtRisk` as computed by the Worker; they never re-apply the 20% / 75 rule.
 
 ## Objective
 
-Parents hear about problems early. When their child is marked absent, or newly flagged at-risk, each linked guardian who wants alerts gets **one** email through Brevo. A Brevo outage or rate limit delays it (with backoff) but never loses or duplicates it (§27.9 #9).
+Parents and students can finally see the data Klasly collects. A parent opens the web portal or the app and sees, for each linked child and each class: attendance, grades, and whether the child is flagged at-risk. A student sees their own attendance and grades in the app. The Web API decides who may see what (§27.5); the clients only display.
 
 ### User stories
 
-- As a **parent**, I get an email the same day my child is marked absent, and when my child becomes at-risk, so I can act before the term ends.
-- As a **parent**, I never get the same alert twice, even if the Worker restarts or Brevo is down for an hour.
-- As the **team**, we can see in `Notifications` which emails were sent, are waiting to retry, or failed and why.
+- As a **parent**, I see each of my children's attendance, grades and at-risk status per class, on the web or on my phone, so I know where to help.
+- As a **parent**, I can never see a child who isn't linked to me, even if I change the id in the URL.
+- As a **student**, I see my attendance records and my grades per class in the app, right after I scan.
 
 ## Design
 
 ```
-WorkerTickJob.RunAsync
-  ├─ AttendanceFinalizer (M9) → RiskCalculator (M11)
-  ├─ AlertQueuer.QueueAsync(now)               ← new
-  │     1. read TimeZoneId
-  │     2. INotificationRepository.ListAbsenceAlertsAsync(sinceUtc)   → candidates without an existing DedupKey
-  │     3. INotificationRepository.ListAtRiskAlertsAsync()            → candidates without an existing DedupKey
-  │     4. build Subject/Body, Add Notification (Email, Pending), one save
-  └─ EmailSender.SendDueAsync(now)             ← new
-        1. read MaxEmailAttempts; if Brevo isn't configured → Q4
-        2. INotificationRepository.ListDueEmailsAsync(now, take: 50)  (tracked, with Guardian email)
-        3. per row: IBrevoEmailClient.SendAsync → apply result (assumption 8) → save
+Android (Student)  GET /api/students/me/overview ──┐
+Android / MVC (Parent)                             │
+  GET /api/parent/children                         ├─► StudentsController / ParentController
+  GET /api/parent/children/{id}/overview ──────────┘        │
+                                                    OverviewService (API)
+                                                      • student: userId → StudentId
+                                                      • parent:  userId → GuardianId → link check (403)
+                                                            │
+                                                    IOverviewRepository.GetAsync(studentId)   (Infrastructure)
+                                                      one projection query: active term → Active enrollments →
+                                                      class, records, assessments + this student's grades,
+                                                      latest RiskFlags row
+                                                            │
+                                                    StudentOverviewResponse (Core DTO)
 ```
 
-`IBrevoEmailClient` / `BrevoEmailClient` (Worker, typed `HttpClient`) returns `EmailResult(Kind: Accepted | Permanent | Transient | Unauthorized, MessageId?, Error?)` and never throws for HTTP errors or timeouts (except cancellation).
+```csharp
+public record StudentOverviewResponse(int StudentId, string StudentNumber, string FullName, string? TermName, List<ClassOverview> Classes);
+public record ClassOverview(int ClassId, string SubjectCode, string SubjectTitle, string Section, string TeacherName,
+    int Present, int Late, int Absent, int Excused,
+    decimal? AbsenceRate, decimal? WeightedAverage, bool? IsAtRisk, DateTime? RiskComputedAtUtc,
+    List<AttendanceItem> Attendance, List<GradeItem> Grades);
+public record AttendanceItem(int SessionId, DateTime StartTimeUtc, string Status);
+public record GradeItem(int AssessmentId, string Title, string Type, decimal MaxScore, decimal WeightPercent, decimal? Score, DateTime? PostedAtUtc);
+```
 
 ## Commands
 
 ```
 Build:    dotnet build Klasly.slnx
 Test:     dotnet test --solution Klasly.slnx
-Worker:   dotnet run --project src/Klasly.Worker -- --Worker:Cron "* * * * *"
-Secret:   dotnet user-secrets set "Brevo:ApiKey" "<key>" --project src/Klasly.Worker
+API:      dotnet run --project src/Klasly.API          (Swagger UI at /swagger in Development)
+Web:      dotnet run --project src/Klasly.Web
+Worker:   dotnet run --project src/Klasly.Worker -- --Worker:Cron "* * * * *"   (so RiskFlags exist)
+Android:  cd android/KlaslyApp && ./gradlew assembleDebug testDebugUnitTest
 Model:    dotnet ef migrations has-pending-model-changes -p src/Klasly.Infrastructure -s src/Klasly.API   (must say none)
-Packages: dotnet list Klasly.slnx package   (Microsoft.* all 10.0.14)
-Check:    SELECT TOP 20 NotificationId, Type, Status, Attempts, NextAttemptAt, LastError, DedupKey FROM Notifications WHERE Channel = 'Email' ORDER BY NotificationId DESC;
+Packages: dotnet list Klasly.slnx package   (Microsoft.* all 10.x, nothing new)
 ```
 
 ## Project structure (files this milestone touches)
 
 | Path | New / changed | Why |
 | --- | --- | --- |
-| `src/Klasly.Core/DTOs/AlertCandidates.cs` | new | `AbsenceAlert` and `AtRiskAlert`: one alert to queue (guardian, student, subject, session or snapshot facts). Due emails are plain tracked `Notification` rows with `User.Guardian` loaded, so they need no DTO. |
-| `src/Klasly.Core/Interfaces/INotificationRepository.cs` | changed | `ListAbsenceAlertsAsync`, `ListAtRiskAlertsAsync`, `ListDueEmailsAsync`. |
-| `src/Klasly.Infrastructure/Repositories/NotificationRepository.cs` | changed | The three queries. |
-| `src/Klasly.Worker/Email/BrevoEmailClient.cs` | new | `IBrevoEmailClient`, `EmailResult`, `BrevoOptions`, the typed client. |
-| `src/Klasly.Worker/Services/AlertQueuer.cs` | new | Builds and queues the email rows. |
-| `src/Klasly.Worker/Services/EmailSender.cs` | new | Sends due rows, applies results, backoff + jitter. |
-| `src/Klasly.Worker/Jobs/WorkerTickJob.cs` | changed | Two new steps + log lines. |
-| `src/Klasly.Worker/Program.cs` | changed | Options, `AddHttpClient<IBrevoEmailClient, BrevoEmailClient>` (10 s), services. |
-| `src/Klasly.Worker/Klasly.Worker.csproj` | changed | `Microsoft.Extensions.Http` 10.0.14 (Q1). |
-| `src/Klasly.Worker/appsettings.json` | changed | `Brevo:BaseUrl`, `SenderEmail`, `SenderName`. |
-| `tests/Klasly.Tests/AlertQueuerTests.cs` | new | LocalDB: triggers, filters, dedup, text. |
-| `tests/Klasly.Tests/EmailSenderTests.cs` | new | Fake client: every result branch, backoff, max attempts, push rows untouched. |
-| `tests/Klasly.Tests/BrevoEmailClientTests.cs` | new | Fake `HttpMessageHandler`: request shape, header, status → result mapping, timeout. |
+| `src/Klasly.Core/DTOs/StudentOverviewResponse.cs` | new | The four records above. |
+| `src/Klasly.Core/Interfaces/IOverviewRepository.cs` | new | `GetAsync(studentId, ct)` → overview or null (unknown student). |
+| `src/Klasly.Infrastructure/Repositories/OverviewRepository.cs` | new | The single projection query (no tracking). |
+| `src/Klasly.Infrastructure/DependencyInjection.cs` | changed | Register the repository. |
+| `src/Klasly.API/Services/OverviewService.cs` + `Interfaces/IOverviewService.cs` | new | Who-may-see-what + calls the repository. |
+| `src/Klasly.API/Controllers/StudentsController.cs` | changed | `GET overview`. |
+| `src/Klasly.API/Controllers/ParentController.cs` | new | `GET children`, `GET children/{studentId}/overview`. |
+| `src/Klasly.API/Program.cs` | changed | Register the service. |
+| `tests/Klasly.Tests/OverviewTests.cs` | new | LocalDB: what's included, risk, ownership. |
+| `src/Klasly.Web/Models/Api/OverviewDtos.cs` | new | Web copies of the response records (Web references no Core). |
+| `src/Klasly.Web/Repositories/ParentRepository.cs` + interface | new | Typed `HttpClient` calls. |
+| `src/Klasly.Web/Services/ParentService.cs` + interface | new | Builds the view models. |
+| `src/Klasly.Web/ViewModels/ChildOverviewViewModel.cs` | new | Overview + Manila-time labels + sibling list. |
+| `src/Klasly.Web/Areas/Parent/Controllers/ChildrenController.cs` | new | Index, Details. `[Authorize(Roles = "Parent")]`. |
+| `src/Klasly.Web/Areas/Parent/Views/…` | new | `Children/Index`, `Children/Details`, `_ViewImports`, `_ViewStart`. |
+| `src/Klasly.Web/Controllers/HomeController.cs`, `Views/Shared/_Layout.cshtml`, `Views/Home/Index.cshtml`, `Program.cs` | changed | Parent redirect, nav item, student message, DI. |
+| `android/…/data/Dtos.kt`, `KlaslyApi.kt`, `KlaslyRepository.kt` | changed | 3 calls + DTOs. |
+| `android/…/data/DisplayText.kt` + `test/…/DisplayTextTest.kt` | new | Pure formatting: percent, average / "No grades yet", score / max, Manila date-time. Unit-tested. |
+| `android/…/ui/student/StudentHome.kt` | new | Bottom bar with the three tabs. |
+| `android/…/ui/student/StudentOverviewViewModel.kt`, `AttendanceTab.kt`, `GradesTab.kt` | new | The two new tabs. |
+| `android/…/ui/overview/ClassCards.kt` | new | Shared per-class cards (used by student tabs and the parent screen). |
+| `android/…/ui/parent/ParentHomeScreen.kt` + `ParentViewModel.kt` | changed / new | Child overview. |
+| `android/…/MainActivity.kt` | changed | Student → `StudentHome`, Parent → view model. |
 
 ## Code style
 
-Same as Milestones 9–11: primary constructors, `now` passed in by the job, `CancellationToken` everywhere, the HTTP client never throws on an HTTP status. One small piece of the sender:
+Same as earlier milestones: primary constructors, `CancellationToken` everywhere, DTOs only, problem-details errors via the existing exceptions (`ForbiddenException` → 403). In the service, the ownership check is one line before the read:
 
 ```csharp
-static DateTime NextAttempt(DateTime nowUtc, int attempts) =>
-    nowUtc.AddMinutes(5 * Math.Pow(2, attempts - 1)).AddSeconds(Random.Shared.Next(0, 61)); // backoff + jitter (§27.8)
+if (!await users.IsLinkedAsync(guardianId, studentId, ct)) throw new ForbiddenException("You can only view your own children");
 ```
+
+(Uses the existing `GetLinkAsync` if it fits; no new method unless needed.) Android: `ViewModel` + `StateFlow<UiState>` (`Loading | Empty | Error(message) | Ready(data)`), same as `ScanViewModel`.
 
 ## Testing strategy
 
-- **`BrevoEmailClientTests`** (no network, fake handler):
-  - the URL, the `api-key` header and the JSON body;
-  - 201 → Accepted + messageId;
-  - 400 → Permanent; 401/403 → Unauthorized;
-  - 429 / 500 / 503 → Transient; a timeout → Transient.
-- **`EmailSenderTests`** (LocalDB + fake client):
-  - each result updates Status, Attempts, NextAttemptAt, LastError and ExternalMessageId as in assumption 8;
-  - the 5th transient failure → Failed;
-  - a row with `NextAttemptAt` in the future is skipped;
-  - Push rows are never touched;
-  - at most 50 per run;
-  - Q2 and Q4 behaviour.
-- **`AlertQueuerTests`** (LocalDB):
-  - an Absent in a Finalized session → one row per opted-in guardian, with the right DedupKey, subject and Manila time;
-  - `ReceivesAlerts = 0`, an inactive guardian user, Excused, a Closed session, Dropped, an inactive term, or older than 48 h → none;
-  - running twice → no duplicates;
-  - at-risk flip → alert; still at-risk → none; recover then flip again → a second alert.
-- The alert/email test classes share one xUnit collection (they read and write global outbox rows), like the Milestone 11 "Risk" collection.
-- **Smoke (manual, needs Q5 setup):**
-  - set one dev guardian's `ContactEmail` to a team member's own address;
-  - set `Brevo:ApiKey` and a verified `SenderEmail`;
-  - run the Worker, mark that student absent, and receive the email;
-  - check the row is `Accepted` with a messageId;
-  - with a wrong key, check Q2's behaviour.
+- **`OverviewTests`** (LocalDB, xUnit, the existing `DatabaseFixture`):
+  - only active-term classes and Active enrollments are listed; a Dropped class is hidden;
+  - counts per status match the records; records are newest first;
+  - every assessment is listed, with Score null when ungraded;
+  - risk = the **latest** snapshot, or all null without one;
+  - no active term → empty list;
+  - a parent reading a linked child → 200; an unlinked child → `ForbiddenException`; an unknown id → 403 too (no hint whether it exists);
+  - student risk fields follow Q2.
+- **Role access:** the endpoints use the existing policies (Teacher / Admin on these routes → 403; no token → 401). Checked in the smoke test; full role-access tests are Milestone 14.
+- **Android:** `DisplayTextTest` (JVM): 0.2 → "20%", null average → "No grades yet", 87.5/100 → "87.5 / 100", a UTC instant → Manila date/time. Then `./gradlew assembleDebug testDebugUnitTest`.
+- **Smoke (manual):**
+  - Run API + Web + Worker.
+  - Log in on the web as a seeded parent: see the children, a child's classes, badge and tables. Change the URL to another student's id → the API's 403 message.
+  - On the emulator, as a student: the Attendance and Grades tabs show the seeded data; pull to refresh.
+  - As a parent on the emulator: the child overview, and switching between children.
+- `/impeccable` on the new Razor views and Compose screens before calling the UI done.
 
 ## Boundaries
 
 - **Always:**
-  - keep the rules in the services and HTTP in the client (§13);
-  - store UTC, show Manila time only in the email text;
-  - run build + tests;
-  - write the reports.
+  - authorization in the API (the link check), never only in the client;
+  - UTC in, Manila only on screen;
+  - show the early-warning line next to any at-risk badge;
+  - loading / empty / error states;
+  - build + tests + `assembleDebug`;
+  - reports.
 - **Ask first:**
-  - any schema change;
-  - adding a package beyond Q1;
-  - HTML templates or Brevo template ids;
-  - SMS or other channels (Optional in §27.2);
-  - an admin page for failed emails.
+  - any schema change or new package (e.g. navigation-compose);
+  - a risk trend chart (Nice-to-Have);
+  - export to PDF/Excel (Nice-to-Have);
+  - excuse requests (Nice-to-Have);
+  - letting parents change alert settings;
+  - admin or teacher dashboards (Q5).
 - **Never:**
-  - commit the Brevo key or a real person's email address (RA 10173);
-  - send to the seeded `@klasly.test` addresses from a real Brevo account (they bounce and hurt the sender's reputation);
-  - touch Push rows;
-  - let Hangfire retry the tick;
-  - delete Notifications rows.
+  - return EF entities;
+  - accept a student id from a student client;
+  - recompute risk in the clients;
+  - show another family's child;
+  - real people's data in seeds or screenshots (RA 10173).
 
 ## Success criteria
 
-- [x] A new Absent in a Finalized session queues exactly one Email/Absence row per opted-in, active guardian. Running again adds nothing.
-- [x] A student who becomes at-risk queues one Email/AtRisk row per opted-in guardian. Staying at-risk adds nothing; recovering and flipping again adds one more.
-- [ ] Pending emails are sent through Brevo. 2xx → Accepted with messageId; 400 → Failed; 429/5xx/timeout → retried with growing backoff + jitter and Failed after `MaxEmailAttempts`; 401/403 per Q2. *(Logic verified with a fake Brevo in Task 2; the real Brevo call is Task 6, by the team.)*
-- [x] Push rows are untouched; an email Accepted once is never sent again, even after a crash mid-batch.
-- [x] Without Brevo configured, the Worker still runs every other step, behaving as Q4 says.
-- [x] No migration; Microsoft.* all 10.x; only the Q1 package added; no secret or real email committed; all tests pass.
-- [x] Reports written; INDEX line added.
+- [ ] `GET /api/students/me/overview` returns the logged-in student's active-term classes with attendance counts + records, all assessments with scores (null = ungraded), and the latest risk values (per Q2).
+- [ ] `GET /api/parent/children` lists only the parent's linked students. `GET /api/parent/children/{id}/overview` returns the same shape for a linked child and 403 for any other id.
+- [ ] MVC: a parent lands on My children (or straight on the only child), sees per-class attendance, grades and an At risk / On track badge with the early-warning line, times in Manila. API errors are shown with `_Alerts`.
+- [ ] Android, Student: Scan / Attendance / Grades tabs. Attendance and Grades show the API data, with loading, empty and error states and pull-to-refresh.
+- [ ] Android, Parent: the child overview replaces the placeholder, with a child picker when there are several.
+- [ ] No migration, no new package, Microsoft.* all 10.x; `dotnet build`, `dotnet test`, `./gradlew assembleDebug testDebugUnitTest` pass.
+- [ ] Reports written; INDEX line added.
 
 ## Open questions (my recommendation first)
 
-1. **Add `Microsoft.Extensions.Http` 10.0.14 to the Worker?** Guide §13 and CLAUDE.md §4.1 require a typed `HttpClient` from `IHttpClientFactory`, and the Worker SDK doesn't include it. The API gets it free from ASP.NET Core. **Recommend yes** (same 10.0.14 as the other Microsoft packages; no other new package). Alternative: one static `HttpClient`, against the guide.
-2. **401 / 403 from Brevo.** The guide calls them permanent (Failed). But they mean *our* API key or account is wrong, not the parent's address, so every row in the batch would be marked Failed and never sent. **Recommend:**
-   - stop the batch;
-   - leave the rows Pending without counting an attempt;
-   - log an error: "Brevo rejected the API key (401). Emails wait until it is fixed."
-   
-   Alternative: follow the guide literally (Failed).
-3. **How far back do absence alerts reach?** Without a limit, the first run would email every Absent of the whole term (the dev database has dozens). **Recommend 48 hours by `MarkedAt`.** That covers a Worker outage up to 2 days, and older absences are never emailed. Alternatives: 24 h, or only records marked after this feature is first deployed.
-4. **Brevo not configured** (no `Brevo:ApiKey` or `SenderEmail`). **Recommend: mark due rows `Failed` "Brevo is not configured",** the same as Milestone 10's "FCM is not configured". Nothing piles up and blasts out the day the key is added. Alternative: leave them Pending, skip sending, and log a warning.
-5. **Brevo account setup** waits on the team, like Milestone 10's Firebase:
-   - create a free Brevo account;
-   - verify one sender address;
-   - create an API key;
-   - `dotnet user-secrets set "Brevo:ApiKey" …`;
-   - put the sender in `appsettings.json` (it isn't a secret).
-   
-   **Recommend: the plan includes these as the last task, and every other task is tested with fakes so nothing blocks on it.**
-6. **Per-tick cap of 50 emails.** It keeps a tick well under Hangfire's 10-minute lock even with slow responses, and inside Brevo's free 300/day. **Recommend 50, as a constant with a `shortcut:` comment** (move it to config if the school is bigger).
+1. **One shared response for students and parents?** **Recommend yes.** One repository query, one DTO, one set of tests; the Android class cards are reused by both roles. Alternative: separate `attendance` and `grades` endpoints for students (two queries, two DTOs, and the parent still needs both).
+2. **Do students see their own at-risk flag?** §27.5 calls it "an early-warning indicator for teachers to review"; CLAUDE.md lists at-risk only on the Parent screens. **Recommend: no.** The student response sends `IsAtRisk = null`. Students still see their absence rate and weighted average, which they can work out from their own records anyway. Alternative: show it to students too, with the same early-warning line.
+3. **Where do absence rate and weighted average come from?** **Recommend the latest `RiskFlags` snapshot** (§27.6 "dashboards read the latest"). One source of truth with the Worker's rules, and the badge and the numbers always agree. The cost: up to one tick (5 min) behind a fresh scan or grade, and "—" until the Worker's first run. The counts and lists are always live. Alternative: compute live in the API, which copies the Worker's formula into a second place.
+4. **Unlinked child: 403 or 404?** **Recommend 403** "You can only view your own children", as CLAUDE.md §3.3 says ("403 not owner"). An unknown id gets the same 403, so it doesn't reveal which ids exist. Alternative: 404 for both.
+5. **Admin/teacher dashboards are not in this milestone.** That includes the "Failed emails" list that §27.8 puts on the admin dashboard (deferred from Milestone 12). CLAUDE.md §6 scopes Milestone 13 to the Parent portal and the Android screens. **Recommend: leave them out**, and add the failed-emails table to Milestone 14 hardening (or as a small extra task here if you want it now).
+6. **Android student navigation.** **Recommend a Material 3 `NavigationBar` with tab state in `rememberSaveable`.** It's already in the installed Material 3, so no new dependency, and three tabs don't need a nav graph. Alternative: add `androidx.navigation:navigation-compose` (a new package, more setup, and back-stack handling we don't need).

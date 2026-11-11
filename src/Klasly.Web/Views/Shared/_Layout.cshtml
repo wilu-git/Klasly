@@ -15,11 +15,12 @@
             <div class="container">
                 <a class="navbar-brand fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">Klasly</a>
                 @{
-                    var navArea = User.IsInRole("Admin") ? "Admin" : User.IsInRole("Teacher") ? "Teacher" : null;
+                    var navArea = User.IsInRole("Admin") ? "Admin" : User.IsInRole("Teacher") ? "Teacher" : User.IsInRole("Parent") ? "Parent" : null;
                     var navItems = navArea switch
                     {
                         "Admin" => new[] { ("Terms", "Terms"), ("Subjects", "Subjects"), ("Accounts", "Accounts"), ("Classes", "Classes") },
                         "Teacher" => new[] { ("Classes", "My classes") },
+                        "Parent" => new[] { ("Children", "My children") },
                         _ => []
                     };
                     var current = ViewContext.RouteData.Values["controller"]?.ToString();
