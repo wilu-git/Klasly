@@ -1,3 +1,4 @@
+using Klasly.Core.DTOs;
 using Klasly.Core.Entities;
 
 namespace Klasly.Core.Interfaces;
@@ -19,6 +20,13 @@ public interface INotificationRepository
     /// with User and Guardian loaded for the address. Push rows are never returned.
     /// </summary>
     Task<List<Notification>> ListDueEmailsAsync(DateTime nowUtc, int take, CancellationToken ct);
+
+    /// <summary>
+    /// Absence emails not yet queued: Absent records marked since <paramref name="sinceUtc"/> in Finalized sessions of
+    /// active-term classes where the student's enrollment is Active, one per guardian with ReceivesAlerts and an active
+    /// account. Alerts whose DedupKey already exists are left out.
+    /// </summary>
+    Task<List<AbsenceAlert>> ListAbsenceAlertsAsync(DateTime sinceUtc, CancellationToken ct);
 
     Task SaveChangesAsync(CancellationToken ct);
 }

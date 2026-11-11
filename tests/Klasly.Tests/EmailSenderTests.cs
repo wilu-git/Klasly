@@ -147,6 +147,10 @@ public class EmailSenderTests(DatabaseFixture db)
     [Fact]
     public async Task At_most_50_emails_are_sent_per_run()
     {
+        // Send what other tests left due (e.g. alerts AlertQueuerTests queued), so only this test's 51 rows remain.
+        var drain = new FakeBrevo(_ => new EmailResult(EmailOutcome.Accepted, "x", null));
+        while (await RunAsync(drain, Now) is var r && r.Sent + r.Failed > 0) { }
+
         var tag = NewTag();
         await using (var context = db.CreateContext())
         {

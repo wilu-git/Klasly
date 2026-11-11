@@ -52,10 +52,10 @@
 - `src/Klasly.Worker/Services/AlertQueuer.cs`: `QueueAsync(nowUtc, ct)` → `(Absence, AtRisk)`, absence part.
 
 **Acceptance:**
-- [ ] An Absent record (Auto or Manual) in a Finalized session, marked within 48 h, for student 1 → one Email/Absence/Pending row for guardian 1's user, with DedupKey `absent:{SessionId}:1:1`.
-- [ ] The subject is `Klasly: <student name> was absent from <code>`. The body has the section and the Manila date/time of the session.
-- [ ] None for: Excused; a Closed session; `MarkedAt` older than 48 h; `ReceivesAlerts = 0`; an inactive guardian user; a Dropped enrollment; an inactive-term class; student 6 (no guardian).
-- [ ] Running twice → no new rows.
+- [x] An Absent record (Auto or Manual) in a Finalized session, marked within 48 h, for student 1 → one Email/Absence/Pending row for guardian 1's user, with DedupKey `absent:{SessionId}:1:1`.
+- [x] The subject is `Klasly: <student name> was absent from <code>`. The body has the section and the Manila date/time of the session.
+- [x] None for: Excused; a Closed session; `MarkedAt` older than 48 h; `ReceivesAlerts = 0`; an inactive guardian user; a Dropped enrollment; an inactive-term class. ("Student 6 has no guardian" was dropped: the seed links student 6 to guardian 3, so every seeded student has one.)
+- [x] Running twice → no new rows.
 
 **Verify:** `dotnet test --solution Klasly.slnx --filter-class Klasly.Tests.AlertQueuerTests`
 

@@ -1,3 +1,4 @@
+using Klasly.Core.DTOs;
 using Klasly.Core.Entities;
 using Klasly.Core.Interfaces;
 using Klasly.Infrastructure.Data;
@@ -29,6 +30,20 @@ public class NotificationRepository(KlaslyDbContext context) : INotificationRepo
             .OrderBy(n => n.NotificationId) // identity order = oldest first
             .Take(take)
             .ToListAsync(ct);
+
+    public Task<List<AbsenceAlert>> ListAbsenceAlertsAsync(DateTime sinceUtc, CancellationToken ct) =>
+        (from r in context.AttendanceRecords
+         where r.Status == AttendanceStatus.Absent && r.MarkedAt >= sinceUtc
+               && r.Session.Status == SessionStatus.Finalized && r.Session.Class.Term.IsActive
+               && r.Session.Class.Enrollments.Any(e => e.StudentId == r.StudentId && e.Status == EnrollmentStatus.Active)
+         from sg in r.Student.StudentGuardians
+         where sg.ReceivesAlerts && sg.Guardian.User.IsActive
+         let key = "absent:" + r.SessionId + ":" + r.StudentId + ":" + sg.GuardianId
+         where !context.Notifications.Any(n => n.DedupKey == key) // never queue the same alert twice
+         select new AbsenceAlert(key, sg.Guardian.UserId, sg.Guardian.User.FullName, r.Student.User.FullName,
+             r.Session.Class.Subject.Code, r.Session.Class.Subject.Title, r.Session.Class.Section,
+             r.Session.StartTime, r.Session.EndTime))
+        .ToListAsync(ct);
 
     public Task SaveChangesAsync(CancellationToken ct) => context.SaveChangesAsync(ct);
 }
