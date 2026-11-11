@@ -101,12 +101,14 @@ public class EmailSenderTests(DatabaseFixture db)
     {
         var id = await NewEmailAsync(NewTag());
         var brevo = new FakeBrevo(_ => throw new InvalidOperationException("must not send")) { IsConfigured = false };
+        var log = new ListLogger();
 
-        await RunAsync(brevo, Now);
+        await RunAsync(brevo, Now, log);
 
         var n = await GetAsync(id);
         Assert.Equal((NotificationStatus.Failed, 0, "Brevo is not configured"), (n.Status, n.Attempts, n.LastError));
         Assert.Empty(brevo.Sent);
+        Assert.Contains(log.Entries, e => e.Level == LogLevel.Warning && e.Message.Contains("Brevo is not configured"));
     }
 
     [Fact]

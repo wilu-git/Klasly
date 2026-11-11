@@ -1,5 +1,4 @@
 using Hangfire;
-using Klasly.Worker.Email;
 using Klasly.Worker.Services;
 
 namespace Klasly.Worker.Jobs;
@@ -11,8 +10,7 @@ namespace Klasly.Worker.Jobs;
 [DisableConcurrentExecution(timeoutInSeconds: 600)] // two ticks never overlap, even across Worker processes
 [AutomaticRetry(Attempts = 0)] // a failed tick waits for the next one; the email outbox does its own retries
 public class WorkerTickJob(
-    AttendanceFinalizer finalizer, RiskCalculator risk, AlertQueuer alerts, EmailSender email, IBrevoEmailClient brevo,
-    ILogger<WorkerTickJob> logger)
+    AttendanceFinalizer finalizer, RiskCalculator risk, AlertQueuer alerts, EmailSender email, ILogger<WorkerTickJob> logger)
 {
     public async Task RunAsync(CancellationToken ct)
     {
@@ -32,8 +30,6 @@ public class WorkerTickJob(
         var (absence, atRiskAlerts) = await alerts.QueueAsync(now, ct);
         logger.LogInformation("Tick {UtcNow:u}: queued {Absence} absence and {AtRisk} at-risk emails", now, absence, atRiskAlerts);
 
-        if (!brevo.IsConfigured)
-            logger.LogWarning("Brevo is not configured (Brevo:ApiKey / Brevo:SenderEmail): due emails are marked Failed");
         var (sent, retrying, failed) = await email.SendDueAsync(now, ct);
         logger.LogInformation("Tick {UtcNow:u}: emails sent {Sent}, retrying {Retrying}, failed {Failed}", now, sent, retrying, failed);
     }

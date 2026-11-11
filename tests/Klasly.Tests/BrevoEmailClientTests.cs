@@ -37,6 +37,7 @@ public class BrevoEmailClientTests
     [InlineData(HttpStatusCode.NotFound, EmailOutcome.Permanent)]
     [InlineData(HttpStatusCode.Unauthorized, EmailOutcome.Unauthorized)]
     [InlineData(HttpStatusCode.Forbidden, EmailOutcome.Unauthorized)]
+    [InlineData(HttpStatusCode.PaymentRequired, EmailOutcome.Unauthorized)] // out of credits / account not activated
     [InlineData(HttpStatusCode.TooManyRequests, EmailOutcome.Transient)]
     [InlineData(HttpStatusCode.InternalServerError, EmailOutcome.Transient)]
     [InlineData(HttpStatusCode.ServiceUnavailable, EmailOutcome.Transient)]
@@ -50,6 +51,19 @@ public class BrevoEmailClientTests
         Assert.Null(result.MessageId);
         Assert.StartsWith(((int)status).ToString(), result.Error);
         Assert.Contains("brevo says no", result.Error);
+    }
+
+    [Theory]
+    [InlineData("not_enough_credits", EmailOutcome.Unauthorized)]
+    [InlineData("account_under_validation", EmailOutcome.Unauthorized)]
+    [InlineData("invalid_parameter", EmailOutcome.Permanent)]
+    public async Task A_400_about_our_account_is_not_blamed_on_the_email(string code, EmailOutcome outcome)
+    {
+        var handler = new StubHandler(HttpStatusCode.BadRequest, $$"""{ "code": "{{code}}", "message": "m" }""");
+
+        var result = await Client(handler).SendAsync("p@example.com", "P", "S", "T", Ct);
+
+        Assert.Equal(outcome, result.Outcome);
     }
 
     [Fact]
@@ -110,6 +124,26 @@ public class BrevoEmailClientTests
         var client = new BrevoEmailClient(new HttpClient(), Options.Create(new BrevoOptions { ApiKey = key, SenderEmail = sender }));
 
         Assert.Equal(configured, client.IsConfigured);
+    }
+
+    [Theory]
+    [InlineData("https://api.brevo.com/v3/", "https://api.brevo.com/v3/")]
+    [InlineData("https://api.brevo.com/v3", "https://api.brevo.com/v3/")] // without the slash, "smtp/email" would drop /v3
+    [InlineData(null, "https://api.brevo.com/v3/")]
+    public void Base_url_always_ends_with_a_slash(string? value, string expected)
+    {
+        Assert.Equal(expected, BrevoOptions.ParseBaseUrl(value).AbsoluteUri);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("api.brevo.com/v3")]
+    [InlineData("http://api.brevo.com/v3/")] // the api-key header must not travel unencrypted
+    public void A_bad_base_url_fails_with_the_setting_name(string value)
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => BrevoOptions.ParseBaseUrl(value));
+
+        Assert.Contains("Brevo:BaseUrl", error.Message);
     }
 
     // ---------- helpers ----------

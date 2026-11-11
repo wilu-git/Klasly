@@ -7,13 +7,24 @@ namespace Klasly.Worker.Email;
 /// <summary>The <c>Brevo</c> config section. <see cref="ApiKey"/> is a user-secret (guide §14); the rest is plain config.</summary>
 public class BrevoOptions
 {
-    public string BaseUrl { get; set; } = "https://api.brevo.com/v3/";
+    public const string DefaultBaseUrl = "https://api.brevo.com/v3/";
+
+    public string BaseUrl { get; set; } = DefaultBaseUrl;
     public string? ApiKey { get; set; }
 
     /// <summary>Must be a sender verified in the Brevo account.</summary>
     public string? SenderEmail { get; set; }
 
     public string SenderName { get; set; } = "Klasly";
+
+    /// <summary>
+    /// The HttpClient base address. Always ends with "/": without it, "smtp/email" would replace "v3" and every send
+    /// would 404. HTTPS only, so the api-key header is never sent in clear. A bad value stops the Worker at startup.
+    /// </summary>
+    public static Uri ParseBaseUrl(string? value) =>
+        Uri.TryCreate((value ?? DefaultBaseUrl).TrimEnd('/') + "/", UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
+            ? uri
+            : throw new InvalidOperationException($"Setting 'Brevo:BaseUrl' is invalid: it must be an https URL, e.g. {DefaultBaseUrl}");
 }
 
 /// <summary>How the email sender must treat one Brevo answer (guide §27.8 results).</summary>
@@ -25,7 +36,10 @@ public enum EmailOutcome
     Permanent,
     /// <summary>429, 5xx, timeout, network error: try again later.</summary>
     Transient,
-    /// <summary>401/403: our API key or account is wrong, not this email (spec Q2).</summary>
+    /// <summary>
+    /// Our API key or account is wrong, not this email (spec Q2): 401, 403, 402 (out of credits / not activated),
+    /// or a 400 whose code is not_enough_credits or account_under_validation. The sender stops and keeps rows Pending.
+    /// </summary>
     Unauthorized
 }
 
@@ -70,12 +84,13 @@ public class BrevoEmailClient(HttpClient http, IOptions<BrevoOptions> options) :
             using var response = await http.SendAsync(request, ct);
             var body = await response.Content.ReadAsStringAsync(ct);
             if (response.IsSuccessStatusCode)
-                return new EmailResult(EmailOutcome.Accepted, MessageIdFrom(body), null);
+                return new EmailResult(EmailOutcome.Accepted, StringFrom(body, "messageId") ?? "(no messageId)", null);
 
             var status = (int)response.StatusCode;
             var outcome = status switch
             {
-                401 or 403 => EmailOutcome.Unauthorized,
+                401 or 402 or 403 => EmailOutcome.Unauthorized,
+                400 when StringFrom(body, "code") is "not_enough_credits" or "account_under_validation" => EmailOutcome.Unauthorized,
                 429 or >= 500 => EmailOutcome.Transient,
                 _ => EmailOutcome.Permanent
             };
@@ -91,17 +106,18 @@ public class BrevoEmailClient(HttpClient http, IOptions<BrevoOptions> options) :
         }
     }
 
-    // Brevo already took the email, so an odd body must not turn it into a failure (that would send it twice).
-    private static string MessageIdFrom(string body)
+    // A body Brevo sent that isn't the JSON we expect gives null, never an exception: after a 2xx, Brevo already took
+    // the email, so an odd body must not turn it into a failure (that would send it twice).
+    private static string? StringFrom(string body, string property)
     {
         try
         {
             using var json = JsonDocument.Parse(body);
-            return json.RootElement.GetProperty("messageId").GetString() ?? "(no messageId)";
+            return json.RootElement.GetProperty(property).GetString();
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
         {
-            return "(no messageId)";
+            return null;
         }
     }
 }

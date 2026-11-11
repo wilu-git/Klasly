@@ -24,6 +24,7 @@ public class EmailSender(
 
         if (!brevo.IsConfigured) // spec Q4: fail them now so nothing piles up and blasts out the day the key is added
         {
+            logger.LogWarning("Brevo is not configured (Brevo:ApiKey / Brevo:SenderEmail): {Count} due emails marked Failed", due.Count);
             foreach (var n in due) Fail(n, "Brevo is not configured");
             await notifications.SaveChangesAsync(ct);
             return (0, 0, due.Count);
@@ -42,8 +43,8 @@ public class EmailSender(
                 var result = await brevo.SendAsync(guardian.ContactEmail, n.User.FullName, n.Subject ?? "Klasly", n.Body ?? "", ct);
                 if (result.Outcome == EmailOutcome.Unauthorized)
                 {
-                    // Our key or account is wrong, not this email: leave every row Pending, uncounted, until it's fixed.
-                    logger.LogError("Brevo rejected the API key ({Error}). Emails wait until it is fixed.", result.Error);
+                    // Our key or account is wrong (bad key, out of credits), not this email: leave every row Pending, uncounted, until it's fixed.
+                    logger.LogError("Brevo refused our API key or account ({Error}). Emails wait until it is fixed.", result.Error);
                     break;
                 }
 

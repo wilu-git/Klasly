@@ -3,7 +3,6 @@ using Klasly.Infrastructure;
 using Klasly.Worker.Email;
 using Klasly.Worker.Jobs;
 using Klasly.Worker.Services;
-using Microsoft.Extensions.Options;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -19,10 +18,11 @@ builder.Services.AddScoped<AlertQueuer>();
 builder.Services.AddScoped<EmailSender>();
 
 // Brevo:ApiKey comes from user-secrets (Development) or the environment; never from appsettings.
+var brevoBaseUrl = BrevoOptions.ParseBaseUrl(builder.Configuration["Brevo:BaseUrl"]); // fails here, not on every tick
 builder.Services.Configure<BrevoOptions>(builder.Configuration.GetSection("Brevo"));
-builder.Services.AddHttpClient<IBrevoEmailClient, BrevoEmailClient>((sp, http) =>
+builder.Services.AddHttpClient<IBrevoEmailClient, BrevoEmailClient>(http =>
 {
-    http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<BrevoOptions>>().Value.BaseUrl);
+    http.BaseAddress = brevoBaseUrl;
     http.Timeout = TimeSpan.FromSeconds(10); // 50 sends × 10 s stays under the job's 600 s lock
 });
 
