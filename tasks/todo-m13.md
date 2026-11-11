@@ -74,11 +74,11 @@
 - `HomeController` (Parent → Children/Index), `_Layout.cshtml` ("My children" nav item), `Views/Home/Index.cshtml` (student message).
 
 **Acceptance:**
-- [ ] Index lists the children (name + student number). Exactly one child → redirect to Details. None → "No children are linked to your account yet. Ask the school admin."
-- [ ] Details: per class, the counts, absence rate, weighted average or "No grades yet", and an At risk / On track / Not computed yet badge with "This is an early-warning indicator for review, not a final grade" and "Updated <Manila time>". Expandable attendance (date, time, status) and grades (assessment, score / max, weight) tables. A switcher appears when there are several children.
-- [ ] No active term → "No classes this term".
-- [ ] Another family's id in the URL → the API's 403 message is shown (not a crash).
-- [ ] A student logging into MVC sees "Use the Klasly app on your phone to scan and see your records".
+- [x] Index lists the children (name + student number). Exactly one child → redirect to Details. None → "No children are linked to your account yet. Ask the school admin."
+- [x] Details: per class, the counts, absence rate, weighted average or "No grades yet", and an At risk / On track / Not computed yet badge with "This is an early-warning indicator for review, not a final grade" and "Updated <Manila time>". Expandable attendance (date, time, status) and grades (assessment, score / max, weight) tables. A switcher appears when there are several children.
+- [x] No active term → "No classes this term".
+- [x] Another family's id in the URL → the API's 403 message is shown (not a crash).
+- [x] A student logging into MVC sees "Use the Klasly app on your phone to scan and see your records".
 
 **Verify:** `dotnet build Klasly.slnx`; run API + Web and open the pages as parent user 10.
 

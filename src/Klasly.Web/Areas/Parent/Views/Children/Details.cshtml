@@ -1,0 +1,146 @@
+@model ChildOverviewViewModel
+@using System.Globalization
+@{
+    var o = Model.Overview;
+    ViewData["Title"] = o.FullName;
+
+    static string Percent(decimal? rate) => rate is { } r ? (r * 100).ToString("0.#", CultureInfo.InvariantCulture) + "%" : "—";
+    static string Number(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}
+
+@if (Model.Children.Count > 1)
+{
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">My children</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@o.FullName</li>
+        </ol>
+    </nav>
+}
+
+<div class="mb-4">
+    <h1 class="h3 mb-1">@o.FullName</h1>
+    <p class="text-body-secondary mb-0">@o.StudentNumber@(o.TermName is null ? "" : $" · {o.TermName}")</p>
+</div>
+
+@if (Model.Children.Count > 1)
+{
+    <nav class="mb-4" aria-label="Switch child">
+        <ul class="nav nav-pills gap-2">
+            @foreach (var c in Model.Children)
+            {
+                var current = c.StudentId == o.StudentId;
+                <li class="nav-item">
+                    <a class="nav-link @(current ? "active" : "border")" aria-current="@(current ? "page" : null)"
+                       asp-action="Details" asp-route-id="@c.StudentId">@c.StudentName</a>
+                </li>
+            }
+        </ul>
+    </nav>
+}
+
+@if (o.Classes.Count == 0)
+{
+    <p class="text-body-secondary">No classes this term.</p>
+}
+
+@foreach (var c in o.Classes)
+{
+    var headingId = $"class-{c.ClassId}";
+    <section class="card mb-4" aria-labelledby="@headingId">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                <div>
+                    <h2 class="h5 mb-1" id="@headingId">@c.SubjectCode <span class="fw-normal">@c.SubjectTitle</span></h2>
+                    <p class="text-body-secondary small mb-0">@c.Section · @c.TeacherName</p>
+                </div>
+                @switch (c.IsAtRisk)
+                {
+                    case true:
+                        <span class="badge text-bg-danger fs-6">At risk</span>
+                        break;
+                    case false:
+                        <span class="badge text-bg-success fs-6">On track</span>
+                        break;
+                    default:
+                        <span class="badge text-bg-secondary fs-6">Not computed yet</span>
+                        break;
+                }
+            </div>
+
+            <dl class="row mb-2">
+                <dt class="col-sm-4 col-lg-3">Attendance</dt>
+                <dd class="col-sm-8 col-lg-9">Present @c.Present · Late @c.Late · Absent @c.Absent · Excused @c.Excused</dd>
+                <dt class="col-sm-4 col-lg-3">Absence rate</dt>
+                <dd class="col-sm-8 col-lg-9">@Percent(c.AbsenceRate)</dd>
+                <dt class="col-sm-4 col-lg-3">Weighted average</dt>
+                <dd class="col-sm-8 col-lg-9">@(c.WeightedAverage is { } avg ? Number(avg) : "No grades yet")</dd>
+            </dl>
+
+            @if (c.RiskComputedAtUtc is { } computed)
+            {
+                <p class="small text-body-secondary mb-3">
+                    This is an early-warning indicator for review, not a final grade. Updated @ManilaTime.Format(computed).
+                </p>
+            }
+
+            <details class="mb-2">
+                <summary>Attendance records (@c.Attendance.Count)</summary>
+                @if (c.Attendance.Count == 0)
+                {
+                    <p class="text-body-secondary mt-2 mb-0">No sessions recorded yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle mb-0">
+                            <caption class="visually-hidden">Attendance records for @c.SubjectCode, newest first</caption>
+                            <thead>
+                                <tr><th scope="col">Session</th><th scope="col">Status</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var a in c.Attendance)
+                                {
+                                    <tr><td>@ManilaTime.Format(a.StartTimeUtc)</td><td>@a.Status</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </details>
+
+            <details>
+                <summary>Grades (@c.Grades.Count)</summary>
+                @if (c.Grades.Count == 0)
+                {
+                    <p class="text-body-secondary mt-2 mb-0">No assessments yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle mb-0">
+                            <caption class="visually-hidden">Grades for @c.SubjectCode</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Assessment</th>
+                                    <th scope="col" class="text-end">Score</th>
+                                    <th scope="col" class="text-end">Weight</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var g in c.Grades)
+                                {
+                                    <tr>
+                                        <td>@g.Title <span class="text-body-secondary small">@g.Type</span></td>
+                                        <td class="text-end text-nowrap">@(g.Score is { } s ? $"{Number(s)} / {Number(g.MaxScore)}" : "Not graded yet")</td>
+                                        <td class="text-end">@Number(g.WeightPercent)%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </details>
+        </div>
+    </section>
+}

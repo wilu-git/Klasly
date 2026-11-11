@@ -12,6 +12,7 @@ public class HomeController : Controller
     public IActionResult Index() =>
         User.IsInRole("Admin") ? RedirectToAction("Index", "Home", new { area = "Admin" })
         : User.IsInRole("Teacher") ? RedirectToAction("Index", "Classes", new { area = "Teacher" })
+        : User.IsInRole("Parent") ? RedirectToAction("Index", "Children", new { area = "Parent" })
         : View();
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

@@ -84,7 +84,7 @@ Milestone 13 adds one read-only "student overview" in the API and shows it in th
 
 ### Phase 2: Web MVC Parent portal
 - [x] Task 3: Web DTOs, `ParentRepository`, `ParentService`, view model, DI (S)
-- [ ] Task 4: Parent area (Index, Details), Home redirect, nav, student message (M)
+- [x] Task 4: Parent area (Index, Details), Home redirect, nav, student message (M)
 - [ ] Task 5: `/impeccable` on the parent views + browser smoke (S)
 
 ### Phase 3: Android

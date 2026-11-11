@@ -29,7 +29,8 @@ public class ApiExceptionFilter(ILogger<ApiExceptionFilter> logger, ITempDataDic
                 context.Result = new RedirectToActionResult("Login", "Account", new { area = "", returnUrl });
                 break;
 
-            case ApiException { StatusCode: StatusCodes.Status403Forbidden }:
+            case ApiException { StatusCode: StatusCodes.Status403Forbidden } forbidden:
+                tempDataFactory.GetTempData(http)["Error"] = forbidden.Message; // the API's reason, e.g. "You can only view your own children"
                 context.Result = new RedirectToActionResult("AccessDenied", "Account", new { area = "" });
                 break;
 
