@@ -67,6 +67,11 @@ body {
   height: auto;
 }
 
+/* Long text cells keep a readable width on phones; the table scrolls inside .table-responsive instead of squeezing them. */
+.cell-readable {
+  min-width: 12rem;
+}
+
 /* Grade sheet: room for "9999.99" without stretching across the row. */
 .score-input {
   width: 7.5rem;

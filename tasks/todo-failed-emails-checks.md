@@ -77,14 +77,27 @@
 **Description:** Fix only the defects from Task 2, with Bootstrap utilities first. Keep the Terms table pattern.
 
 **Done when:**
-- [ ] Every defect from Task 2 is fixed, with a before → after number for each.
-- [ ] Every Task 2 check is run again and passes at 375 / 480 / 1280 px.
-- [ ] `impeccable detect --json` on the view returns `[]`.
-- [ ] Admin page screenshot taken again after the fix.
+- [x] Every defect from Task 2 is fixed, with a before → after number for each.
+  - **D1 fix:** a new `.cell-readable { min-width: 12rem; }` rule in `site.css` (168 px on phones, where the root font is 14 px), on the Alert and Last error cells. `text-break` stays, so an unbroken token still can't overflow.
+
+  | Measure (first row unless noted) | 375 px before → after | 480 px before → after | 1280 px before → after |
+  |---|---|---|---|
+  | ~200-char Brevo error | **39 → 9 lines**, row 732 → 180 px | 39 → 9 lines, 732 → 180 px | 3 → 3 lines, 83 → 83 px |
+  | "Brevo is not configured" | 4 → 1 line | 4 → 1 line | 1 → 1 line |
+  | Alert subject | 5 → 2 lines | 5 → 2 lines | 1 → 1 line |
+  | Row height | 128 → 73 px | 128 → 73 px | 62 → 62 px |
+  | Column widths | 119·167·**73**·75·**49** → 119·167·168·75·168 | same as 375 | 162·235·420·105·194 → 156·227·405·102·227 |
+  | Table / box | 483 / 354 → 697 / 354 (scrolls inside) | 483 / 459 → 697 / 459 | 1116 / 1116 → same |
+  | Page scrolls sideways | no → no | no → no | no → no |
+
+  At 1280 px the rows are unchanged (same heights, all one line). The browser hands out the spare width a little differently: Last error gains 33 px, and the other columns give up 3–15 px each. This is accepted, not hidden. Keeping desktop pixel-identical would need a media query for no visible gain.
+- [x] Every Task 2 check run again at 375 / 480 / 1280 px and passes. Contrast and structure are unchanged: one class added, no colour or markup changed.
+- [x] `impeccable detect --json` on the view and `site.css` → `[]`.
+- [x] Admin page screenshot taken again after the fix: `5-phone-375-after.jpg` (before: `4-phone-375-before.jpg`).
 
 **Verification:**
-- [ ] `dotnet build Klasly.slnx` → Build succeeded.
-- [ ] Manual: page reloaded in the browser pane, no console errors.
+- [x] `dotnet build Klasly.slnx` → 0 warnings, 0 errors. The first try hit file locks from the running API and website, so I stopped both servers, rebuilt, and started them again.
+- [x] Manual: page reloaded in the browser pane, and every request on the load returned 200. The one 503 in the console log is left over from Task 1's API-down test.
 
 **Dependencies:** Task 2 (only if it found defects)
 **Files touched:**

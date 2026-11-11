@@ -25,7 +25,7 @@ Close the two open boxes of Milestone 14 Task 8: the `/impeccable` pass on `Admi
 - [x] The defect list is written (D1: narrow-screen column squeeze), so Task 3 runs.
 
 ### Phase 2: Fix
-- [ ] Task 3: Fix the defects and measure again (only if Task 2 found any)
+- [x] Task 3: Fix the defects and measure again (only if Task 2 found any)
 
 ### Phase 3: Wrap-up
 - [ ] Task 4: Build, tests, tick boxes, reports, graph

@@ -37,12 +37,12 @@ else
                             <div>@email.RecipientName</div>
                             <div class="small text-body-secondary">@email.RecipientEmail</div>
                         </td>
-                        <td>
+                        <td class="cell-readable">
                             <div>@(email.Type == "AtRisk" ? "At risk" : email.Type)</div>
                             <div class="small text-body-secondary">@email.Subject</div>
                         </td>
                         <td class="text-end">@email.Attempts</td>
-                        <td class="small text-break">@(email.LastError ?? "—")</td>
+                        <td class="small text-break cell-readable">@(email.LastError ?? "—")</td>
                     </tr>
                 }
             </tbody>
