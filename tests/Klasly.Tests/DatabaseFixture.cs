@@ -1,5 +1,6 @@
 using Klasly.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 [assembly: AssemblyFixture(typeof(Klasly.Tests.DatabaseFixture))]
 
@@ -17,8 +18,8 @@ public sealed class DatabaseFixture : IAsyncLifetime
     private const string ConnectionString =
         $"Server=(localdb)\\MSSQLLocalDB;Database={DatabaseName};Trusted_Connection=True;TrustServerCertificate=True";
 
-    public KlaslyDbContext CreateContext() =>
-        new(new DbContextOptionsBuilder<KlaslyDbContext>().UseSqlServer(ConnectionString).Options);
+    public KlaslyDbContext CreateContext(params IInterceptor[] interceptors) =>
+        new(new DbContextOptionsBuilder<KlaslyDbContext>().UseSqlServer(ConnectionString).AddInterceptors(interceptors).Options);
 
     public async ValueTask InitializeAsync()
     {

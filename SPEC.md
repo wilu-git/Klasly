@@ -1,230 +1,137 @@
-# Spec: Milestone 10 — Assessments and grades (API + MVC), with the FCM grade-posted push
+# Spec: Milestone 11 — Worker: risk calculation + RiskFlags snapshots
 
-> Status: **Approved** (2026-11-10). Open questions 1, 2, 3 and 5 answered as recommended. **Q4 changed:** the FCM OAuth token is built in-house with .NET's RSA + System.Text.Json, with **no NuGet package** (`Google.Apis.Auth` would pull in Newtonsoft.Json and System.Management 7.0.2). Android uses Firebase BoM 35.1.0 + the google-services plugin 4.5.0. No Firebase project exists yet, so the plan includes setup steps for the team. Plan: `tasks/plan-m10.md` + `tasks/todo-m10.md`.
-> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.2 "Assessments & grade entry" and "Grade push notifications", §27.6 tables, §27.7 conventions, §27.8 "Grade-posted push", §27.9 #6–7, §13 `FcmPushClient`, §14 secrets) → `CLAUDE.md` (§3.3 Web API, §3.4 Web MVC, §3.6 Android) → this spec.
-> Milestone 9's spec is in git history (commit `ba5dae1`) and in `docs/reports/2026-11-10-1811-milestone-9-worker-absent-corrections/`.
+> Status: **Approved** (2026-11-10). Open questions 1–4 answered as recommended: snapshot only on change, count the student's own records, skip blank grades, fail on a bad setting. Plan: `tasks/plan-m11.md` + `tasks/todo-m11.md`.
+> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "Risk calculation", §27.6 RiskFlags / SystemSettings, §27.7 conventions, §27.9 #8, §27.10 boundary tests, the §"one query" note for the risk job) → `CLAUDE.md` (§3.5 Console Worker, §6 Milestone 11) → this spec.
+> Milestone 10's spec is in git history (commit `8f31453`) and in `docs/reports/2026-11-10-2221-milestone-10-assessments-grades-push/`.
 
 ## What exists today
 
-- **Tables are ready.** `Assessments`, `Grades`, `Notifications` and `Users.FcmToken` exist with every CHECK and unique index from `Klasly_Schema.sql`:
-  - `MaxScore > 0`, `0 < WeightPercent ≤ 100`, `Score ≥ 0`;
-  - unique `(ClassId, Title)` and `(AssessmentId, StudentId)`;
-  - a unique `Notifications.DedupKey`.
-  
-  Nothing reads or writes them yet: no repository, service, endpoint or page.
-- **Teacher side:**
-  - the API has `TeacherOnly` session endpoints with an ownership check (`EnsureOwnClassAsync`);
-  - MVC has **My classes → class page** (start session + sessions list) and the session page.
-- **Android:**
-  - login, phone registration and Scan QR screens;
-  - no Firebase, no notifications;
-  - no "My grades" screen (that's Milestone 13).
-- **Tests:** `tests/Klasly.Worker.Tests` (xUnit v3, LocalDB `Klasly_Tests`) exists. It tests Worker services only.
+- **The table is ready.** `RiskFlags` (EnrollmentId, AbsenceRate `decimal(5,4)` 0–1, WeightedAverage `decimal(5,2)` null or 0–100, IsAtRisk, ComputedAt UTC default) with the `(EnrollmentId, ComputedAt DESC)` index. `RiskFlag` entity and `Enrollment.RiskFlags` exist. Nothing writes or reads it yet.
+- **Settings are seeded:** `AbsenceThreshold = 0.20`, `PassingGrade = 75`. `ISystemSettingRepository.GetValueAsync(key)` reads them.
+- **The Worker:** `WorkerTickJob` runs `AttendanceFinalizer` (close ended sessions → mark Absent + Finalize) and has a placeholder comment for Milestone 11. `[DisableConcurrentExecution]` and `[AutomaticRetry(Attempts = 0)]` are in place.
+- **Inputs exist:** Finalized sessions with Present / Late / Absent / Excused records (Milestone 9); assessments with weights and grades, where a blank score means "not graded yet" (Milestone 10).
+- **Tests:** `tests/Klasly.Tests` (xUnit, LocalDB `Klasly_Tests` built by the real migrations), 33 passing.
 
 ## Assumptions (correct these before we build)
 
-1. **No database change.** Every column exists. No migration.
-2. **Assessments (API):** a teacher manages assessments only for their own classes.
-   - **Fields:** `Title` (required, ≤ 100, unique in the class), `Type` (required, ≤ 30, free text; the page suggests Quiz, Exam, Activity, Project, Recitation), `MaxScore` (> 0, ≤ 9999.99, 2 decimals), `WeightPercent` (> 0, ≤ 100, 2 decimals).
-   - **Weights rule:** the class total may never go above **100%** (open question 1). The class page shows "Weights: 60 of 100%" and a warning while the total is under 100.
-   - **Edit:** title, type, max score and weight can be changed. A new `MaxScore` below a score already posted → `400` "Max score can't be lower than a posted score (18)."
-   - **No delete** (the table has no soft-delete column; deleting a graded assessment would lose grades). Out of scope.
-   - **`DatePosted`:** set to the time (UTC) when the first grade of that assessment is saved; null until then.
-3. **Grades (API):** one bulk call per assessment saves the scores of many students at once.
-   - **Who:** only **actively enrolled** students of the class. A student not actively enrolled → `400` for that row.
-   - **Values:** each score is `0 ≤ score ≤ MaxScore`, 2 decimals at most. A blank score means "not graded yet" and is skipped.
-   - **All or nothing:** one invalid row → `400` problem-details with field errors (`grades[2].score`), and nothing is saved.
-   - **Writes:** a new grade → insert (`PostedAt = now`). A changed score → update `Score`, `UpdatedAt = now`. The same score → no change.
-   - **No "un-post":** a posted grade can be changed but not removed. Out of scope.
-   - **Response:** `200` with the assessment's roster (student, score or null, posted/updated time).
-   - **Concurrency:** if two saves race to insert the same student's grade, the unique `(AssessmentId, StudentId)` index rejects one. The API turns that into `409` "Grades were just updated. Reload and try again.", the same pattern as attendance.
-4. **Grade-posted push (API, guide §27.8):** when a grade is saved **for the first time** (open question 2):
-   - the API writes a `Notifications` row in the **same save** as the grade: `UserId` = the student's user, `Channel = Push`, `Type = GradePosted`, `Status = Pending`, `DedupKey = grade:{AssessmentId}:{StudentId}`, `Subject` "New grade posted", `Body` "ELECT3 – Quiz 1: 18 / 20";
-   - after the save, the push is sent **in the background** so the teacher never waits for Firebase (open question 3);
-   - result: FCM `200` → `Accepted` with FCM's message name in `ExternalMessageId`; any error → `Failed` with `LastError`. No retries: a push is best-effort, and the grade is already saved and visible;
-   - a student with no `FcmToken` → `Failed`, `LastError` "No device registered for push";
-   - **Firebase not configured** (no credentials in user-secrets) → `Failed`, `LastError` "FCM is not configured". Grades still work, so the team can build and test everything except the real push before Firebase exists (open question 4).
-5. **FCM sender (API, guide §13):**
-   - a typed `HttpClient` `FcmPushClient` calls FCM HTTP v1 (`POST https://fcm.googleapis.com/v1/projects/{projectId}/messages:send`) with a Google OAuth access token from the service account;
-   - credentials: the service-account JSON file path in user-secrets (`Fcm:ServiceAccountPath`), never in the repo;
-   - one new package for the OAuth token (open question 4).
-6. **FCM token (API + Android):**
-   - **New endpoint:** `PUT api/students/me/fcm-token` with `{ "token": "…" }` (`StudentOnly`). It saves the token on the caller's `Users` row and **clears the same token from any other user**, so a shared phone never gets another student's grade.
-   - **Android:**
-     - after login, and whenever Firebase gives a new token (`onNewToken`), the app sends it;
-     - on logout it does nothing extra (the next student's login moves the token);
-     - a `FirebaseMessagingService` shows the push as a system notification ("New grade posted", "ELECT3 – Quiz 1: 18 / 20");
-     - on Android 13+ the app asks for the notification permission once, after the first student login;
-     - tapping the notification opens the app (the grade screen comes in Milestone 13).
-   - Parents get no push in this milestone.
-7. **MVC teacher pages** (`Teacher` area; `[ValidateAntiForgeryToken]` on every POST; API errors shown with the existing patterns):
-   - **Class page:** a new **Assessments** section under Sessions. It lists title, type, max score, weight, graded "4 of 6", and a total "Weights: 60 of 100%" with a warning below 100. It also has an **Add assessment** form.
-   - **Assessment page** (`Teacher/Assessments/Details/{id}`):
-     - the assessment details with an **Edit** form;
-     - the roster of active students (student no., name, a score input `0–MaxScore`, last posted/updated time in Manila);
-     - one **Save grades** button;
-     - success: "Grades saved: 3 new, 1 changed." Errors show on the matching rows.
-8. **Privacy (RA 10173):** a push payload goes through Google's servers. It carries only the subject code, assessment title and score: no student name or number. Test data stays fictional.
-9. **Out of scope:**
-   - student/parent grade screens (Milestone 13);
-   - risk and weighted average (Milestone 11);
-   - email (Milestone 12);
-   - deleting assessments or grades;
-   - push retries;
-   - a push for changed scores (open question 2);
-   - importing grades from a file;
-   - grade history.
+1. **Who gets a snapshot:** every **Active** enrollment in a class of the **active term**. Dropped enrollments and past terms are left alone; their last snapshot stays as it was.
+2. **Absence Rate** for one enrollment = the student's **Absent** records ÷ the student's **Present + Late + Absent** records, counting only **Finalized** sessions of that class. Excused is left out of both counts; Cancelled sessions have no records, so they drop out by themselves. Counting the student's own records (not all class sessions) means a student who enrolled late is not charged for sessions held before they joined.
+3. **No finalized sessions yet → Absence Rate = 0** (the column is NOT NULL and 0 can't trigger a flag).
+4. **Weighted Average** = Σ(score ÷ max × 100 × weight) ÷ Σ(weight), over the assessments **this student has a grade for**. An assessment the student has no grade on (blank score) is skipped for that student. **NULL** when the student has no grades.
+5. **Rounding:** Absence Rate to 4 decimals, Weighted Average to 2 decimals (the column sizes), `MidpointRounding.AwayFromZero`. **IsAtRisk is decided on the rounded values**, so what a dashboard shows always matches the flag (74.996 is shown as 75.00 and is not at-risk).
+6. **At-risk** = Absence Rate ≥ `AbsenceThreshold` **OR** (Weighted Average is not NULL **AND** Weighted Average < `PassingGrade`). Exactly 0.20 → at-risk; exactly 75 → not.
+7. **Settings are read once per tick** with invariant-culture parsing. A missing or unparsable setting **fails the step** with a logged error (no silent default); the next tick tries again. *(Added after review, 2026-11-11:)* so does a value out of range: `AbsenceThreshold` must be above 0 and at most 1, and `PassingGrade` must be 1–100. This catches a value typed in the wrong scale (`20`, `0.75`).
+8. **One query, one save.** The repository loads every enrollment's inputs in one query (the guide asks for this because it runs every 5 minutes) plus the latest snapshot per enrollment; the rules run in C#; all new rows go in one `SaveChanges`. All snapshots of one tick share the tick's `now`.
+9. **Order in the tick:** after `MarkAbsentAndFinalizeAsync`, so newly finalized Absents count in the same tick.
+10. **No alerts in this milestone.** Queueing the "became at-risk" email is Milestone 12. This milestone only makes sure the snapshot history lets Milestone 12 find the change (see Q1).
+11. **No schema change, no new package, no API endpoint, no page.** Dashboards that read the flags are Milestone 13.
 
 ## Objective
 
-A teacher sets up a class's graded work (quizzes, exams, projects with weights totalling 100%) and enters scores for the whole class on one page. The API refuses impossible scores and weights. When a student's grade is posted, their phone shows a notification within seconds.
-
-Functional requirements covered: guide §27.9 **#6** (weighted assessments, scores between 0 and the max) and **#7** (push when a grade is posted).
+Each Worker tick turns attendance and grades into an early-warning **at-risk flag** per student per class, so parents (Milestones 12–13) and teachers can act before the term ends. The flag is an indicator for review, not a final judgment (§27.5).
 
 ### User stories
 
-- As a **teacher**, I can add an assessment to my class with a title, type, max score and weight, and I can't push the class total over 100%.
-- As a **teacher**, I can enter or change the scores of all my students for an assessment on one page, and a score above the max is refused with a clear message.
-- As a **teacher**, I can't see or change another teacher's assessments.
-- As a **student**, my phone shows "New grade posted – ELECT3 – Quiz 1: 18 / 20" when my teacher posts my grade.
-- As a **student** who shares a phone, I never get another student's grade notification.
+- As a **parent**, I want my child flagged when they miss 20% of classes or their average drops below 75, so the alert in Milestone 12 reaches me early.
+- As a **teacher**, I want the flag recomputed automatically after every session and every grade change, without pressing anything.
+- As the **team**, we want the boundary cases (exactly 20%, exactly 75) proven by tests, because §27.10 lists them for hardening.
 
-## API contract (new)
+## Design
 
-| Call | Body | Success | Errors |
-|---|---|---|---|
-| `GET api/classes/{classId}/assessments` (Teacher) | — | `200 [ { assessmentId, title, type, maxScore, weightPercent, datePostedUtc, gradedCount, activeCount } ]` | `403` not own class · `404` |
-| `POST api/classes/{classId}/assessments` (Teacher) | `{ title, type, maxScore, weightPercent }` | `201` the assessment | `400` validation / total over 100% · `403` · `404` · `409` title already used in the class |
-| `GET api/assessments/{id}` (Teacher) | — | `200` the assessment | `403` · `404` |
-| `PUT api/assessments/{id}` (Teacher) | same as POST | `200` the assessment | `400` (incl. max below a posted score) · `403` · `404` · `409` title |
-| `GET api/assessments/{id}/grades` (Teacher) | — | `200 [ { studentId, studentNumber, fullName, score, postedAtUtc, updatedAtUtc } ]` active students by name | `403` · `404` |
-| `PUT api/assessments/{id}/grades` (Teacher) | `{ "grades": [ { "studentId": 1, "score": 18.5 } ] }` | `200` the roster + `{ added, changed }` | `400` row errors · `403` · `404` · `409` race |
-| `PUT api/students/me/fcm-token` (Student) | `{ "token": "…" }` | `204` | `400` empty / > 500 chars · `401` |
+```
+WorkerTickJob.RunAsync
+  ├─ AttendanceFinalizer.CloseEndedSessionsAsync     (Milestone 9)
+  ├─ AttendanceFinalizer.MarkAbsentAndFinalizeAsync  (Milestone 9)
+  └─ RiskCalculator.RecomputeAsync(now)              ← new
+        1. read AbsenceThreshold + PassingGrade
+        2. IRiskRepository.ListInputsAsync()  → one row per active enrollment:
+             EnrollmentId, AbsentCount, CountedCount, WeightedSum, WeightSum,
+             latest snapshot (AbsenceRate, WeightedAverage, IsAtRisk) or null
+        3. RiskRules.Compute(...) per row  → (rate, average, isAtRisk)
+        4. add RiskFlag rows (all, or only changed ones — Q1)
+        5. one SaveChanges; log "risk: X enrollments, Y new snapshots, Z at-risk"
+```
+
+`RiskRules.Compute` is a small static method with no database, so the boundary tests are plain unit tests.
 
 ## Commands
 
-```bash
-dotnet build Klasly.slnx
-dotnet test --solution Klasly.slnx
-dotnet run --project src/Klasly.API --launch-profile https       # Swagger at /swagger
-dotnet run --project src/Klasly.Web --launch-profile https
-dotnet user-secrets set "Fcm:ServiceAccountPath" "C:\secrets\klasly-fcm.json" --project src/Klasly.API   # not committed
-dotnet list package                                              # all Microsoft.* still 10.x
-cd android/KlaslyApp; ./gradlew assembleDebug testDebugUnitTest
+```
+Build:    dotnet build Klasly.slnx
+Test:     dotnet test Klasly.slnx
+Worker:   dotnet run --project src/Klasly.Worker
+Model:    dotnet ef migrations has-pending-model-changes -p src/Klasly.Infrastructure -s src/Klasly.API   (must say none)
+Packages: dotnet list Klasly.slnx package   (Microsoft.* still 10.x, nothing new)
+Check:    SELECT TOP 20 * FROM RiskFlags ORDER BY ComputedAt DESC;
 ```
 
 ## Project structure (files this milestone touches)
 
-```
-src/Klasly.Core/
-  DTOs/            AssessmentRequest, AssessmentResponse, GradeRow, SaveGradesRequest/Response, FcmTokenRequest   (new)
-  Interfaces/      IAssessmentRepository, IGradeRepository, INotificationRepository (new); IUserRepository (+ token methods)
-src/Klasly.Infrastructure/
-  Repositories/    AssessmentRepository, GradeRepository, NotificationRepository (new); UserRepository (modified)
-  DependencyInjection.cs                                                                                    (register)
-src/Klasly.API/
-  Controllers/     AssessmentsController (new); StudentsController (+ fcm-token)
-  Services/        AssessmentService, GradeService (new); Push/FcmPushClient + PushSender background queue (new)
-  Program.cs       typed HttpClient, background service, options
-src/Klasly.Web/
-  Areas/Teacher/   AssessmentsController + Views/Assessments/Details.cshtml (new); Classes/Details.cshtml (Assessments section)
-  Repositories/, Services/, Models/Api/, ViewModels/   assessment + grade calls and view models
-android/KlaslyApp/
-  app/build.gradle.kts, gradle/libs.versions.toml     Firebase BoM + messaging, google-services plugin
-  app/google-services.json                            from the team's Firebase project — NOT committed (open question 4)
-  data/  KlaslyApi (+ fcm-token), KlaslyRepository
-  push/  KlaslyMessagingService (new); AndroidManifest (service, POST_NOTIFICATIONS)
-tests/Klasly.Worker.Tests → see Testing strategy
-```
+| Path | New / changed | Why |
+| --- | --- | --- |
+| `src/Klasly.Core/Interfaces/IRiskRepository.cs` | new | Reads the per-enrollment inputs + latest snapshot; adds snapshots. |
+| `src/Klasly.Core/DTOs/RiskInput.cs` | new | The one-row-per-enrollment record the query returns. |
+| `src/Klasly.Infrastructure/Repositories/RiskRepository.cs` | new | The single EF Core query (grouped sums) and the save. |
+| `src/Klasly.Infrastructure/DependencyInjection.cs` | changed | Register `IRiskRepository`. |
+| `src/Klasly.Worker/Services/RiskRules.cs` | new | Pure rule: rates, rounding, at-risk. |
+| `src/Klasly.Worker/Services/RiskCalculator.cs` | new | Reads settings, runs the rule, writes snapshots. |
+| `src/Klasly.Worker/Jobs/WorkerTickJob.cs` | changed | Call `RecomputeAsync` as the third step; extend the log line. |
+| `src/Klasly.Worker/Program.cs` | changed | `AddScoped<RiskCalculator>()`. |
+| `tests/Klasly.Tests/RiskRulesTests.cs` | new | Boundary unit tests. |
+| `tests/Klasly.Tests/RiskCalculatorTests.cs` | new | LocalDB tests of the query + snapshots. |
 
 ## Code style
 
-The same as Milestones 3–9:
-- controllers stay thin;
-- rules live in services (`ValidationException` → 400, `ForbiddenException` → 403, `KeyNotFoundException` → 404, `ConflictException` → 409, via the existing `ApiExceptionHandler`);
-- DTOs, never entities;
-- `CancellationToken` all the way down.
+Same as Milestone 9's `AttendanceFinalizer`: primary constructors, `CancellationToken` all the way, the job passes `now` in, decimals (never `double`) for scores and rates.
 
 ```csharp
-public async Task<SaveGradesResponse> SaveGradesAsync(int assessmentId, SaveGradesRequest request, int userId, CancellationToken ct)
+public static class RiskRules
 {
-    var assessment = await GetOwnAssessmentAsync(assessmentId, userId, ct);          // 404 / 403
-    var errors = Validate(request.Grades, assessment.MaxScore, activeStudentIds);     // all rows first
-    if (errors.Count > 0) throw new RowValidationException(errors);                  // 400, nothing saved
-    // insert/update grades + one Pending push row per first-time grade, one SaveChanges
+    public static (decimal Rate, decimal? Average, bool AtRisk) Compute(
+        int absent, int counted, decimal weightedSum, decimal weightSum, decimal threshold, decimal passing)
+    {
+        var rate = counted == 0 ? 0m : Math.Round((decimal)absent / counted, 4, MidpointRounding.AwayFromZero);
+        decimal? average = weightSum == 0 ? null : Math.Round(weightedSum / weightSum, 2, MidpointRounding.AwayFromZero);
+        return (rate, average, rate >= threshold || average < passing); // null < passing is false
+    }
 }
 ```
 
 ## Testing strategy
 
-- **Automated:** the existing test project's LocalDB fixture is reused for the API's grade and assessment rules. A small `tests/Klasly.API.Tests` project, or the same project renamed `Klasly.Tests` (decided in `/plan`), covers:
-  - weights: total exactly 100 OK, 100.01 refused, edit counts the other assessments only;
-  - scores: 0 and exactly MaxScore OK; −0.01 and MaxScore + 0.01 refused; 3 decimals refused; one bad row saves nothing;
-  - first grade → exactly one Pending push row; a changed score → no new push row; the same score again → nothing;
-  - a lower MaxScore under a posted score refused;
-  - the FCM token moves from user A to user B;
-  - the push sender with a fake `FcmPushClient`: success → Accepted, error → Failed, not configured → Failed.
-- **Manual smoke test** (API + website, LocalDB seed data; push steps need Firebase and a phone or emulator with Google Play):
-  1. Teacher adds Quiz 1 (20 points, 30%) and Midterm (100 points, 70%) → "Weights: 100 of 100%". A third assessment at 10% → refused.
-  2. Assessment page: enter scores for 4 of 6 students → "Grades saved: 4 new, 0 changed". The class page shows "4 of 6".
-  3. A score of 21 on Quiz 1 → the row shows "Score must be between 0 and 20." and nothing is saved.
-  4. Change one score → "0 new, 1 changed"; the DB shows `UpdatedAt`; `Notifications` has no second row for that student.
-  5. Edit Quiz 1's max score to 15 when someone has 18 → refused with the message.
-  6. Swagger as another teacher → 403 on the assessment and its grades.
-  7. Without Firebase configured: the `Notifications` rows show `Failed` / "FCM is not configured", and grade saving still works.
-  8. With Firebase: a student logged in on the emulator/phone gets "New grade posted – ELECT3 – Quiz 1: 18 / 20" within ~10 s; the row shows `Accepted`.
-  9. A second student logs in on the same phone → the first student's `FcmToken` is cleared.
-  10. `/impeccable` on the class page Assessments section and the assessment page.
+- **Unit (`RiskRulesTests`)**, no database: 1 of 5 absent (0.20) → at-risk; 0 of 5 and 0.1999 → not; average exactly 75.00 → not; 74.99 → at-risk; 74.996 → rounds to 75.00 → not; no grades → average NULL and not at-risk on grades; no counted sessions → rate 0; 1 of 3 → 0.3333.
+- **Database (`RiskCalculatorTests`)**, LocalDB fixture like `AttendanceFinalizerTests`:
+  - Excused leaves both counts; Late counts as attended; records in a Closed (not yet Finalized) session don't count.
+  - A blank grade is skipped; weights of ungraded assessments don't count; the weighted formula matches a hand calculation.
+  - Dropped enrollment and an inactive-term class get no snapshot.
+  - Snapshot behaviour per Q1 (unchanged → no row / always a row; changed → a new row).
+  - Missing `PassingGrade` → the step throws and nothing is saved.
+- **Smoke (manual):** run the Worker against the dev database, finalize a session where a seeded student is absent 1 of 5, post a grade below 75 for another, wait one tick, check `RiskFlags`.
 
 ## Boundaries
 
-- **Always:**
-  - ownership checked in the API for every assessment and grade call;
-  - validation repeated in the API (MVC hints are not security);
-  - UTC in the DB and Manila on screen;
-  - build + tests after every change;
-  - reports after every prompt.
-- **Ask first:**
-  - any new package (the OAuth/Firebase ones, see open question 4);
-  - any schema change (none planned);
-  - adding Firebase files to the repo;
-  - sending real pushes to anyone but the team's test devices.
+- **Always:** keep the rules in `RiskRules` / `RiskCalculator`, not in the job; use `now` from the job; decimals; run build + tests; write the three reports after each code prompt.
+- **Ask first:** any schema change or new index; changing the guide's formulas; adding an API endpoint or page for the flags (Milestone 13); deleting old snapshots.
 - **Never:**
-  - commit `google-services.json`, the service-account JSON or any key;
-  - put student names or numbers in push payloads;
-  - let a push failure undo or block a saved grade;
-  - add a Hangfire dashboard or move push sending into the Worker (the guide puts it in the Web API).
+  - queue emails or push here (Milestone 12);
+  - update or delete existing `RiskFlags` rows (they are history);
+  - call the risk step from the Web API;
+  - hard-code the 0.20 / 75 thresholds.
 
 ## Success criteria
 
-- [x] A teacher can add and edit assessments for their own classes, and the class weight total can't go above 100% (exactly 100 allowed).
-- [x] A teacher can save the scores of a whole class in one go. Scores outside 0–MaxScore or with more than 2 decimals are refused with a row message, and nothing partial is saved.
-- [x] Another teacher gets 403; an unknown assessment gets 404; a race gets 409.
-- [x] A student's first grade on an assessment creates exactly one `Push / GradePosted` Notification, sent in the background. It ends `Accepted` (Firebase configured) or `Failed` with a clear `LastError`, and grade saving never waits for or fails because of it.
-- [ ] With Firebase configured, the Android app registers its FCM token and shows the grade notification. A shared phone moves the token to the last student who logged in.
-- [x] No migration; `has-pending-model-changes` reports none; every Microsoft package still 10.x; no secrets or Firebase files committed.
-- [ ] All smoke steps behave as written (step 8 only with Firebase); `/impeccable` run on the new pages; reports written.
+- [x] After a tick, every Active enrollment in the active term has a latest `RiskFlags` row whose AbsenceRate, WeightedAverage and IsAtRisk follow assumptions 2–6.
+- [x] Exactly 20% absence → at-risk; exactly 75 average → not at-risk (tests).
+- [x] Excused, Cancelled, not-yet-finalized sessions and blank grades are excluded as described (tests).
+- [x] Changing `AbsenceThreshold` / `PassingGrade` in `SystemSettings` changes the next tick's flags with no code change.
+- [x] The step runs as the third step of `WorkerTickJob`, after finalizing; one input query and one save per tick.
+- [x] No migration (`has-pending-model-changes` reports none); no new package; Microsoft.* still 10.x; all tests pass.
+- [x] Reports written; INDEX line added.
 
 ## Open questions (my recommendation first)
 
-1. **Weights rule:** what does "weights per class total 100%" mean while the teacher is still adding assessments?
-   - **Recommended:** the total may **never go above 100%**. Grades can be posted while it's under 100 (the weighted average in Milestone 11 already divides by the weights of graded assessments only), and the page warns until the total is exactly 100.
-   - *Alternative:* grades can't be posted until the class total is exactly 100%. Stricter, but the teacher must create every assessment of the term before entering the first quiz score.
-2. **When does a push go out?**
-   - **Recommended:** only when a student's grade is posted **for the first time** (`DedupKey grade:{AssessmentId}:{StudentId}`).
-   - *Alternative:* also when a score is changed. That needs a different DedupKey per change and could spam students during a correction.
-3. **How is the push sent "async"?**
-   - **Recommended:** the grade save also writes the Pending Notification. A small in-API background service (a `Channel<int>` of notification ids, ~20 lines) sends it right after the request finishes, and on startup it picks up any `Pending` push rows a restart interrupted.
-   - *Alternative:* send inline after the save with a 5-second timeout. Simpler, but saving a class of 40 could wait on 40 Firebase calls.
-4. **Firebase project and packages:** a real push needs a Firebase project, which only the team can create (free; your Google account):
-   - Android: `google-services.json` in `android/KlaslyApp/app/`, git-ignored.
-   - API: a service-account JSON kept outside the repo, its path in user-secrets.
-
-   **Recommended packages** (exact latest stable versions confirmed in `/plan`):
-   - API: **`Google.Apis.Auth`** (Google's library for the service-account OAuth token), used by a typed `HttpClient` as guide §13 says. The alternative, `FirebaseAdmin`, hides the HTTP call and pulls in more.
-   - Android: the **Firebase BoM + `firebase-messaging`** and the **`com.google.gms.google-services`** Gradle plugin.
-
-   Until the project exists, everything except smoke step 8 can be built and tested. Pushes are logged as "FCM is not configured". **Do you already have a Firebase project, or should the plan include the setup steps for you to follow?**
-5. **Test project:**
-   - **Recommended:** rename `tests/Klasly.Worker.Tests` to `tests/Klasly.Tests` and reference the API project too. One LocalDB fixture, one `dotnet test`.
-   - *Alternative:* a second project `tests/Klasly.API.Tests` with its own copy of the fixture.
+1. **Snapshot every tick, or only on change?** The guide says "each run writes a snapshot per enrollment". Every 5 minutes that is 288 rows per enrollment per day (about 290,000 rows a day for 1,000 enrollments), almost all identical.
+   **Recommend: write a row only when there is no snapshot yet or when AbsenceRate, WeightedAverage or IsAtRisk differs from the latest one.** Dashboards still read the latest row, the trend history keeps every real change, and Milestone 12 finds "became at-risk" by checking that the latest row is at-risk while the one before it is not (or there is none). ComputedAt then means "when this value was first computed". Alternative: follow the guide literally and write every tick.
+2. **Late enrolment / denominator:** count the student's own records (assumption 2, recommended) or every Finalized session of the class? The second charges a late-enrolled student nothing (no record → not Absent) but also lowers their rate unfairly. **Recommend the student's own records.**
+3. **Missing grade on a graded assessment:** skip it for that student (assumption 4, recommended, since the guide says "ungraded assessments are excluded" and the grade sheet allows blanks) or count it as 0? **Recommend skip.**
+4. **Bad or missing setting:** fail the step and log (recommended, settings are seeded and shouldn't be guessed), or fall back to 0.20 / 75? **Recommend fail.**
