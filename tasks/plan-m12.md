@@ -60,21 +60,21 @@ Milestone 11 is committed (`9d7dacb`). Milestone 12 implements guide §27.9 #9: 
 ## Task list
 
 ### Phase 1: Sending
-- [ ] Task 1: `BrevoEmailClient` + options + package + appsettings, tested with a fake handler (M)
-- [ ] Task 2: due-email query + `EmailSender` (results, backoff, max attempts, 401 stop, not configured), tested with a fake client (M)
+- [x] Task 1: `BrevoEmailClient` + options + package + appsettings, tested with a fake handler (M)
+- [x] Task 2: due-email query + `EmailSender` (results, backoff, max attempts, 401 stop, not configured), tested with a fake client (M)
 
 ### Checkpoint A
-- [ ] Build clean, all tests pass, `dotnet list package` shows Microsoft.* 10.0.14 only, no model changes
+- [x] Build clean, all tests pass, `dotnet list package` shows Microsoft.* 10.0.14 only, no model changes
 
 ### Phase 2: Queueing
-- [ ] Task 3: absence alerts (query + `AlertQueuer` absence part + tests) (M)
-- [ ] Task 4: at-risk alerts (query + `AlertQueuer` at-risk part + tests) (S)
+- [x] Task 3: absence alerts (query + `AlertQueuer` absence part + tests) (M)
+- [x] Task 4: at-risk alerts (query + `AlertQueuer` at-risk part + tests) (S)
 
 ### Phase 3: Wiring
-- [ ] Task 5: wire both steps into `WorkerTickJob` + `Program.cs`; dev smoke run without Brevo (S)
+- [x] Task 5: wire both steps into `WorkerTickJob` + `Program.cs`; dev smoke run without Brevo (S)
 
 ### Checkpoint B
-- [ ] Every spec criterion met except the real-Brevo smoke
+- [x] Every spec criterion met except the real-Brevo smoke
 
 ### Phase 4: Team setup
 - [ ] Task 6: Brevo account, verified sender, `Brevo:ApiKey` user-secret; real email smoke (team)

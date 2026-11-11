@@ -83,17 +83,17 @@
 - the placeholder comment is removed.
 
 **Acceptance:**
-- [ ] Build and all tests pass.
-- [ ] Smoke on the dev database with no Brevo key, one tick:
+- [x] Build and all tests pass.
+- [x] Smoke on the dev database with no Brevo key, one tick:
   - the log shows queued counts and "Brevo is not configured";
   - the new Email rows are Failed with that error;
   - the next tick queues nothing new.
-- [ ] The report lists the rows created.
+- [x] The report lists the rows created.
 
 **Files:** `src/Klasly.Worker/Jobs/WorkerTickJob.cs`, `src/Klasly.Worker/Program.cs`. **Depends on:** Tasks 2, 4.
 
 ## Checkpoint B
-- [ ] Every SPEC.md success criterion met except the real-Brevo smoke. Microsoft.* 10.0.14, one new package, no migration, no secrets committed. Reports + INDEX.
+- [x] Every SPEC.md success criterion met except the real-Brevo smoke. Microsoft.* 10.0.14, one new package, no migration, no secrets committed. Reports + INDEX.
 
 ## Task 6: Brevo setup + real email (team)
 - [ ] A free Brevo account; one verified sender address; an API key.

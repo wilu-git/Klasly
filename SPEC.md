@@ -181,13 +181,13 @@ static DateTime NextAttempt(DateTime nowUtc, int attempts) =>
 
 ## Success criteria
 
-- [ ] A new Absent in a Finalized session queues exactly one Email/Absence row per opted-in, active guardian. Running again adds nothing.
-- [ ] A student who becomes at-risk queues one Email/AtRisk row per opted-in guardian. Staying at-risk adds nothing; recovering and flipping again adds one more.
-- [ ] Pending emails are sent through Brevo. 2xx → Accepted with messageId; 400 → Failed; 429/5xx/timeout → retried with growing backoff + jitter and Failed after `MaxEmailAttempts`; 401/403 per Q2.
-- [ ] Push rows are untouched; an email Accepted once is never sent again, even after a crash mid-batch.
-- [ ] Without Brevo configured, the Worker still runs every other step, behaving as Q4 says.
-- [ ] No migration; Microsoft.* all 10.x; only the Q1 package added; no secret or real email committed; all tests pass.
-- [ ] Reports written; INDEX line added.
+- [x] A new Absent in a Finalized session queues exactly one Email/Absence row per opted-in, active guardian. Running again adds nothing.
+- [x] A student who becomes at-risk queues one Email/AtRisk row per opted-in guardian. Staying at-risk adds nothing; recovering and flipping again adds one more.
+- [ ] Pending emails are sent through Brevo. 2xx → Accepted with messageId; 400 → Failed; 429/5xx/timeout → retried with growing backoff + jitter and Failed after `MaxEmailAttempts`; 401/403 per Q2. *(Logic verified with a fake Brevo in Task 2; the real Brevo call is Task 6, by the team.)*
+- [x] Push rows are untouched; an email Accepted once is never sent again, even after a crash mid-batch.
+- [x] Without Brevo configured, the Worker still runs every other step, behaving as Q4 says.
+- [x] No migration; Microsoft.* all 10.x; only the Q1 package added; no secret or real email committed; all tests pass.
+- [x] Reports written; INDEX line added.
 
 ## Open questions (my recommendation first)
 
