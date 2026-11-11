@@ -1,220 +1,218 @@
-# Spec: Milestone 5 — Web MVC login + Admin pages
+# Spec: Milestone 6 — Web API sessions, rotating QR token, scan check-in
 
-> Status: **Done — built 2026-11-09** (all 12 smoke steps pass). Reports: `docs/reports/2026-11-09-2034-milestone-5-task-1-login/`, `docs/reports/2026-11-09-2101-milestone-5-web-admin/`. Approved 2026-11-09 with the recommended answers to the 3 open questions (see "Decisions"). Plan: `tasks/plan.md` · Tasks: `tasks/todo.md`. Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` → `CLAUDE.md` → this spec.
-> Milestone 4's spec (the API contract these pages call) is in git history (commit `f87ee09`) and in `docs/reports/2026-11-09-2009-milestone-4-admin-crud/`.
+> Status: **Done** (2026-11-09; reports in `docs/reports/2026-11-09-2144-milestone-6-api-sessions/`). Q1, Q3 and Q4 approved as recommended; Q2 changed to "register the phone before the first scan through a separate endpoint" (see Decisions at the bottom). Tasks: [`tasks/todo.md`](tasks/todo.md). Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` (§27.8 "QR attendance check-in") → `CLAUDE.md` → this spec.
+> Milestone 5's spec (Web admin pages) is in git history (commit `f859150`) and in `docs/reports/2026-11-09-2101-milestone-5-web-admin/`. The QR flow is drawn in `docs/4-2 Core Feature Flowchart - QR Check-in.png`.
 
 ## Assumptions (correct these before we build)
 
-1. **The website uses the API for everything.** `Klasly.Web` keeps zero database access (CLAUDE.md §3.4, guide §11). No `Klasly.Core` reference, so the Web project has **its own copies of the API's JSON shapes** (small records in `Models/Api/`). The duplication is the price of the rule.
-2. **Login = built-in cookie authentication, with the JWT stored inside the cookie.** On login the Web calls `POST /api/auth/login`, then signs the user in with ASP.NET Core's cookie handler (`AddAuthentication().AddCookie()`, no new package). The JWT is saved in the encrypted auth cookie with `StoreTokens`, and a `DelegatingHandler` adds `Authorization: Bearer <jwt>` to every API call. Cookie flags: `HttpOnly`, `Secure` (always), `SameSite=Lax`. The Web never needs the JWT signing key.
-   *Why Lax, not Strict:* Strict drops the login when someone opens a Klasly link from email or chat; anti-forgery tokens already stop cross-site form posts.
-3. **No token refresh.** The cookie expires at the same moment as the JWT (`ExpiresAtUtc`, 60 min today, not sliding). If the API answers `401` (expired or deactivated user), the Web signs the user out and sends them to the login page with a "Your session ended, please log in again." message and a `returnUrl`.
-4. **Who can log in to the website:** Admin, Teacher, Parent. **Students get "Students use the Klasly mobile app."** and are not signed in — the student screens are Android only (CLAUDE.md §3.6).
-5. **Teacher and Parent portals are not part of this milestone** (Milestones 7, 9, 10, 13). They can log in and land on a simple welcome page: "Hi, {name}. Your {role} pages are coming soon." That proves login works for every web role.
-6. **Admin pages live in an MVC Area named `Admin`** (`/Admin/Terms`, `/Admin/Classes`…). Teacher and Parent get their own Areas later, so each portal stays in its own folder. `[Authorize(Roles = "Admin")]` on the Area's controllers is only for a friendly redirect — **the API is the real guard** (guide §27.5).
-7. **Every API endpoint from Milestone 4 gets a page or a button. Nothing more.** No dashboards with counts, no search, no paging, no CSV import, no change-my-own-password page.
-8. **Layers follow guide §2:** Controller → Service → API-backed Repository → typed `HttpClient` → Web API. Repositories only make HTTP calls and turn errors into an `ApiException`. Services shape data for views and combine calls (for example the class form needs subjects + teachers + terms). Most services will be thin; that's expected.
-9. **Forms post, then redirect** (Post/Redirect/Get). Success shows a green message on the next page (`TempData`). Failures stay on the form and show the API's message. HTML forms can only send GET/POST, so "Deactivate", "Drop", "Unlink" and "Activate" are small POST forms; the repository turns them into the right `DELETE` / `POST` API call.
-10. **Validation runs twice on purpose.** View models copy the API's simple limits (`[Required]`, `[StringLength]`, `[Range]`) so the user sees mistakes before submitting. The API still decides; its `400`/`409` messages are shown on the form.
-11. **Destructive buttons ask first** with the browser's `confirm()` dialog ("Drop Bianca Reyes from CPE 301 – A?"). Nothing is ever hard-deleted except a parent–student link (Milestone 4 decision).
-12. **No test project** (same as Milestones 3–4). Manual browser smoke test, then `/impeccable` on the views. Automated role tests are Milestone 14.
-13. **No database changes, no API changes.** If a page turns out to need an API change, stop and ask.
+1. **Web API only.** No MVC pages (Milestone 7) and no Android screens (Milestone 8). Everything is testable from Swagger UI or curl.
+2. **No database change.** `ClassSessions`, `AttendanceRecords` (unique `SessionId + StudentId`), `Users.RegisteredDeviceId` and the `QrStepSeconds = 30` setting already exist from Milestone 2. If a change turns out to be needed, stop and ask.
+3. **Token format follows guide §27.8:** `{sessionId}.{timeStep}.{signature}`, where
+   - `timeStep = floor(UnixSeconds(UtcNow) / QrStepSeconds)`, with `QrStepSeconds` read from `SystemSettings`;
+   - `signature = Base64Url(HMACSHA256(Qr:SigningKey, "{sessionId}|{timeStep}|{QrNonce}"))`, the full 32 bytes;
+   - a token is about 60 characters, which fits a small QR code easily.
+
+   The API accepts the current step and the previous step. A token shown at the start of step *s* therefore works for 30 to 60 seconds. Signatures are compared with `CryptographicOperations.FixedTimeEquals`.
+4. **`Qr:SigningKey` lives in user-secrets only** (CLAUDE.md §3.3). Like `Jwt:Key`, the API refuses to start if the key is missing or shorter than 32 characters, and the error names the `dotnet user-secrets set` command.
+5. **Each session gets its own random `QrNonce`** (32 random bytes as hex = 64 characters, the column maximum), set when the session is created. Without the nonce, a token for session 5 at step *s* could be worked out by anyone who once saw the key. With it, each session's tokens are independent. The nonce is never returned by any endpoint.
+6. **Only the class's own teacher manages its sessions.** "Owner" means `Classes.TeacherId` matches the `Teachers` row of the JWT's `sub`. Another teacher gets `403`, and admins, students and parents get `403` from the `TeacherOnly` policy. A session id that doesn't exist gets `404`. The admin does not run sessions.
+7. **The scan endpoint answers `401` for a non-Student role** (CLAUDE.md §3.3 and guide check 1), not `403`. It uses plain `[Authorize]`, and the service checks the role.
+   - The JWT handler's `OnChallenge` event is changed to write problem-details with `"Session expired – please log in"`. A missing or expired token then carries the same message as the role failure, and the app can show the API's message (CLAUDE.md §3.6).
+   - This changes the empty `401` body on **every** endpoint to a problem-details body with that message. The website already shows its own "Your session ended" text for `401`, so nothing visible changes there.
+8. **The scan checks run in exactly the guide's order** and stop at the first failure (see "Scan endpoint" below). A malformed token, or a token naming a session that doesn't exist, fails check 2 (`400 "Invalid QR code"`). It is never a `404`, so nobody can probe which session ids exist.
+9. **Present or Late uses the server's clock:** `ScannedAt = UtcNow`. If `ScannedAt ≤ StartTime + LateAfterMinutes` the status is **Present**, otherwise **Late**. Scanning before `StartTime` (the session was opened early) counts as Present.
+10. **Two scans racing each other:** the unique index rejects the second insert, and the service turns that database error into `409 "Already checked in"`. That message is specific; the generic "That value is already used." would not do here.
+11. **Session times travel as `DateTimeOffset`** in requests (for example `2026-11-10T09:00:00+08:00`) and are stored as UTC. Responses return UTC (`...Z`). Only the MVC page and the app convert to Asia/Manila.
+12. **New exception types for the existing `ApiExceptionHandler`:**
+    - `ForbiddenException` → `403`;
+    - `UnauthorizedAccessException` (built into .NET) → `401`.
+
+    Controllers stay one line per action, the same as Milestone 4.
+13. **No test project** (same as Milestones 3–5). Manual smoke test with Swagger and curl. Automated role and boundary tests come in Milestone 14.
+14. **Out of scope:** cancelling or editing a session, auto-closing ended sessions and marking Absent (Worker, Milestone 9), teacher attendance corrections (Milestone 9), the MVC QR page (Milestone 7), the Android scanner (Milestone 8), GPS or offline scans (Optional features).
 
 ## Objective
 
-Give the school admin a website to set up a term without Swagger: log in, create the semester, the subject catalog, the user accounts (and link parents to children), the class sections, and the enrollments. The same login page also serves teachers and parents, so the next milestones only add pages, not login.
+Build the server half of Klasly's core feature: a teacher opens a class session, the API hands out a signed QR token that changes every 30 seconds, and a student's phone sends that token back to check in as Present or Late. Every bad scan (forged, expired, closed, not enrolled, wrong phone, twice) is refused with a clear message.
 
-Functional requirements covered: guide §27.9 **#1** (log in by role, web side) and **#2** (admin manages terms, subjects, classes, enrollments), plus **#10** (show a clear error message when an operation fails).
+After this milestone, Milestone 7 (teacher QR page) and Milestone 8 (Android scanner) can be built against a finished, tested API without touching it.
+
+Functional requirements covered: guide §27.9 **#3** (open a session with a signed QR that refreshes every 30 s, API side), **#4** (record Present/Late for a valid scan; reject invalid, expired, duplicate or non-enrolled scans with a clear message) and **#1** (ownership checks on the server).
 
 ### User stories
-- As **any web user**, I log in with email + password, see my name in the top bar, and log out.
-- As **any web user**, a wrong password shows "Invalid email or password." and keeps the email I typed.
-- As the **admin**, I land on an Admin home page that links to Terms, Subjects, Accounts and Classes.
-- As the **admin**, I create "1st Sem 2026-27", edit it, mark it active, and see which term is active at a glance.
-- As the **admin**, I add and edit subjects.
-- As the **admin**, I filter accounts by role, create a teacher / student / parent / admin with only the fields that role needs, edit them, reset a password, deactivate and reactivate them.
-- As the **admin**, on a parent's page I link and unlink their children.
-- As the **admin**, I create and edit classes by picking subject, teacher and term from dropdowns, and filter the class list by term.
-- As the **admin**, on a class's page I see who is enrolled (Active and Dropped), enroll a student from a dropdown, and drop a student.
-- As the **admin**, when I type a duplicate (email, student number, subject code…) the form stays filled in and shows the API's message naming the value.
+- As a **teacher**, I list my own classes and their sessions.
+- As a **teacher**, I create a session for my class (start, end, minutes until Late) and open it when class begins.
+- As a **teacher**, while the session is open, I get a fresh QR token every 30 seconds to show on screen.
+- As a **teacher**, I see who has checked in so far (Present or Late, with the time) and who hasn't.
+- As a **teacher**, I close the session when class ends.
+- As a **student**, my phone is registered right after I log in on the app, before my first scan.
+- As a **student**, I scan the QR on my registered phone and get "Present" or "Late" back.
+- As an **admin**, I reset a student's phone when they get a new one.
+- As a **student**, a bad scan tells me what went wrong: "Invalid QR code", "QR expired – rescan", "Session is closed", "Not enrolled in this class", "Unregistered device", "Already checked in".
+- As **another teacher**, I cannot see, open or read the QR of a class that isn't mine.
 
-## Pages
+## Endpoints
 
-All Admin pages need the Admin role. Not logged in → login page with `returnUrl`. Logged in as Teacher/Parent → Access denied page.
+All routes are under `/api/`, return JSON and use problem-details for errors (`{ status, detail }`). The ones marked ⓘ depend on the open questions below.
 
-| URL | What it shows / does | API calls |
+### Teacher (policy `TeacherOnly` + ownership)
+
+| Method & route | Body | Success | Errors |
+|---|---|---|---|
+| ⓘ `GET /api/teacher/classes` | — | `200` my classes (`ClassResponse` from Milestone 4), active term first, then by subject code | — |
+| `GET /api/classes/{classId}/sessions` | — | `200` sessions of the class, newest start first | `403` not my class · `404` class |
+| `POST /api/classes/{classId}/sessions` | `{ startTime, endTime, lateAfterMinutes? }` | `201` session, status `Scheduled` | `400` end ≤ start, end in the past, late minutes outside 0–120 · `403` · `404` |
+| `GET /api/sessions/{id}` | — | `200` session | `403` · `404` |
+| `POST /api/sessions/{id}/open` | — | `200` session, status `Open` (already Open → `200`, no change) | `400` "This session has already ended." (now ≥ EndTime) · `409` "Session is closed" (Closed / Finalized / Cancelled) · `403` · `404` |
+| ⓘ `POST /api/sessions/{id}/close` | — | `200` session, status `Closed`, `closedAt` = now (already Closed → `200`, no change) | `409` "Only an open session can be closed." · `403` · `404` |
+| `GET /api/sessions/{id}/qr` | — | `200` `{ token, expiresAtUtc, stepSeconds }` | `409` "Session is closed" (not Open) · `403` · `404` |
+| ⓘ `GET /api/sessions/{id}/attendance` | — | `200` one row per **Active** enrolled student, by name: `{ studentId, studentNumber, fullName, status, scannedAtUtc, source }`. `status` is `null` = hasn't scanned yet | `403` · `404` |
+
+`SessionResponse`: `{ sessionId, classId, subjectCode, section, startTimeUtc, endTimeUtc, lateAfterMinutes, status, closedAtUtc }`. `QrNonce` is never included.
+
+`expiresAtUtc` on the QR answer is the end of the current step, when the page should ask for the next token. The token stays accepted for one more step after that (the grace step).
+
+### Student
+
+| Method & route | Body | Success | Errors |
+|---|---|---|---|
+| `POST /api/students/me/device` (policy `StudentOnly`) | `{ deviceId }` (required, ≤ 200 chars, the phone's Android ID) | `200` `{ deviceId }`: saved when the account had no phone; same phone again → `200`, no change | `409` "Another device is already registered. Ask the admin to reset it." · `403` non-Student |
+| `POST /api/attendance/scan` | `{ qrToken, deviceId }` (`deviceId` required, ≤ 200 chars) | `200` `{ status: "Present" \| "Late", scannedAtUtc, subjectCode, section }` | see the checks below |
+
+The Android app (Milestone 8) calls the device endpoint after **every** student login. Its answer tells the app whether this phone may scan, so there is no separate "am I registered?" endpoint.
+
+#### Scan endpoint — checks in this exact order (guide §27.8)
+
+| # | Check | On failure |
 |---|---|---|
-| `GET /Account/Login` | Email + password form | — |
-| `POST /Account/Login` | Logs in; Admin → `/Admin`, Teacher/Parent → `/`; or back to `returnUrl` if it is a local URL | `POST /api/auth/login` |
-| `POST /Account/Logout` | Signs out → login page | — |
-| `GET /Account/AccessDenied` | "You don't have access to that page." + link home | — |
-| `GET /` | Not logged in → login. Admin → `/Admin`. Teacher/Parent → welcome page (assumption 5) | — |
-| `GET /Admin` | Admin home: four links (Terms, Subjects, Accounts, Classes) with one-line descriptions | — |
-| **Terms** | | |
-| `GET /Admin/Terms` | Table: name, start, end, Active badge; buttons Edit / Make active / Deactivate | `GET /api/terms` |
-| `GET·POST /Admin/Terms/Create`, `/Edit/{id}` | Form: name, start date, end date | `POST` / `GET`+`PUT /api/terms/{id}` |
-| `POST /Admin/Terms/Activate/{id}` | Makes it the active term | `POST /api/terms/{id}/activate` |
-| `POST /Admin/Terms/Deactivate/{id}` | Makes it not active | `DELETE /api/terms/{id}` |
-| **Subjects** | | |
-| `GET /Admin/Subjects` | Table: code, title, units; Edit button | `GET /api/subjects` |
-| `GET·POST /Admin/Subjects/Create`, `/Edit/{id}` | Form: code, title, units | `POST` / `GET`+`PUT /api/subjects/{id}` |
-| **Accounts** | | |
-| `GET /Admin/Accounts?role=` | Role tabs (All / Admin / Teacher / Student / Parent); table: name, email, role, ID no. (student no. or employee no.), Active/Inactive; Edit button. "New account" button per role | `GET /api/accounts?role=` |
-| `GET·POST /Admin/Accounts/Create?role=Student` | Form with common fields (name, email, password) **plus only the chosen role's fields** — server-rendered from `role`, no JavaScript | `POST /api/accounts` |
-| `GET·POST /Admin/Accounts/Edit/{id}` | Same fields minus role and password; `Active` checkbox; optional "New password" box (blank = unchanged) | `GET`+`PUT /api/accounts/{id}` |
-| `POST /Admin/Accounts/Deactivate/{id}` | Deactivate (button hidden on your own account; the API also refuses) | `DELETE /api/accounts/{id}` |
-| *(Parent accounts only, on the Edit page)* | "Linked students" table with Unlink buttons + a "Link a student" form (student dropdown, relationship, receives alerts checkbox) | `GET·POST /api/accounts/{id}/students`, `GET /api/accounts?role=Student` |
-| `POST /Admin/Accounts/LinkStudent/{id}`, `/UnlinkStudent/{id}?studentId=` | Link / unlink, then back to the Edit page | `POST` / `DELETE /api/accounts/{id}/students[/{studentId}]` |
-| **Classes + Enrollments** | | |
-| `GET /Admin/Classes?termId=` | Term dropdown filter (defaults to the active term); table: subject code + title, section, teacher, schedule, room, enrolled count; Edit / Students buttons | `GET /api/classes?termId=`, `GET /api/terms` |
-| `GET·POST /Admin/Classes/Create`, `/Edit/{id}` | Form: subject, teacher (active teachers only), term (dropdowns), section, schedule, room | `GET /api/subjects`, `GET /api/accounts?role=Teacher`, `GET /api/terms`, `POST`/`PUT /api/classes` |
-| `GET /Admin/Classes/Details/{id}` | Class header + enrollment table (student no., name, Active/Dropped, Drop button) + "Enroll a student" form (dropdown of active students not already Active in this class) | `GET /api/classes/{id}`, `GET /api/classes/{id}/enrollments`, `GET /api/accounts?role=Student` |
-| `POST /Admin/Classes/Enroll/{id}` | Enroll (re-enrolling a Dropped student works too: API returns `200`) | `POST /api/enrollments` |
-| `POST /Admin/Classes/Drop/{id}?enrollmentId=` | Drop | `DELETE /api/enrollments/{enrollmentId}` |
+| 1 | Valid JWT, role = Student, account active with a Students row | `401` "Session expired – please log in" |
+| 2 | Token has 3 parts, session exists, HMAC signature matches | `400` "Invalid QR code" |
+| 3 | `timeStep` is the current or the previous step | `400` "QR expired – rescan" |
+| 4 | Session status = Open (ⓘ and now < EndTime) | `409` "Session is closed" |
+| 5 | Student has an **Active** enrollment in the session's class | `403` "Not enrolled in this class" |
+| 6 | `deviceId` equals the account's `RegisteredDeviceId` (no phone registered → fails too; the scan never registers one) | `403` "Unregistered device" |
+| 7 | No AttendanceRecord yet for (session, student) | `409` "Already checked in" (also for a lost insert race) |
 
-Every `POST` action has `[ValidateAntiForgeryToken]` (CLAUDE.md §3.4).
+On success, insert an `AttendanceRecord` with `Status` Present or Late, `Source = Scan`, `ScannedAt = MarkedAt = UtcNow`, `MarkedBy = null`.
 
-### How API answers are shown
+### Admin
 
-| API answer | What the user sees |
-|---|---|
-| `2xx` | Redirect to the list (or back to the detail page) with a green "Saved." / "Term activated." message |
-| `400` with `errors` (field validation) | Each message next to its field (same property names); unknown keys go in the summary at the top of the form |
-| `400` / `409` with `detail` | The `detail` text in a red box at the top of the form; the form keeps what was typed |
-| `401` | Signed out → login page, "Your session ended, please log in again." |
-| `403` | Access denied page |
-| `404` | Standard Not Found page |
-| API down / timeout | Error page: "Klasly can't reach the server right now. Try again in a minute." (logged; no stack trace shown) |
-
-`401`, `403`, `404` and "API down" are handled in **one** place (an exception filter on `ApiException` / `HttpRequestException`), so controllers only catch the `400`/`409` case on form posts.
+| Method & route | Success | Errors |
+|---|---|---|
+| `DELETE /api/accounts/{id}/device` | `204`, `RegisteredDeviceId` cleared (also `204` when none was registered), so the student's next login registers their new phone. `AccountResponse` keeps hiding the device id | `404` account |
 
 ## Commands
 
 ```bash
+dotnet user-secrets set "Qr:SigningKey" "<at least 32 random characters>" --project src/Klasly.API
 dotnet build Klasly.slnx
 dotnet list Klasly.slnx package
-dotnet run --project src/Klasly.API --launch-profile https   # API on https://localhost:7256
-dotnet run --project src/Klasly.Web --launch-profile https   # Website on https://localhost:7144
+dotnet run --project src/Klasly.API --launch-profile https   # https://localhost:7256/swagger
 ```
-`Api:BaseUrl` = `https://localhost:7256/` in `src/Klasly.Web/appsettings.Development.json` (not a secret). The dev HTTPS certificate must be trusted (`dotnet dev-certs https --trust`). No migration.
+No migration. No new package: `HMACSHA256`, `RandomNumberGenerator`, `CryptographicOperations` and `Base64Url` all ship with .NET 10.
 
 ## Project structure (files this milestone touches)
 
 ```
-src/Klasly.Web/
-  Program.cs                      (modified) cookie auth, typed HttpClients + bearer handler,
-                                  services/repositories, exception filter, Area route
-  appsettings.Development.json    (modified) Api:BaseUrl
-  Models/Api/                     (new) JSON shapes copied from the API: Login*, Term*, Subject*,
-                                  Class*, Enrollment*, Account*, LinkedStudent* (one file per resource)
-  Infrastructure/
-    BearerTokenHandler.cs         (new) DelegatingHandler: reads the JWT from the auth cookie, adds the header
-    ApiException.cs               (new) status code + detail + field errors from problem-details
-    ApiResponse.cs                (new) one helper: success → read JSON; failure → throw ApiException
-    ApiExceptionFilter.cs         (new) 401 → sign out + login, 403 → AccessDenied, 404 → NotFound,
-                                  API unreachable → error page
-  Repositories/ (+ Interfaces/)   (new) AuthRepository, TermRepository, SubjectRepository,
-                                  AccountRepository (incl. links), ClassRepository (incl. enrollments)
-  Services/ (+ Interfaces/)       (new) AuthService (login → claims), TermService, SubjectService,
-                                  AccountService, ClassService
-  Controllers/
-    AccountController.cs          (new) Login, Logout, AccessDenied
-    HomeController.cs             (modified) redirect by role; welcome page; remove template Privacy
-  Areas/Admin/
-    Controllers/                  (new) HomeController, TermsController, SubjectsController,
-                                  AccountsController, ClassesController
-    Views/                        (new) one Index + one shared create/edit form per resource,
-                                  Accounts/_ParentLinks partial, Classes/Details
-  ViewModels/                     (new) LoginViewModel, TermFormViewModel, SubjectFormViewModel,
-                                  AccountFormViewModel, ClassFormViewModel, ClassDetailsViewModel …
-  Views/Account/                  (new) Login, AccessDenied
-  Views/Shared/_Layout.cshtml     (modified) Klasly brand, nav by role, user name + Logout button,
-                                  TempData success / error messages
-  Views/Home/Privacy.cshtml       (deleted) template leftover
+src/Klasly.Core/
+  DTOs/          (new) CreateSessionRequest, SessionResponse, QrTokenResponse,
+                 SessionAttendanceRow, ScanRequest, ScanResponse, RegisterDeviceRequest
+  Interfaces/    (new) ISessionRepository, IAttendanceRepository, ISystemSettingRepository
+src/Klasly.Infrastructure/
+  Repositories/  (new) SessionRepository, AttendanceRepository, SystemSettingRepository
+  DependencyInjection.cs        (modified) register the 3 repositories
+src/Klasly.API/
+  Program.cs                    (modified) Qr:SigningKey startup check, JWT OnChallenge message, new services
+  Middleware/ApiExceptionHandler.cs   (modified) ForbiddenException → 403, UnauthorizedAccessException → 401
+  Services/ForbiddenException.cs      (new)
+  Services/QrTokenService.cs (+ interface)   (new) create / verify token — pure HMAC code, no database
+  Services/SessionService.cs (+ interface)   (new) ownership, create, open, close, QR, roster
+  Services/AttendanceService.cs (+ interface) (new) the 7 scan checks + insert
+  Controllers/TeacherController.cs    (new) GET api/teacher/classes
+  Controllers/SessionsController.cs   (new) class sessions + session routes
+  Controllers/AttendanceController.cs (new) POST api/attendance/scan
+  Controllers/StudentsController.cs   (new) POST api/students/me/device
+  Controllers/AccountsController.cs   (modified) DELETE {id}/device
+  Services/AccountService.cs (+ interface)    (modified) register / reset device
 ```
-
-No new packages — cookie auth, `IHttpClientFactory` and `System.Net.Http.Json` all ship with ASP.NET Core 10. No generic repository, AutoMapper, or MediatR (guide §21).
 
 ## Code style
 
-Same as Milestones 3–4: file-scoped namespaces, primary constructors, `async` + `CancellationToken` all the way down. Repositories throw `ApiException`; controllers only handle the form case:
+Same as Milestones 3–4: file-scoped namespaces, primary constructors, `async` + `CancellationToken` all the way down, services throw and the exception handler maps the exception to a status code. The scan service reads top to bottom like the guide's table:
 
 ```csharp
-namespace Klasly.Web.Areas.Admin.Controllers;
-
-[Area("Admin"), Authorize(Roles = "Admin")]
-public class SubjectsController(ISubjectService subjects) : Controller
+public async Task<ScanResponse> ScanAsync(int userId, string role, ScanRequest request, CancellationToken ct)
 {
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(SubjectFormViewModel model, CancellationToken ct)
-    {
-        if (!ModelState.IsValid) return View("Form", model);
+    var student = role == "Student" ? await users.GetActiveStudentAsync(userId, ct) : null;
+    if (student is null) throw new UnauthorizedAccessException("Session expired – please log in");   // 1
 
-        try
-        {
-            await subjects.CreateAsync(model, ct);
-        }
-        catch (ApiException ex) when (ex.IsFormError)   // 400 or 409
-        {
-            ModelState.AddApiErrors(ex);
-            return View("Form", model);
-        }
+    if (!qr.TryParse(request.QrToken, out var sessionId, out var step)) throw new ValidationException("Invalid QR code");
+    var session = await sessions.GetByIdAsync(sessionId, ct);
+    if (session is null || !qr.HasValidSignature(sessionId, step, session.QrNonce, request.QrToken))
+        throw new ValidationException("Invalid QR code");                                                 // 2
 
-        TempData["Success"] = $"Subject {model.Code} saved.";
-        return RedirectToAction(nameof(Index));
-    }
+    var current = await qr.CurrentStepAsync(ct);
+    if (step != current && step != current - 1) throw new ValidationException("QR expired – rescan");    // 3
+    // 4–7 follow the same pattern, then insert and return Present / Late.
 }
 ```
-
-```csharp
-namespace Klasly.Web.Repositories;
-
-public class SubjectRepository(HttpClient http) : ISubjectRepository
-{
-    public async Task<SubjectResponse> CreateAsync(SubjectRequest request, CancellationToken ct) =>
-        await ApiResponse.ReadAsync<SubjectResponse>(
-            await http.PostAsJsonAsync("api/subjects", request, ct), ct);
-}
-```
-
-UI: Bootstrap from the template, one consistent admin layout (tables with a header action button, forms in a single column, status as badges). Dates shown as `MMM d, yyyy`. `/impeccable` runs on every view before the milestone is called done.
 
 ## Testing strategy
 
-- **Build:** `dotnet build` with 0 errors and 0 new warnings; `dotnet list package` shows no Microsoft package below 10.x, and `Klasly.Web` has **no** package or project reference to EF Core, `Klasly.Core` or `Klasly.Infrastructure`.
-- **Manual browser smoke test** with the API running on LocalDB and the Milestone 2 seed (`admin@klasly.test` / `Klasly@123`):
-  1. Wrong password → "Invalid email or password.", email kept. Admin login → `/Admin`. Name shows in the top bar. Logout → login page.
-  2. Seeded teacher and parent log in → welcome page. Seeded student → "Students use the Klasly mobile app." and not signed in.
-  3. Teacher opens `/Admin/Terms` → Access denied. Logged out, `/Admin/Subjects` → login, then back to `/Admin/Subjects` after logging in.
-  4. Browser dev tools: the auth cookie is `HttpOnly`, `Secure`, `SameSite=Lax`; the JWT is not readable from page JavaScript (`document.cookie` doesn't show it).
-  5. Terms: create, edit, make active → only that row has the Active badge. End date before start date → error on the form.
-  6. Subjects: create; duplicate code → the API's "already used" message, form still filled in.
-  7. Accounts: create one of each role (each form shows only that role's fields); student without student number → error; duplicate email → `409` message. Deactivate the new teacher → their login fails. Reactivate + reset password → login works with the new password. Your own account has no Deactivate button.
-  8. Parent links: link a student → appears in the list; link again → message; unlink → gone.
-  9. Classes: create with dropdowns; duplicate subject + section + term → message. Term filter changes the list.
-  10. Enrollments: enroll → appears Active; drop → Dropped; enroll again → Active (same row).
-  11. Stop the API, click any Admin page → friendly "can't reach the server" page, no stack trace.
-  12. Set `Jwt:ExpiryMinutes` to 1 on the API, log in, wait 2 minutes, click a page → back to login with "Your session ended".
-- No automated tests (assumption 12).
+- **Build:** `dotnet build Klasly.slnx` → 0 errors, 0 new warnings. `dotnet list package` → no Microsoft package below 10.x. `git grep` finds no signing key in the repo.
+- **Manual smoke test** in Swagger or curl, against LocalDB with the Milestone 2 seed plus the Milestone 5 test rows. The seed teachers, students and their classes are used as-is; sessions are created during the test.
+  1. Teacher A: `GET /api/teacher/classes` → only A's classes. Teacher B on A's class sessions → `403`. Admin token → `403`. No token → `401` with the "Session expired" message.
+  2. Create a session for A's class (start = now, end = now + 90 min) → `201 Scheduled`. End before start → `400`. End in the past → `400`. `lateAfterMinutes: 121` → `400`. Unknown class → `404`.
+  3. `GET qr` while Scheduled → `409`. Open → `200 Open`. Open again → `200`. `GET qr` → token. Two calls in the same 30 s → the same token. After the step changes → a different token.
+  4. Enrolled student 1 registers `phone-1` → `200`; again → `200`. Scans with `phone-1` → `200 Present`. The attendance roster shows them Present with the time and everyone else with `status: null`.
+  5. Student 1 scans again → `409 Already checked in`.
+  6. Student 1 registers `phone-2` → `409` "Another device is already registered…". Student 1 scans another open session with `phone-2` → `403 Unregistered device`. Enrolled student 2, who never registered a phone, scans → `403 Unregistered device`. A teacher token on the device endpoint → `403`.
+  7. A student not enrolled in the class (and a student Dropped from it) → `403 Not enrolled in this class`.
+  8. Teacher or parent token on scan → `401 "Session expired – please log in"`. No token → the same.
+  9. Change one character of the signature → `400 Invalid QR code`. Change the session id in the token → `400`. Send the text `hello` → `400`. A token for a session id that doesn't exist → `400` (not `404`).
+  10. Keep a token, wait 65 s, scan → `400 QR expired – rescan`. A token 31–59 s old still works (grace step).
+  11. A session created with start = now − 30 min and late = 15 → scan → `200 Late`.
+  12. Get a token, close the session, scan with that token → `409 Session is closed`. `GET qr` after closing → `409`. Open after closing → `409`.
+  13. Two scans for the same student and session sent at the same moment (two `curl` processes) → one `200`, one `409 Already checked in`, one row in the database.
+  14. Start the API without `Qr:SigningKey` → it refuses to start with the user-secrets command in the message.
+  15. Admin clears student 1's device → `204` (again → `204`) → student 1 registers `phone-2` → `200` → scans a new session with `phone-2` → `200`.
 
 ## Boundaries
 
-- **Always:** Controller → Service → API-backed Repository; `[ValidateAntiForgeryToken]` on every POST; show the API's message on failure; only redirect to local `returnUrl`s (`Url.IsLocalUrl`); `async` + `CancellationToken`; run `dotnet build`; `/impeccable` on views; write the three reports in `docs/reports/` when the milestone is built.
-- **Ask first:** any change to `Klasly.API` or the database; any new package; adding JavaScript beyond `confirm()` and the template's validation scripts; any page or feature not in the Pages table.
-- **Never:** reference EF Core, `Klasly.Core` or `Klasly.Infrastructure` from `Klasly.Web`; put a connection string or the JWT key in the Web project; store the JWT in `localStorage`, a non-HttpOnly cookie, or the page HTML; inject `HttpClient` into controllers or views; re-implement API business rules in the Web; turn on CORS; show stack traces or raw problem-details JSON to users.
+- **Always:** Controller → Service → Repository (guide §2); business rules only in `Klasly.API` services; DTOs in and out (never entities, never `QrNonce`); UTC in the database and in responses; the guide's exact error messages and check order; constant-time signature comparison; `async` + `CancellationToken`; `dotnet build` after each change; the three reports when built.
+- **Ask first:** any schema change or migration; any new package; any endpoint not in the tables above; changing a Milestone 3–4 endpoint other than the 401 body described in assumption 7.
+- **Never:** commit `Qr:SigningKey` or put it in `appsettings*.json`; return the nonce or the key; accept a token older than the previous step; trust the client's clock or a `scannedAt` sent by the client; turn on CORS; return `404` for an unknown session id in a scan; let a database error leak SQL into a response.
 
 ## Success criteria
 
-- [x] All 12 smoke-test steps behave as written.
-- [x] Every Milestone 4 admin endpoint is reachable from a page or button, and nothing else was added.
-- [x] The JWT only ever lives inside the HttpOnly, Secure, SameSite=Lax auth cookie and the server-side `Authorization` header.
-- [x] A failed save never loses what the user typed and always shows a human-readable message.
-- [x] `Klasly.Web` builds with no database or `Klasly.Core` reference.
-- [x] `/impeccable` run on the views; findings fixed or listed in the report.
+- [x] All smoke-test steps behave as written.
+- [x] Every scan failure returns the guide's status code and message, in the guide's order.
+- [x] A forged, edited or expired token is never accepted; tokens rotate every `QrStepSeconds`.
+- [x] Only the class's own teacher can create, open, close, read the QR of, or read the roster of a session.
+- [x] A student has at most one AttendanceRecord per session, even with parallel scans.
+- [x] No migration, no new package, no key in the repo; every Microsoft package is 10.x.
 - [x] Reports written; `docs/reports/INDEX.md` updated.
 
-## Decisions (were open questions — approved 2026-11-09)
+## Decisions (2026-11-09)
 
-1. **Students on the website:** blocked with "Students use the Klasly mobile app." and not signed in (assumption 4).
-2. **Teachers and parents in this milestone:** they log in and see a "coming soon" welcome page (assumption 5).
-3. **Default term on the Classes list:** the active term (all terms if none is active); an "All terms" option shows every class.
+- **Q1:** recommended — the teacher creates sessions.
+- **Q2: changed by the team.** The phone is registered **before** the first attendance, through `POST /api/students/me/device`, which the app calls after every student login. The scan only compares (check 6). The admin resets with `DELETE /api/accounts/{id}/device`.
+  - *Known limits:* two student accounts can still register the same phone (the column isn't unique). The Android ID depends on the app's signing key, so a debug build and a release build give **different** IDs: after switching builds, the admin resets each test student once.
+- **Q3:** recommended — build the Milestone 7 read endpoints now.
+- **Q4:** recommended — teacher Close endpoint, and an Open session past `EndTime` counts as closed.
+
+## Open questions as asked (kept for the record)
+
+1. **Where do sessions come from?** The guide fixes `POST /api/sessions/{id}/open`, so a session must exist before it is opened, but nothing says who creates it.
+   **Recommended:** the teacher creates it, `POST /api/classes/{classId}/sessions` with start, end and late minutes, and opens it when class starts. The Milestone 7 page can prefill "now → now + 90 min".
+   *Alternatives:* the admin creates sessions; or the Worker generates them from the class `Schedule` text (it is free text, so this is hard to parse).
+2. **How does a phone become the "registered device"?** `Users.RegisteredDeviceId` exists, but nothing sets it.
+   **Recommended:** the first successful scan registers the device (trust on first use), in the same save as the attendance row. The admin can clear it when a student changes phones, with one `DELETE /api/accounts/{id}/device` endpoint; the website button comes later.
+   *Alternatives:* send the device id with the student's login (changes the Milestone 3 login endpoint); or the admin types the device id.
+   *Known limit either way:* the column isn't unique, so two student accounts could register the same phone.
+3. **Should this milestone also build the read endpoints Milestone 7 needs:** my classes, the class's session list, and the live attendance roster?
+   **Recommended: yes**, so Milestone 7 is web-only, the same split as Milestones 4 → 5.
+   *Alternative:* add them in Milestone 7.
+4. **Closing a session before the Worker exists (Milestone 9):**
+   **Recommended:** (a) add `POST /api/sessions/{id}/close` for the teacher's "End session" button (it is also the only way to test check 4 now), and (b) treat an Open session whose `EndTime` has passed as closed for scans and QR, so a forgotten session can't take scans hours later while the Worker isn't running yet.
+   *Alternative:* only the Worker closes sessions, and check 4 looks at `Status` alone.

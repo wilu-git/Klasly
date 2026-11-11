@@ -20,6 +20,9 @@ public class ApiExceptionHandler(IProblemDetailsService problemDetails) : IExcep
             KeyNotFoundException e => (StatusCodes.Status404NotFound, e.Message),
             ValidationException e => (StatusCodes.Status400BadRequest, e.Message),
             ConflictException e => (StatusCodes.Status409Conflict, e.Message),
+            ForbiddenException e => (StatusCodes.Status403Forbidden, e.Message),
+            // The scan endpoint answers a non-Student role with 401, not 403 (guide §27.8 check 1).
+            UnauthorizedAccessException e => (StatusCodes.Status401Unauthorized, e.Message),
             // Backstop for a race between two saves: 2601/2627 = unique index / unique constraint violated.
             DbUpdateException { InnerException: SqlException { Number: 2601 or 2627 } } =>
                 (StatusCodes.Status409Conflict, "That value is already used."),

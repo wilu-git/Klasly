@@ -13,6 +13,13 @@ public class ClassService(
     public async Task<List<ClassResponse>> ListAsync(int? termId, CancellationToken ct) =>
         (await classes.ListAsync(termId, ct)).Select(ToResponse).ToList();
 
+    public async Task<List<ClassResponse>> ListForTeacherAsync(int userId, CancellationToken ct)
+    {
+        var teacherId = (await users.GetByIdAsync(userId, ct))?.Teacher?.TeacherId
+            ?? throw new ForbiddenException("Only teachers have classes.");
+        return (await classes.ListByTeacherAsync(teacherId, ct)).Select(ToResponse).ToList();
+    }
+
     public async Task<ClassResponse> GetAsync(int classId, CancellationToken ct) =>
         ToResponse(await classes.GetDetailsAsync(classId, ct)
             ?? throw new KeyNotFoundException($"Class {classId} was not found."));

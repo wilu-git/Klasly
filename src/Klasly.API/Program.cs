@@ -7,6 +7,7 @@ using Klasly.Core.Entities;
 using Klasly.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
@@ -41,10 +42,36 @@ if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
         "Jwt:Key is missing or shorter than 32 characters. Run: " +
         "dotnet user-secrets set \"Jwt:Key\" \"<at least 32 random characters>\" --project src/Klasly.API");
 
+// QR signing key: user-secrets only (CLAUDE.md §3.3). Same minimum as the JWT key.
+var qrKey = builder.Configuration["Qr:SigningKey"];
+if (string.IsNullOrWhiteSpace(qrKey) || qrKey.Length < 32)
+    throw new InvalidOperationException(
+        "Qr:SigningKey is missing or shorter than 32 characters. Run: " +
+        "dotnet user-secrets set \"Qr:SigningKey\" \"<at least 32 random characters>\" --project src/Klasly.API");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false; // keep the short JWT claim names (sub, role, name) as issued
+        options.Events = new JwtBearerEvents
+        {
+            // Missing or expired token: a problem-details body the Android app can show, instead of an empty 401.
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.HttpContext.RequestServices.GetRequiredService<IProblemDetailsService>()
+                    .WriteAsync(new ProblemDetailsContext
+                    {
+                        HttpContext = context.HttpContext,
+                        ProblemDetails = new ProblemDetails
+                        {
+                            Status = StatusCodes.Status401Unauthorized,
+                            Detail = "Session expired – please log in"
+                        }
+                    });
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
@@ -69,6 +96,9 @@ builder.Services.AddScoped<ITermService, TermService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<IQrTokenService, QrTokenService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 
 var app = builder.Build();
 

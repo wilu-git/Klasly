@@ -7,3 +7,4 @@
 - 2026-11-09 20:09 — Milestone 4: Web API admin CRUD (terms, subjects, accounts + guardian links, classes, enrollments; soft delete) — [folder](./2026-11-09-2009-milestone-4-admin-crud/)
 - 2026-11-09 20:34 — Milestone 5 Task 1: Web MVC login and logout (JWT inside HttpOnly cookie) — [folder](./2026-11-09-2034-milestone-5-task-1-login/)
 - 2026-11-09 21:01 — Milestone 5 Tasks 2–9: Web MVC Admin portal (terms, subjects, accounts + parent links, classes + enrollments) — [folder](./2026-11-09-2101-milestone-5-web-admin/)
+- 2026-11-09 21:44 — Milestone 6: Web API sessions, rotating QR token, device registration, scan check-in — [folder](./2026-11-09-2144-milestone-6-api-sessions/)

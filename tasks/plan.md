@@ -1,115 +1,100 @@
-# Implementation Plan: Milestone 5 — Web MVC login + Admin pages
+# Implementation Plan: Milestone 6 — Web API sessions, rotating QR token, scan check-in
 
-> Built from [`SPEC.md`](../SPEC.md) (approved 2026-11-09 with the recommended answers to the 3 open questions). Task details, acceptance criteria and verification steps are in [`todo.md`](./todo.md).
-> Milestone 4's plan is in git history (commit `f87ee09`).
+> Built from [`SPEC.md`](../SPEC.md) (approved 2026-11-09: Q1, Q3, Q4 as recommended; Q2 changed to a separate device endpoint). Task details, acceptance criteria and verification steps are in [`todo.md`](./todo.md).
+> Milestone 5's plan is in git history (commit `f859150`).
 
 ## Overview
 
-Turn the bare `Klasly.Web` template into the website's login and Admin portal. Each Admin resource is one **vertical slice**: API shapes → API-backed repository → service → controller → views, so after every task there is a page you can open and click. The Web never touches the database: every read and write goes through the Milestone 4 API. No API, database or package changes.
+Build the server half of the QR check-in. A teacher creates and opens a session for their own class. The API hands out a signed token that rotates every `QrStepSeconds` (30 s). A student's phone, registered right after login, sends the token back and is recorded Present or Late. The work is **Web API only**: no database change, no new package, no MVC or Android code.
 
 ## Facts from the code that shape the plan
 
-- The API serializes enums as **strings only** (`JsonStringEnumConverter(allowIntegerValues: false)`, `src/Klasly.API/Program.cs:16`). The Web's copied shapes use `string Role` / `string Status`, so no enum copies are needed.
-- `[ApiController]` validation errors are keyed by **C# property name** (`Code`, `Units`, `StartDate`…). Form view models use the **same property names** as the API requests (`SubjectRequest`, `TermRequest`, `AccountRequestBase`, `ClassRequest`, `LinkStudentRequest` in `src/Klasly.Core/DTOs/`), so each API error lands next to its field. Task 2 checks this with one real error before the pattern is copied.
-- `POST /api/auth/login` returns `LoginResponse(Token, ExpiresAtUtc, UserId, FullName, Role)`, or `401` with "Invalid email or password." (`src/Klasly.API/Controllers/AuthController.cs`).
-- The API runs on `https://localhost:7256`, the Web on `https://localhost:7144`. `Klasly.Web` is still the template; its csproj already has an empty `ViewModels/` folder.
+- Services throw and `ApiExceptionHandler` maps the exception to a status code (`KeyNotFoundException` → 404, `ValidationException` → 400, `ConflictException` → 409, unique-index `DbUpdateException` → 409). Milestone 6 adds `ForbiddenException` → 403 and `UnauthorizedAccessException` → 401.
+- Controllers read the caller with `User.FindFirstValue("sub")` (`MapInboundClaims = false`).
+- `IUserRepository.GetByIdAsync` returns a **tracked** user with Student / Teacher / Guardian loaded. It is enough for teacher ownership, device registration and scan check 1.
+- `IEnrollmentRepository.GetByClassAndStudentAsync` serves check 5, and `ListByClassAsync` serves the roster.
+- `IClassRepository.ListAsync` / `GetDetailsAsync` load Subject, Teacher.User, Term and the Active enrollments, which is the shape `ClassResponse` needs for "my classes".
+- `ClassSessions.QrNonce` (nvarchar 64), `CK_ClassSessions_Late` (0–120), unique `AttendanceRecords (SessionId, StudentId)`, `Users.RegisteredDeviceId` (nvarchar 200) and the `QrStepSeconds = 30` setting all exist already.
+- SQL returns `DateTime` as `Unspecified`. Responses stamp UTC the same way `AccountService.Utc` does.
 
 ## Dependency graph
 
 ```
-Task 1  Login + logout end to end (cookie auth, layout, home redirect)
+Task 1  Error plumbing + Qr:SigningKey check
    │
-   └── Task 2  Authenticated API plumbing + Admin home + Terms  ← sets the pattern
+   └── Task 2  QR token service (+ settings repository)
           │
-          ├── Task 3  Subjects
-          │
-          ├── Task 4  Accounts: list + create
-          │      ├── Task 5  Accounts: edit / deactivate / password reset
-          │      └── Task 6  Parent links            (needs Task 5's Edit page)
-          │
-          └── Task 7  Classes list + create/edit   ◄── needs Subjects (3), teachers (4), Terms (2)
+          └── Task 3  Create / read sessions, my classes   ← session repository, ownership
                  │
-                 └── Task 8  Class details: enroll / drop   ◄── needs students (4)
+                 └── Task 4  Open / close / QR endpoint
                         │
-                        └── Task 9  /impeccable, full smoke test, reports, commit
+Task 5  Device register / reset  (needs Task 1 only)
+                        │
+                        └── Task 6  Scan endpoint (needs 2, 4, 5)
+                               │
+                               └── Task 7  Roster (needs the attendance repository from 6)
+                                      │
+                                      └── Task 8  Smoke test, package check, reports, commit
 ```
 
-Tasks 3–8 all edit `Program.cs` (one client registration each) and the layout nav, so they run **one after another in one session**, not in parallel.
+All tasks touch `Program.cs` or `DependencyInjection.cs`, so they run one after another in one session.
 
 ## Architecture decisions
 
 | Decision | Why |
 |---|---|
-| Cookie auth: `AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(...)`. Cookie name `Klasly.Auth`, `HttpOnly`, `SecurePolicy.Always`, `SameSite.Lax`, `SlidingExpiration = false`, `LoginPath = /Account/Login`, `AccessDeniedPath = /Account/AccessDenied` | Spec assumption 2. Built into ASP.NET Core 10, no package. |
-| At login, `AuthService` builds a `ClaimsPrincipal` (NameIdentifier = userId, Name = fullName, Role = role) plus `AuthenticationProperties { ExpiresUtc = ExpiresAtUtc, IsPersistent = false }`, and stores the JWT with `StoreTokens([new() { Name = "access_token", Value = token }])`. The controller calls `HttpContext.SignInAsync` | The login ends when the JWT ends. A session cookie also dies when the browser closes, which is safer on shared lab PCs. Signing in is an MVC concern, so it stays in the controller. |
-| `AuthService` refuses the Student role ("Students use the Klasly mobile app.") without signing in | Decision 1. |
-| `AuthRepository.LoginAsync` returns `null` on `401` instead of throwing | A wrong password is a normal form result. If it threw, the filter would treat it as "session ended". |
-| `BearerTokenHandler : DelegatingHandler` reads `HttpContext.GetTokenAsync("access_token")` through `IHttpContextAccessor` and sets `Authorization: Bearer …` | One place adds the header. Controllers never touch `HttpClient` (guide §11). |
-| One local helper in `Program.cs` registers each repository: `AddHttpClient<IXRepository, XRepository>(c => { c.BaseAddress = new(apiBaseUrl); c.Timeout = TimeSpan.FromSeconds(15); }).AddHttpMessageHandler<BearerTokenHandler>()` | Typed clients (CLAUDE.md §4.1). 15 s means a dead API shows the error page quickly instead of hanging for the default 100 s. |
-| `ApiResponse.ReadAsync<T>(response, ct)` and `ApiResponse.EnsureAsync(response, ct)`: success → read the JSON; failure → read the problem-details (`title`, `detail`, `errors`) and throw `ApiException(status, detail, errors)` | Each repository method is one line (spec code style). |
-| `ApiExceptionFilter` (global MVC exception filter): `401` → `SignOutAsync`, TempData "Your session ended, please log in again.", redirect to login (`returnUrl` = current URL on GET only). `403` → AccessDenied. `404` → `NotFound()`. `HttpRequestException` / `TaskCanceledException` → log + `ApiUnavailable` view | Spec "How API answers are shown": handled in one place. Controllers only catch `ex.IsFormError` (400 / 409) on form posts. |
-| `ModelStateExtensions.AddApiErrors(this ModelStateDictionary, ApiException)`: each `errors` entry goes to its key; `detail` goes to the summary key `""` | Field messages next to the inputs; rule and duplicate messages in the red summary box. |
-| Admin Area: `[Area("Admin"), Authorize(Roles = "Admin")]` on each Admin controller. Route `{area:exists}/{controller=Home}/{action=Index}/{id?}` is mapped before the default route | Spec assumption 6. Teacher and Parent Areas come later. |
-| One `Form.cshtml` per resource for both Create and Edit. The view model's `Id` (`null` = create) picks the form's target action and the page title | Half the views. |
-| The account create form takes its fields from `?role=`: `Role` is a hidden field and the view has `@if (Model.Role == "Student")` blocks. Edit reuses the view without role and password and adds `IsActive` + `NewPassword` | Spec: no JavaScript. |
-| Services combine calls for views: `ClassService.GetFormAsync` (subjects + active teachers + terms), `ClassService.GetDetailsAsync` (class + enrollments + active students not Active in the class), `AccountService.GetEditAsync` (account + linked students + student dropdown when the account is a Parent) | Guide §3: MVC services coordinate and shape data. No business rules in the Web. |
-| Classes filter: no `termId` → active term (all terms if none is active); the "All terms" option sends `termId=0` | Decision 3. |
-| API shapes in `Models/Api/`, one file per resource holding its request + response records. Form view models in `ViewModels/` | `Klasly.Web` may not reference `Klasly.Core` (CLAUDE.md §3.4). |
-| Delete the template Privacy view and its action and links. The layout gets the Klasly brand, role-based nav, the user's name, a Logout POST form, and an `_Alerts` partial (TempData `Success` / `Error`) | Spec project structure. |
+| Token `{sessionId}.{timeStep}.{Base64Url(HMACSHA256(key, "{sessionId}\|{timeStep}\|{nonce}"))}`; accept the current step and the previous one; compare with `CryptographicOperations.FixedTimeEquals` | Guide §27.8 and spec assumption 3. |
+| `QrTokenService` has no database code except reading `QrStepSeconds` through `ISystemSettingRepository` | The HMAC logic stays pure and easy to read. |
+| Ownership: load the session with its Class, then compare `Class.TeacherId` with the caller's Teacher row. Unknown id → 404, someone else's class → 403 | Spec assumption 6. Admins never get past the `TeacherOnly` policy. |
+| "Effectively open" = `Status == Open && UtcNow < EndTime`; used by the QR endpoint and scan check 4 | Decision Q4: no Worker yet. |
+| Device registration in `AccountService` (`RegisterDeviceAsync`, `ResetDeviceAsync`) | `AccountService` already owns all `User` edits; no new service. |
+| Scan check 1 uses plain `[Authorize]`, and the service throws `UnauthorizedAccessException` for a non-Student | The guide asks for 401 (not 403) on a wrong role. |
+| JWT `OnChallenge` writes problem-details "Session expired – please log in" | The app can show the API's message; the website checks only the status code. |
+| A lost insert race → `ConflictException("Already checked in")`, caught in `AttendanceService` | The generic "That value is already used." is wrong here. |
 
 ## Task list
 
-### Phase 1: Login
-- [x] Task 1: Login and logout end to end (M)
+### Phase 1: Foundation
+- [x] Task 1: Error plumbing and secrets check (S)
+- [x] Task 2: QR token service (S–M)
 
-### Phase 2: Pattern slice and simple resources
-- [x] Task 2: Authenticated API plumbing + Admin home + Terms (M–L)
-- [x] Task 3: Subjects (S)
-
-### Checkpoint A — after Tasks 1–3
+### Checkpoint A — after Tasks 1–2
 - [x] `dotnet build Klasly.slnx` → 0 errors, no new warnings
-- [x] SPEC smoke steps 1–6, 11 and 12 pass
-- [ ] Team looks at the layout and form style before more pages copy it
+- [x] No token → 401 with the message; the API refuses to start without `Qr:SigningKey`
 
-### Phase 3: Accounts
-- [x] Task 4: Accounts — list + create (M)
-- [x] Task 5: Accounts — edit, deactivate, password reset (S)
-- [x] Task 6: Parent links (S)
+### Phase 2: Teacher session slice
+- [x] Task 3: Create and read sessions, list my classes (M)
+- [x] Task 4: Open, close and the QR endpoint (S–M)
 
-### Checkpoint B — after Tasks 4–6
-- [x] SPEC smoke steps 7 and 8 pass
-- [x] No page ever shows raw JSON or a stack trace
+### Checkpoint B — after Tasks 3–4
+- [x] SPEC smoke steps 1–3 pass
 
-### Phase 4: Classes and enrollments
-- [x] Task 7: Classes — list + create/edit (M)
-- [x] Task 8: Class details — enroll, drop (S–M)
+### Phase 3: Device, scan, roster
+- [x] Task 5: Register and reset a student's device (S)
+- [x] Task 6: Scan endpoint with the 7 checks (M)
+- [x] Task 7: Live attendance roster (S)
 
-### Checkpoint C — after Tasks 7–8
-- [x] SPEC smoke steps 9 and 10 pass
+### Checkpoint C — after Tasks 5–7
+- [x] SPEC smoke steps 4–15 pass
 
-### Phase 5: Wrap-up
-- [x] Task 9: `/impeccable`, full smoke test, package check, reports, commit (S)
-
-### Checkpoint D — complete
-- [x] Every SPEC.md success criterion ticked
-- [x] `Klasly.Web.csproj` has no EF Core, `Klasly.Core` or `Klasly.Infrastructure` reference; `dotnet list package` shows no Microsoft package below 10.x
-- [x] Reports in `docs/reports/`, `INDEX.md` updated, committed to `dev`
+### Phase 4: Wrap-up
+- [x] Task 8: Package check, reports, spec tick, commit (S)
 
 ## Risks and mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| API field-error keys don't match the view model names, so messages land only in the summary | Med: worse UX on every form | Same property names as the API requests; checked in Task 2 before the pattern is copied. |
-| JWT inside the cookie makes it bigger than 4 KB | Low | The token is about 600 bytes, so the encrypted ticket stays well under 4 KB, and cookie auth splits big cookies into chunks anyway. Size checked in smoke step 4. |
-| Dev HTTPS certificate not trusted, so every API call fails | Med: looks like "API down" | HOW-TO-USE says to run `dotnet dev-certs https --trust`; the error page says "can't reach the server", not a crash. |
-| A class whose teacher was deactivated: the Edit dropdown doesn't list them | Low | The API returns `400` and its message is shown. Noted in the report. |
-| Open redirect through `returnUrl` | High: phishing | Follow only `Url.IsLocalUrl(returnUrl)`; otherwise go to the role's home page. |
-| Expired login on a POST loses the typed form | Low | The JWT lasts 60 min; the user is sent to the login page with the message. Accepted for this milestone. |
+| HMAC or step code accepts a bad token (no unit tests) | High | Constant-time compare. Smoke steps 9–10 cover a forged token, an edited id, garbage text, an expired token and the grace step. Role and boundary tests come in Milestone 14. |
+| Insert race gives a 500 or the generic message | Med | Catch 2601/2627 in the service; step 13 sends two curl calls at once. |
+| The OnChallenge body changes the website's 401 handling | Low | The website's `ApiExceptionFilter` checks only the status code and `ApiResponse` already reads any JSON body; step 1 re-checks. |
+| Two accounts register the same phone | Low | Known limit (the column isn't unique); written in the report. |
+| Android ID differs between debug and release builds | Med | Report troubleshooting: after switching builds, the admin resets each test student once. |
+| A student is stuck with a 409 on a new phone | Low | The 409 message says to ask the admin; the admin reset is idempotent. |
 
 ## Out of scope (from SPEC.md)
 
-Teacher and Parent portals (Milestones 7, 9, 10, 13), dashboards with counts, search and paging, change-my-own-password, API or database changes, test project (Milestone 14), new packages, extra JavaScript beyond `confirm()` and the template's validation scripts.
+MVC QR page (Milestone 7), Android scanner (Milestone 8), Worker auto-close and Absent marking (Milestone 9), attendance corrections, cancel/edit session, GPS or offline scans, a test project, new packages, schema changes.
 
 ## Open questions
 
-None. The three spec questions were answered on 2026-11-09 with the recommended options (see SPEC.md "Decisions").
+None. The four spec questions were decided on 2026-11-09 (SPEC.md "Decisions").
