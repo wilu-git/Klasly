@@ -1,6 +1,9 @@
+using Klasly.API.Services;
 using Klasly.Core.DTOs;
 using Klasly.Core.Entities;
+using Klasly.Infrastructure.Data;
 using Klasly.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Klasly.Tests;
@@ -119,7 +122,69 @@ public class OverviewTests(DatabaseFixture db)
         Assert.Null(await new OverviewRepository(context).GetAsync(999_999, Ct));
     }
 
+    // ---------- service: who may see what (Task 2) ----------
+
+    [Fact]
+    public async Task Student_sees_own_numbers_but_no_at_risk_flag()
+    {
+        var classId = await TestData.NewClassAsync(db, (1, EnrollmentStatus.Active));
+        await FlagAsync(await EnrollmentIdAsync(classId, 1), Now, 0.25m, 70m, true);
+
+        await using var context = db.CreateContext();
+        var overview = await Service(context).GetForStudentAsync(Student1UserId, Ct);
+
+        var cls = ClassOf(overview, classId);
+        Assert.Equal(1, overview.StudentId);
+        Assert.Null(cls.IsAtRisk);
+        Assert.Equal((0.25m, 70m), (cls.AbsenceRate!.Value, cls.WeightedAverage!.Value));
+    }
+
+    [Fact]
+    public async Task Parent_sees_a_linked_child_with_the_at_risk_flag()
+    {
+        var classId = await TestData.NewClassAsync(db, (1, EnrollmentStatus.Active));
+        await FlagAsync(await EnrollmentIdAsync(classId, 1), Now, 0.25m, 70m, true);
+
+        await using var context = db.CreateContext();
+        var overview = await Service(context).GetForParentAsync(Parent1UserId, 1, Ct);
+
+        Assert.Equal(1, overview.StudentId);
+        Assert.True(ClassOf(overview, classId).IsAtRisk);
+    }
+
+    [Theory]
+    [InlineData(3)]       // another family's child
+    [InlineData(999_999)] // no such student: same answer, so ids can't be probed
+    public async Task Parent_cannot_see_a_child_who_is_not_linked(int studentId)
+    {
+        await using var context = db.CreateContext();
+
+        var ex = await Assert.ThrowsAsync<ForbiddenException>(() => Service(context).GetForParentAsync(Parent1UserId, studentId, Ct));
+
+        Assert.Equal("You can only view your own children", ex.Message);
+    }
+
+    [Fact]
+    public async Task Children_list_holds_only_linked_students()
+    {
+        await using var context = db.CreateContext();
+        var accounts = new AccountService(new UserRepository(context), new PasswordHasher<User>());
+
+        var ids = (await accounts.ListLinkedStudentsAsync(Parent1UserId, Ct)).Select(c => c.StudentId).ToList();
+
+        Assert.Contains(1, ids);
+        Assert.Contains(2, ids);
+        Assert.DoesNotContain(3, ids);
+    }
+
     // ---------- helpers ----------
+
+    // Seed: student 1 is user 4; guardian 1 (user 10) is linked to students 1 and 2, guardian 2 to students 3 and 4.
+    private const int Student1UserId = 4;
+    private const int Parent1UserId = 10;
+
+    private static OverviewService Service(KlaslyDbContext context) =>
+        new(new UserRepository(context), new OverviewRepository(context));
 
     private async Task<StudentOverviewResponse> GetAsync(int studentId)
     {

@@ -32,17 +32,17 @@
 - registration in `Program.cs`.
 
 **Acceptance:**
-- [ ] A student's overview has `IsAtRisk = null` on every class, while `AbsenceRate` / `WeightedAverage` are kept.
-- [ ] Parent user 10 → children = students 1 and 2 (by name), and the overview of student 1 → data.
-- [ ] Parent user 10 → student 3 or an unknown id → `ForbiddenException` "You can only view your own children".
+- [x] A student's overview has `IsAtRisk = null` on every class, while `AbsenceRate` / `WeightedAverage` are kept.
+- [x] Parent user 10 → children = students 1 and 2 (by name), and the overview of student 1 → data.
+- [x] Parent user 10 → student 3 or an unknown id → `ForbiddenException` "You can only view your own children".
 
 **Verify:** `dotnet test --solution Klasly.slnx --filter-class Klasly.Tests.OverviewTests`
 
 **Files:** the service + interface, `StudentsController.cs`, `ParentController.cs`, `src/Klasly.API/Program.cs`, `tests/Klasly.Tests/OverviewTests.cs`. **Depends on:** Task 1.
 
 ## Checkpoint A
-- [ ] Build clean, all tests pass, `dotnet ef migrations has-pending-model-changes …` says none.
-- [ ] Swagger smoke:
+- [x] Build clean, all tests pass, `dotnet ef migrations has-pending-model-changes …` says none.
+- [x] Swagger smoke:
   - student → overview;
   - parent user 10 → children [1, 2];
   - parent → student 3 → 403;
@@ -86,7 +86,7 @@
 
 ## Task 5: Parent portal polish
 - [ ] `/impeccable` on `Children/Index` and `Details`; fixes applied.
-- [ ] Browser smoke: parent user 10 (two children, switcher), parent 2 (one child → redirect), times in Manila, keyboard and screen-reader labels on the badge and tables.
+- [ ] Browser smoke: parent user 10 (two children, switcher), a one-child parent → redirect (every seeded parent has two children: unlink one in Admin › Accounts for the check, then link it back), times in Manila, keyboard and screen-reader labels on the badge and tables.
 
 **Depends on:** Task 4.
 

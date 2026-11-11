@@ -77,10 +77,10 @@ Milestone 13 adds one read-only "student overview" in the API and shows it in th
 
 ### Phase 1: Web API
 - [x] Task 1: overview DTOs + repository query + repository tests (M)
-- [ ] Task 2: `OverviewService` + student and parent endpoints + service tests (S)
+- [x] Task 2: `OverviewService` + student and parent endpoints + service tests (S)
 
 ### Checkpoint A
-- [ ] Build and tests pass, no pending model changes; Swagger smoke of the three endpoints, including 403s
+- [x] Build and tests pass, no pending model changes; Swagger smoke of the three endpoints, including 403s
 
 ### Phase 2: Web MVC Parent portal
 - [ ] Task 3: Web DTOs, `ParentRepository`, `ParentService`, view model, DI (S)
