@@ -13,11 +13,11 @@
 - `src/Klasly.Infrastructure/Repositories/OverviewRepository.cs` + registration in `DependencyInjection.cs`.
 
 **Acceptance:**
-- [ ] Only Active enrollments in active-term classes are listed. A Dropped enrollment and a class in an inactive term are hidden.
-- [ ] Present / Late / Absent / Excused counts match the student's records in that class. Records are newest first (by session start), with status as a string.
-- [ ] Every assessment of the class is listed. An ungraded one has `Score = null` and `PostedAtUtc = null`. Another student's grade never shows.
-- [ ] Risk fields = the latest RiskFlags row (newest `ComputedAt`, ties by id). No row → all four null.
-- [ ] `TermName` = the active term's name. An unknown student id → null.
+- [x] Only Active enrollments in active-term classes are listed. A Dropped enrollment and a class in an inactive term are hidden.
+- [x] Present / Late / Absent / Excused counts match the student's records in that class. Records are newest first (by session start), with status as a string.
+- [x] Every assessment of the class is listed. An ungraded one has `Score = null` and `PostedAtUtc = null`. Another student's grade never shows.
+- [x] Risk fields = the latest RiskFlags row (newest `ComputedAt`, ties by id). No row → all four null.
+- [x] `TermName` = the active term's name. An unknown student id → null.
 
 **Verify:** `dotnet test --solution Klasly.slnx --filter-class Klasly.Tests.OverviewTests`
 

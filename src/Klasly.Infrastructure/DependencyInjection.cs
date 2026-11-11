@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IGradeRepository, GradeRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IRiskRepository, RiskRepository>();
+        services.AddScoped<IOverviewRepository, OverviewRepository>();
         return services;
     }
 }

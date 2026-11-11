@@ -76,7 +76,7 @@ Milestone 13 adds one read-only "student overview" in the API and shows it in th
 ## Task list
 
 ### Phase 1: Web API
-- [ ] Task 1: overview DTOs + repository query + repository tests (M)
+- [x] Task 1: overview DTOs + repository query + repository tests (M)
 - [ ] Task 2: `OverviewService` + student and parent endpoints + service tests (S)
 
 ### Checkpoint A
