@@ -7,6 +7,7 @@ using Klasly.API.Services.Interfaces;
 using Klasly.Core.Entities;
 using Klasly.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -85,6 +86,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorizationBuilder()
+    // Login by default: a controller that forgets [Authorize] is still closed to anonymous callers ([AllowAnonymous] opts out).
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
     .AddPolicy("AdminOnly", p => p.RequireRole("Admin"))
     .AddPolicy("TeacherOnly", p => p.RequireRole("Teacher"))
     .AddPolicy("StudentOnly", p => p.RequireRole("Student"))
