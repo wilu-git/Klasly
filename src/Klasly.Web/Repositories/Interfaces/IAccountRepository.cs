@@ -9,6 +9,7 @@ public interface IAccountRepository
     Task<AccountResponse> CreateAsync(CreateAccountRequest request, CancellationToken ct);
     Task<AccountResponse> UpdateAsync(int userId, UpdateAccountRequest request, CancellationToken ct);
     Task DeactivateAsync(int userId, CancellationToken ct);
+    Task ResetDeviceAsync(int userId, CancellationToken ct);
 
     Task<List<LinkedStudentResponse>> ListLinkedStudentsAsync(int parentUserId, CancellationToken ct);
     Task<LinkedStudentResponse> LinkStudentAsync(int parentUserId, LinkStudentRequest request, CancellationToken ct);

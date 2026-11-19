@@ -91,6 +91,14 @@ public class AccountsController(IAccountService accounts) : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetDevice(int id, string? role, CancellationToken ct)
+    {
+        await accounts.ResetDeviceAsync(id, ct);
+        TempData["Success"] = "Phone reset. The student's next login on the app registers their new phone.";
+        return RedirectToAction(nameof(Index), new { role });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> LinkStudent(int id, int studentId, string? relationship, bool receivesAlerts, CancellationToken ct)
     {
         if (studentId <= 0)

@@ -20,6 +20,8 @@ public class AccountRepository(HttpClient http) : IAccountRepository
 
     public Task DeactivateAsync(int userId, CancellationToken ct) => http.DeleteApiAsync($"api/accounts/{userId}", ct);
 
+    public Task ResetDeviceAsync(int userId, CancellationToken ct) => http.DeleteApiAsync($"api/accounts/{userId}/device", ct);
+
     public Task<List<LinkedStudentResponse>> ListLinkedStudentsAsync(int parentUserId, CancellationToken ct) =>
         http.GetApiAsync<List<LinkedStudentResponse>>($"api/accounts/{parentUserId}/students", ct);
 
