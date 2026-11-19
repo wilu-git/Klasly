@@ -3,5 +3,6 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
-    alias(libs.plugins.google.services) apply false
+    // DEFERRED: Firebase grade push. Uncomment with the lines marked DEFERRED in app/ and gradle/libs.versions.toml.
+    // alias(libs.plugins.google.services) apply false
 }

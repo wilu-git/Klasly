@@ -6,11 +6,12 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Firebase (grade push) needs the team's google-services.json, which is never committed. Without it the app still
-// builds and runs; it just never registers for pushes (see push/PushRegistration.kt).
-if (file("google-services.json").exists()) {
-    apply(plugin = "com.google.gms.google-services")
-}
+// DEFERRED: Firebase grade push is switched off until the team sets up a Firebase project. To turn it back on,
+// uncomment every line marked DEFERRED (this file, ../build.gradle.kts, ../gradle/libs.versions.toml,
+// AndroidManifest.xml, push/PushRegistration.kt, push/KlaslyMessagingService.kt) and add app/google-services.json.
+// if (file("google-services.json").exists()) {
+//     apply(plugin = "com.google.gms.google-services")
+// }
 
 // local.properties is per machine and never committed: a real phone over `adb reverse` sets
 // klasly.apiBaseUrl=http://localhost:5201/api/ there; the emulator uses the default.
@@ -74,8 +75,9 @@ dependencies {
     implementation(libs.androidx.camera.mlkit.vision)
     implementation(libs.mlkit.barcode.scanning)
     implementation(libs.androidx.security.crypto)
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.messaging)
+    // DEFERRED: Firebase grade push
+    // implementation(platform(libs.firebase.bom))
+    // implementation(libs.firebase.messaging)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

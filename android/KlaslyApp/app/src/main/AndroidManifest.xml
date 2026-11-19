@@ -4,8 +4,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <!-- Grade-posted notifications (Android 13+ asks the student once). -->
+    <!-- DEFERRED: Firebase grade push. Grade-posted notifications (Android 13+ asks the student once).
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    -->
     <!-- Parents never scan, so phones without a camera can still install the app. -->
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
@@ -32,7 +33,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Grade pushes (Milestone 10). Background notifications use this channel and icon. -->
+        <!-- DEFERRED: Firebase grade push (Milestone 10). Background notifications use this channel and icon.
         <service
             android:name=".push.KlaslyMessagingService"
             android:exported="false">
@@ -46,6 +47,7 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_notification" />
+        -->
     </application>
 
 </manifest>
