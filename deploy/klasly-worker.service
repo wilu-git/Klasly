@@ -1,0 +1,16 @@
+# Klasly Worker (Hangfire). Install: sudo cp deploy/klasly-worker.service /etc/systemd/system/ && sudo systemctl enable --now klasly-worker
+[Unit]
+Description=Klasly Worker (Hangfire: close sessions, Absent, risk, emails)
+After=network.target docker.service
+
+[Service]
+User=klasly
+WorkingDirectory=/opt/klasly/worker
+ExecStart=/opt/klasly/worker/Klasly.Worker
+Environment=DOTNET_ENVIRONMENT=Production
+EnvironmentFile=/etc/klasly/klasly.env
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

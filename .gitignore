@@ -364,3 +364,7 @@ FodyWeavers.xsd
 # Firebase config and keys: per developer, never committed (Milestone 10)
 android/KlaslyApp/app/google-services.json
 *-firebase-adminsdk-*.json
+# Demo deploy: the filled-in env file and the Android signing keystore are secrets
+deploy/klasly.env
+*.jks
+*.keystore
