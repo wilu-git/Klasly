@@ -41,8 +41,9 @@ How the VPS is laid out: Klasly runs as its own `klasly` user. Everything lives 
    If `useradd` says the user already exists, that's fine; the rest still runs.
 5. [ ] **Create the database and seed it:**
    ```bash
-   chmod +x ~/publish/efbundle && ~/publish/efbundle --connection "Server=127.0.0.1,14330;Database=Klasly;User Id=sa;Password=<sa password>;TrustServerCertificate=True"
+   chmod +x ~/publish/efbundle && cd /home/klasly/klasly && env ASPNETCORE_ENVIRONMENT=Production "$(grep ^ConnectionStrings__Klasly= klasly.env)" "$(grep ^Jwt__Key= klasly.env)" "$(grep ^Qr__SigningKey= klasly.env)" ~/publish/efbundle --connection "$(grep ^ConnectionStrings__Klasly= klasly.env | cut -d= -f2-)"
    ```
+   Run this after step 7 (it reads `klasly.env`). The bundle starts the API's own startup code, which stops with "Connection string 'Klasly' is missing" unless the connection string and both keys are set as environment variables. `--connection` alone isn't enough. If SQL Server was started seconds ago, wait about 30 s and run it again.
    Then **load the four-week demo history** (run it once; a second run changes nothing):
    ```bash
    sudo docker exec -i klasly-sql /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P '<sa password>' -d Klasly -b < ~/deploy/demo-data.sql
