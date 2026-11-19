@@ -47,6 +47,8 @@ public class AccountService(IAccountRepository accounts) : IAccountService
 
     public Task DeactivateAsync(int userId, CancellationToken ct) => accounts.DeactivateAsync(userId, ct);
 
+    public Task ResetDeviceAsync(int userId, CancellationToken ct) => accounts.ResetDeviceAsync(userId, ct);
+
     public Task LinkStudentAsync(int parentUserId, int studentId, string? relationship, bool receivesAlerts, CancellationToken ct) =>
         accounts.LinkStudentAsync(parentUserId, new LinkStudentRequest(studentId, relationship, receivesAlerts), ct);
 

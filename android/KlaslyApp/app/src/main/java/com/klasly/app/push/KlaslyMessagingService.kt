@@ -1,5 +1,8 @@
 package com.klasly.app.push
 
+// DEFERRED: Firebase grade push. The whole file is commented out until a Firebase project exists; remove the
+// opening and closing block-comment markers below (and re-enable the <service> in AndroidManifest.xml) to restore it.
+/*
 import android.Manifest
 import android.app.PendingIntent
 import android.content.Intent
@@ -50,3 +53,4 @@ class KlaslyMessagingService : FirebaseMessagingService() {
         NotificationManagerCompat.from(this).notify(message.messageId.hashCode(), shown)
     }
 }
+*/

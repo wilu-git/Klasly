@@ -1,0 +1,16 @@
+# Klasly Worker (Hangfire), a systemd *user* service of the klasly login user.
+# Install: see klasly-api.service, then: systemctl --user enable --now klasly-worker
+[Unit]
+Description=Klasly Worker (Hangfire: close sessions, Absent, risk, emails)
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/klasly/worker
+ExecStart=%h/klasly/worker/Klasly.Worker
+Environment=DOTNET_ENVIRONMENT=Production
+EnvironmentFile=%h/klasly/klasly.env
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

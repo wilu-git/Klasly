@@ -12,17 +12,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import com.google.firebase.FirebaseApp
-import com.google.firebase.messaging.FirebaseMessaging
+// DEFERRED: Firebase grade push
+// import com.google.firebase.FirebaseApp
+// import com.google.firebase.messaging.FirebaseMessaging
 import com.klasly.app.AppContainer
-import kotlinx.coroutines.launch
+// import kotlinx.coroutines.launch
 
 /** Grade-push setup: the notification channel, sending the FCM token to the API, and the one-time permission ask. */
 object PushRegistration {
     const val CHANNEL_ID = "grades"
 
-    /** Without google-services.json there is no Firebase app; every push call is then skipped. */
-    fun isAvailable(context: Context): Boolean = FirebaseApp.getApps(context).isNotEmpty()
+    /** DEFERRED: Firebase is switched off, so push is never available and every push call is skipped. */
+    fun isAvailable(@Suppress("UNUSED_PARAMETER") context: Context): Boolean = false
+    // fun isAvailable(context: Context): Boolean = FirebaseApp.getApps(context).isNotEmpty()
 
     fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -41,9 +43,10 @@ object PushRegistration {
     @Suppress("DEPRECATION")
     fun sendToken(context: Context, container: AppContainer) {
         if (!isAvailable(context)) return
-        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-            container.appScope.launch { container.repository.setFcmToken(token) }
-        }
+        // DEFERRED: Firebase grade push
+        // FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+        //     container.appScope.launch { container.repository.setFcmToken(token) }
+        // }
     }
 }
 

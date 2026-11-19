@@ -11,6 +11,7 @@ public interface IAccountService
     Task CreateAsync(AccountFormViewModel model, CancellationToken ct);
     Task UpdateAsync(AccountFormViewModel model, CancellationToken ct);
     Task DeactivateAsync(int userId, CancellationToken ct);
+    Task ResetDeviceAsync(int userId, CancellationToken ct);
     Task LinkStudentAsync(int parentUserId, int studentId, string? relationship, bool receivesAlerts, CancellationToken ct);
     Task UnlinkStudentAsync(int parentUserId, int studentId, CancellationToken ct);
 }

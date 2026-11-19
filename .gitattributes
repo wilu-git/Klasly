@@ -61,3 +61,6 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# Deploy files run on Ubuntu: always LF, or systemd and the env file pick up a stray carriage return
+deploy/** text eol=lf

@@ -1,0 +1,19 @@
+# Klasly Web API, a systemd *user* service of the klasly login user (no root needed after a one-time `sudo loginctl enable-linger klasly`).
+# Install: cp ~/klasly/deploy/klasly-*.service ~/.config/systemd/user/ && systemctl --user daemon-reload && systemctl --user enable --now klasly-api
+[Unit]
+Description=Klasly Web API
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/klasly/api
+ExecStart=%h/klasly/api/Klasly.API
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+# Caddy terminates HTTPS; this makes the app trust its X-Forwarded-* headers without a code change.
+Environment=ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+EnvironmentFile=%h/klasly/klasly.env
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

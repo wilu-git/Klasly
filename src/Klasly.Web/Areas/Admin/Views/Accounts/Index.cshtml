@@ -60,6 +60,13 @@ else
                         </td>
                         <td class="text-end text-nowrap">
                             <a asp-action="Edit" asp-route-id="@a.UserId" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            @if (a.Role == "Student")
+                            {
+                                <form asp-action="ResetDevice" asp-route-id="@a.UserId" asp-route-role="@selected" method="post" class="d-inline"
+                                      data-confirm="Reset @a.FullName's phone? Their next login on the app registers the phone they use.">
+                                    <button type="submit" class="btn btn-sm btn-link">Reset phone</button>
+                                </form>
+                            }
                             @if (a.IsActive && a.UserId.ToString() != myUserId)
                             {
                                 <form asp-action="Deactivate" asp-route-id="@a.UserId" asp-route-role="@selected" method="post" class="d-inline"

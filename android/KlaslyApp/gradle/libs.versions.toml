@@ -14,9 +14,9 @@ kotlinxSerialization = "1.9.0"
 camerax = "1.6.2"
 mlkitBarcode = "17.3.0"
 securityCrypto = "1.1.0"
-# Grade push (Milestone 10); the plugin is applied only when app/google-services.json exists
-firebaseBom = "35.1.0"
-googleServices = "4.5.0"
+# DEFERRED: Firebase grade push (Milestone 10), switched off until a Firebase project exists
+# firebaseBom = "35.1.0"
+# googleServices = "4.5.0"
 
 [libraries]
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
@@ -28,8 +28,9 @@ androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycl
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 androidx-camera-mlkit-vision = { group = "androidx.camera", name = "camera-mlkit-vision", version.ref = "camerax" }
 mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
-firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
-firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+# DEFERRED: Firebase grade push
+# firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+# firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -50,5 +51,6 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+# DEFERRED: Firebase grade push
+# google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 

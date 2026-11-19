@@ -96,8 +96,8 @@
 - [x] Every SPEC.md success criterion met except the real-Brevo smoke. Microsoft.* 10.0.14, one new package, no migration, no secrets committed. Reports + INDEX.
 
 ## Task 6: Brevo setup + real email (team)
-- [ ] A free Brevo account; one verified sender address; an API key.
-- [ ] `dotnet user-secrets set "Brevo:ApiKey" "<key>" --project src/Klasly.Worker`; `Brevo:SenderEmail` set in `appsettings.Development.json` (or user-secrets if the team prefers not to commit it).
-- [ ] Every dev guardian's `ContactEmail` set to a team member's own address (dev database only, never seed data). The dev database has 4 guardians; any left on `@klasly.test` would bounce once the key works. Step-by-step: `docs/reports/2026-11-11-0918-milestone-12-review-fixes/HOW-TO-USE.md`.
-- [ ] Mark that guardian's child absent in an ended session → the next tick sends. The row is Accepted with a messageId and the email arrives.
-- [ ] With a wrong key: the log shows the 401 error and the row stays Pending.
+- [x] A free Brevo account; one verified sender address; an API key.
+- [x] `dotnet user-secrets set "Brevo:ApiKey" "<key>" --project src/Klasly.Worker`; `Brevo:SenderEmail` set in `appsettings.Development.json` (or user-secrets if the team prefers not to commit it).
+- [x] Every dev guardian's `ContactEmail` set to a team member's own address (dev database only, never seed data). The dev database has 4 guardians; any left on `@klasly.test` would bounce once the key works. Step-by-step: `docs/reports/2026-11-11-0918-milestone-12-review-fixes/HOW-TO-USE.md`.
+- [x] Mark that guardian's child absent in an ended session → the next tick sends. The row is Accepted with a messageId and the email arrives.
+- [x] With a wrong key: the log shows the 401 error and the row stays Pending.
