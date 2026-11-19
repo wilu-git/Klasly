@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Klasly.API", "--launch-profile", "https"],
+      "port": 7256,
+      "url": "https://localhost:7256"
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Klasly.Web", "--launch-profile", "https"],
+      "port": 7144,
+      "url": "https://localhost:7144"
+    }
+  ]
+}
