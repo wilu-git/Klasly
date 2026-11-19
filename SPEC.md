@@ -48,12 +48,12 @@ Get Klasly ready for the demo on 2026-11-21:
 Follow `deploy/` (systemd ×3, nginx, env template) and Part B of `docs/reports/2026-11-20-0257-demo-readiness/HOW-TO-USE.md`, with SQL Server 2022 Express in Docker on `127.0.0.1:1433`.
 
 ## Success criteria
-- [ ] `DemoDataTests`: on a freshly migrated test database, the script produces exactly the risk table above, and a second run adds nothing.
-- [ ] Linux builds of the API, Web and Worker and the migration bundle are published to `publish/` (git-ignored).
-- [ ] An SSH key exists at `~/.ssh/klasly_vps`, and the user knows the one command that installs it on the VPS.
+- [x] `DemoDataTests`: on a freshly migrated test database, the script produces exactly the risk table above, and a second run adds nothing.
+- [x] Linux builds of the API, Web and Worker and the migration bundle are published to `publish/` (git-ignored).
+- [x] An SSH key exists at `~/.ssh/klasly_vps`, and the user knows the one command that installs it on the VPS.
 - [ ] After the deploy: `https://<domain>/api/auth/me` → 401, the login page loads, and Marites's child page shows Aira "On track" and Bryan "At risk".
-- [ ] The checklist is updated: the demo-data step, the alert email is the parent's **Contact email**, and the live demo flips Dennis.
-- [ ] `dotnet build` with 0 warnings, and `dotnet test` all green.
+- [x] The checklist is updated: the demo-data step, the alert email is the parent's **Contact email**, and the live demo flips Dennis.
+- [x] `dotnet build` with 0 warnings, and `dotnet test` all green.
 
 ## Out of scope
 - Building the APK. This PC has no JDK or Android SDK; a teammate builds it with `klasly.apiBaseUrl=https://<domain>/api/`.
