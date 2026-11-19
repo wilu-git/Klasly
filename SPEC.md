@@ -1,95 +1,66 @@
-# Spec: Failed emails page checks (`/impeccable` pass + browser check)
+# Spec: Demo deploy and demo data
 
-> Status: **Approved** (2026-11-11). Open questions 1–3 answered as recommended.
-> Plan: `tasks/plan-failed-emails-checks.md` + `tasks/todo-failed-emails-checks.md`.
-> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` → `CLAUDE.md` (§3.4 Web MVC, §4) → this spec.
-> Milestone 15's spec is in git history (commit `6522027`) and in `docs/reports/2026-11-11-1402-milestone-15-review/`.
+> Status: **Approved** (2026-11-20). Plan: `tasks/plan-demo.md`.
+> The previous spec (Failed emails page checks) is in git history (commit `197111e`).
+> Source of truth order: `docs/AI_ASPNET_Core_MVC_Development_Guide.md` → `CLAUDE.md` → this spec.
 
 ## Objective
+Get Klasly ready for the demo on 2026-11-21:
+- the API, the MVC portal and the Worker run on the team's Ubuntu VPS behind HTTPS;
+- the database starts with a **realistic four-week history**, so the at-risk badges already show a mix when the demo begins;
+- the live demo adds to that history and flips one student to **At risk** on screen.
 
-Close the two boxes Milestone 14 Task 8 left open in `tasks/todo-m14.md`:
+**Users:** the two presenters (admin, teacher and parent roles in the browser; student and parent on the phone) and the panel watching.
 
-1. `[ ] /impeccable pass on the view.`
-2. `[ ] Manual in the browser pane: as admin, the page lists a seeded Failed row; as a teacher, the URL is refused.`
+## Decisions (answered 2026-11-20)
+1. **Demo data:** a one-time SQL script run after the migration, not more `HasData` (that would change the migration and the schema comparison).
+2. **VPS access:** Claude generates an SSH key on this PC and the user adds its public half to the VPS. Claude then runs the deploy over SSH and **asks before each step that changes the server**.
+3. **Firebase + Brevo:** set up. The user creates the accounts and pastes the Brevo key and the Firebase files. Claude never types third-party secrets.
 
-The page itself (`Admin › Failed emails`, commit `26a9362`) already works. The admin half of the browser check was done in M14 (`admin-failed-emails.jpg`), but the teacher half was not. This task is **checking and polishing only**. It adds no features.
+## Demo data (`deploy/demo-data.sql`)
+- **Window:** sessions on the class schedule from 30 to 3 days ago, using Manila dates.
+  - That's exactly 4 of each weekday: class 1 (MWF 07:30) gets **12** sessions and class 2 (TTh 13:00) gets **8**.
+  - Nothing falls within the Worker's 48-hour absence-alert lookback, so loading the history sends no absence emails.
+- **Sessions:** `Finalized`, `ClosedAt = EndTime`, a random `QrNonce`, and times stored in UTC.
+- **Attendance:** one record per active enrollment per session.
+  - Present/Late come from `Scan`, with `ScannedAt`.
+  - Absent comes from `Auto`, with no `ScannedAt`, the same as the Worker writes it.
+- **Grades:** posted in the past.
+  - Class 1: Quiz 1 (20 pts, 15%), Laboratory 1 (50 pts, 15%), Midterm Exam (100 pts, 30%). That totals 60%, leaving 40% for the live demo.
+  - Class 2: Quiz 1 (20 pts, 20%), Midterm Exam (100 pts, 30%).
+- **Expected risk result** (thresholds 0.20 / 75 from SystemSettings):
 
-**User:** the Admin, who reads this page to find parent emails that never arrived and fix the address in Accounts.
+| Class | Student | Absent / counted | Weighted avg | At risk |
+|---|---|---|---|---|
+| 1 ELECT3 | Aira | 0/12 (one Late) | 89.50 | no |
+| 1 | Bryan | 4/12 = 0.3333 | 79.50 | **yes** (absences) |
+| 1 | Carla | 1/12 = 0.0833 | 65.75 | **yes** (grades) |
+| 1 | Dennis | 2/12 = 0.1667 | 79.25 | no (one more absence flips him) |
+| 1 | Ellen | 0/12 (two Late) | 93.25 | no |
+| 1 | Francis | 1/12 = 0.0833 | 80.00 | no |
+| 2 IT302 | Aira | 0/8 | 85.00 | no |
+| 2 | Bryan | 1/8 = 0.1250 | 76.80 | no |
+| 2 | Carla | 0/8 (one Late) | 80.00 | no |
 
-## What exists today
+- **Safe to run twice:** if the database already has sessions, the script prints a message and changes nothing.
 
-- `src/Klasly.Web/Areas/Admin/Views/FailedEmails/Index.cshtml`: heading + one-line help text, an empty state, a `table-responsive` table (Created · Recipient · Alert · Attempts · Last error), and a "Showing the newest 100." note. It copies the Terms page's table pattern.
-- `src/Klasly.Web/Areas/Admin/Controllers/FailedEmailsController.cs`: `[Area("Admin"), Authorize(Roles = "Admin")]`, a single `Index` action.
-- The dev database holds the M12 "Brevo is not configured" Failed rows, so the list is not empty.
-- No `PRODUCT.md` / `DESIGN.md`. As in M13 Task 5, the existing Admin pages (Terms, Accounts) set the house style.
-
-## Assumptions (correct these before we start)
-
-1. **This is a narrow `/impeccable polish` pass, not a redesign.** It stays on Bootstrap and the Terms table pattern, and fixes only real defects (overflow, wrapping, contrast, tap targets, heading order). No new colours, components or layout.
-2. **The spec replaces `SPEC.md`**, the same way each milestone did. The M15 spec stays in git history.
-3. **The browser check uses the seeded fictional accounts** (admin + one teacher) on the dev database through the `api` and `web` entries in `.claude/launch.json`. No dev data is changed.
-4. **No API, database, Worker or Android change.** If the pass finds that the API should return something different, it gets logged, not fixed here.
-
-## Commands
-
-```
-Build:    dotnet build Klasly.slnx
-Test:     dotnet test Klasly.slnx
-Detector: npx impeccable detect --json src/Klasly.Web/Areas/Admin/Views/FailedEmails/Index.cshtml
-Run:      preview_start "api", then preview_start "web" (https://localhost:7144)
-Graph:    graphify update .
-```
-
-## Project structure (files in scope)
-
-```
-src/Klasly.Web/Areas/Admin/Views/FailedEmails/Index.cshtml   ← the only view under review
-src/Klasly.Web/wwwroot/css/site.css                          ← only if a fix needs one small rule
-tasks/todo-m14.md                                            ← tick the two boxes
-docs/reports/<yyyy-MM-dd-HHmm>-failed-emails-page-checks/    ← 3 report files + screenshots
-docs/reports/INDEX.md                                        ← one line
-```
-
-## Code style
-
-Same as the M13 Task 5 polish: Bootstrap utility classes first, and a `site.css` rule only when no utility class does the job. Colour is never the only signal.
-
-```html
-<td class="small text-break">@(email.LastError ?? "—")</td>
-```
-
-## Testing strategy
-
-- No new automated tests: the API's 403 for non-admins is already covered by the role-access sweep, and `FailedEmailsTests` covers the data.
-- Checks are manual in the browser pane, with DOM measurements and screenshots recorded in the report (the M13 Task 5 method).
-- `dotnet build` + `dotnet test` must stay green (currently 162/162).
-
-## Boundaries
-
-- **Always:** keep the Terms table pattern; measure before and after; report what was not checked.
-- **Ask first:** changing dev data (for example, to show the empty state), touching any other page, or adding a package.
-- **Never:** change the API, the database or the Worker; enter real people's data; commit secrets.
+## Deploy (VPS)
+Follow `deploy/` (systemd ×3, nginx, env template) and Part B of `docs/reports/2026-11-20-0257-demo-readiness/HOW-TO-USE.md`, with SQL Server 2022 Express in Docker on `127.0.0.1:1433`.
 
 ## Success criteria
+- [ ] `DemoDataTests`: on a freshly migrated test database, the script produces exactly the risk table above, and a second run adds nothing.
+- [ ] Linux builds of the API, Web and Worker and the migration bundle are published to `publish/` (git-ignored).
+- [ ] An SSH key exists at `~/.ssh/klasly_vps`, and the user knows the one command that installs it on the VPS.
+- [ ] After the deploy: `https://<domain>/api/auth/me` → 401, the login page loads, and Marites's child page shows Aira "On track" and Bryan "At risk".
+- [ ] The checklist is updated: the demo-data step, the alert email is the parent's **Contact email**, and the live demo flips Dennis.
+- [ ] `dotnet build` with 0 warnings, and `dotnet test` all green.
 
-**`/impeccable` pass**
-- [x] Rendered at 375, 480 and 1280 px: the page itself never scrolls sideways (the table may scroll inside `table-responsive`; the Last error text wraps at a readable width; the recipient email stays whole and readable. *Corrected in Task 2: breaking an address mid-word hurts reading and copying*).
-- [x] Text and secondary text contrast meet WCAG AA (4.5:1) in the light theme.
-- [x] Heading order is correct (one `h1`), table headers use `scope="col"`, and the "—" for no error is announced sensibly or is fine as-is.
-- [x] `impeccable detect --json` on the view returns `[]`.
-- [x] Every defect found is fixed in the view (or `site.css`), with before/after numbers in the report. If none is found, the report says so and no file changes.
+## Out of scope
+- Building the APK. This PC has no JDK or Android SDK; a teammate builds it with `klasly.apiBaseUrl=https://<domain>/api/`.
+- Creating Firebase/Brevo accounts or typing their keys (the user does it).
+- Any schema, API or UI change.
 
-**Browser check**
-- [x] As **admin**: `/Admin/FailedEmails` lists the seeded Failed rows with Manila time, recipient and last error (screenshot).
-- [x] As a **teacher**: opening `/Admin/FailedEmails` directly is refused (Access denied page, no data shown; screenshot).
-- [x] No console errors from the page.
-
-**Wrap-up**
-- [x] `dotnet build` green, `dotnet test` 162/162.
-- [x] Both boxes ticked in `tasks/todo-m14.md`; report folder + `INDEX.md` line written; `graphify update .` run.
-
-## Open questions
-
-1. **Empty state:** the dev database has Failed rows, so "No failed emails. Every alert reached Brevo." can't be seen without changing data. **Recommend: don't change data; check the empty-state markup by reading it and note it in the report as not rendered.**
-2. **API-down error:** should we also stop the API and confirm the page shows the error through `_Alerts`? It was ticked in M14 by the shared `ApiExceptionFilter`, not seen on this page. **Recommend: yes. It's one extra screenshot.**
-3. **Parent role:** check that a parent is refused too, or only the teacher (as M14 wrote)? **Recommend: teacher only. The same `[Authorize(Roles = "Admin")]` guards both.**
+## Boundaries
+- **Always:** keep the server's secrets only in `/etc/klasly/klasly.env` (`chmod 600`); confirm before each step that changes the server.
+- **Ask first:** accepting Let's Encrypt terms (`certbot --agree-tos`), opening firewall ports, anything that deletes data on the server.
+- **Never:** commit secrets, expose SQL Server publicly, or type the user's passwords or third-party API keys.
