@@ -38,14 +38,20 @@ Work through it top to bottom. Tick each box as you go. The test password for ev
    ```bash
    chmod +x ~/publish/efbundle && ~/publish/efbundle --connection "Server=127.0.0.1,1433;Database=Klasly;User Id=sa;Password=<sa password>;TrustServerCertificate=True"
    ```
+   Then **load the four-week demo history** (run it once; a second run changes nothing):
+   ```bash
+   sudo docker exec -i klasly-sql /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P '<sa password>' -d Klasly -b < ~/deploy/demo-data.sql
+   ```
+   It should print "Demo data loaded: 20 finalized sessions…". The badges appear once the Worker runs (Part C, step 4).
 6. [ ] **Secrets:**
    - `sudo cp ~/deploy/klasly.env.example /etc/klasly/klasly.env` and fill it in (`sudo nano`).
    - Make the two keys with `openssl rand -base64 48`.
    - Then `sudo chown klasly /etc/klasly/klasly.env && sudo chmod 600 /etc/klasly/klasly.env`.
 7. [ ] **Services:**
    ```bash
-   sudo cp ~/deploy/klasly-*.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now klasly-api klasly-web klasly-worker
+   sudo cp ~/deploy/klasly-*.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now klasly-api klasly-web
    ```
+   Don't start the Worker yet. Its first run sends the at-risk emails for Bryan and Carla, so Brevo and the parents' contact emails must be ready first (Part C).
 8. [ ] **nginx + HTTPS:**
    - `sudo apt install nginx certbot python3-certbot-nginx`
    - copy `deploy/nginx-klasly.conf` to `/etc/nginx/sites-available/klasly` and replace `example.com`;
@@ -68,8 +74,15 @@ Work through it top to bottom. Tick each box as you go. The test password for ev
    - Senders › add and verify your sender email.
    - SMTP & API › create an API key.
    - Put both in the env file (`Brevo__ApiKey`, `Brevo__SenderEmail`).
-4. [ ] `sudo systemctl restart klasly-api klasly-worker`.
-5. [ ] **Real inbox for alerts:** as admin, Accounts › Parent › Edit **Marites Mendoza** and set her email to an inbox you can open on screen. Seeded `@klasly.test` addresses can't receive mail.
+4. [ ] **Real inbox for alerts:**
+   - As admin, go to Accounts › Parent › Edit **Marites Mendoza** and **Rodel Dimaano**. Set their **Contact email**, not the login email, to an inbox you can open on screen. Alerts go to the contact email.
+   - Both can use the same address. With Gmail, `you+marites@gmail.com` / `you+rodel@gmail.com` tells them apart.
+   - Seeded `@klasly.test` addresses can't receive mail.
+5. [ ] Restart the API, then start the Worker:
+   ```bash
+   sudo systemctl restart klasly-api && sudo systemctl enable --now klasly-worker
+   ```
+   Within a minute, Marites's child page shows Bryan "At risk", and Rodel's inbox gets Carla's at-risk email.
 
 ## Part D — APK
 1. [ ] In `android/KlaslyApp/local.properties`, add `klasly.apiBaseUrl=https://<domain>/api/`.
@@ -99,20 +112,25 @@ Work through it top to bottom. Tick each box as you go. The test password for ev
 2. **Attendance** (Rosa Villanueva → ELECT3 class):
    - Start a session about 10 min long (late after 15 min). The QR changes every 30 s.
    - Aira scans → "Checked in · Present" → her name appears in the live list within 5 s. Scanning again → "already checked in".
-   - **Close** the session. Within about 1 min the other students turn **Absent** and the session is Finalized.
-   - Correction: set Dennis to **Excused** (Excused doesn't count in the absence rate).
+   - The class page already lists four weeks of finished sessions (demo history). Open one to show its roster.
+   - **Close** today's session. Within about 1 min the other students turn **Absent** and the session is Finalized.
+   - Correction: set Francis to **Excused** (Excused doesn't count in the absence rate). **Leave Dennis Absent.**
 3. **Grades** (Rosa):
-   - New assessment "Quiz 1", 20 pts, 30%. Over 100% total weight is refused.
+   - The class already has Quiz 1, Laboratory 1 and Midterm Exam (60% of the weight).
+   - New assessment "Quiz 2", 20 pts: try 50% → refused (only 40% is left), then 20%.
    - Scores: 21/20 is refused. Aira 18, Carla 10.
    - Aira's phone gets a "grade posted" push.
-4. **At-risk indicators** (after the next tick, about 1 min):
-   - Rule: absence rate ≥ 20% **or** weighted average < 75.
-   - Marites (web) › My children: **Aira "On track"**, **Bryan "At risk"** (absent).
-   - Rodel (web): **Carla "At risk"** (grade 50).
+4. **At-risk indicators:**
+   - Rule: absence rate ≥ 20% **or** weighted average < 75 (the SystemSettings thresholds).
+   - **Before the session** (from the demo history):
+     - Marites (web) › My children: **Aira "On track"**, **Bryan "At risk"** (4 of 12 absent, 33%).
+     - Bryan's IT302 card shows "On track" (1 of 8), so the flag is per class.
+     - Rodel: **Carla "At risk"** (average 65.75), **Dennis "On track"** (2 of 12, 17%).
+   - **After closing today's session** (next tick, about 1 min): Dennis's absence makes 3 of 13 = 23%, so Rodel's page now shows **Dennis "At risk"**. This is the live moment.
    - Phone: log out Aira, log in Marites › Child overview shows the same badges.
    - Aira's own Attendance/Grades tabs never show the at-risk flag (on purpose).
 5. **Alerts:**
-   - Marites's real inbox gets the absence and at-risk emails.
+   - Rodel's inbox gets today's absence emails for Carla and Dennis, then Dennis's at-risk email. Marites's gets Bryan's absence email.
    - Anything that failed shows on Admin › Failed emails.
 
 ## Example
