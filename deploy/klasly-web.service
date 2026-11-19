@@ -1,19 +1,19 @@
-# Klasly MVC portal. Install: sudo cp deploy/klasly-web.service /etc/systemd/system/ && sudo systemctl enable --now klasly-web
+# Klasly MVC portal, a systemd *user* service of the klasly login user.
+# Install: see klasly-api.service, then: systemctl --user enable --now klasly-web
 [Unit]
 Description=Klasly Web MVC portal
-After=network.target klasly-api.service
+After=network-online.target klasly-api.service
 
 [Service]
-# User klasly needs a home dir: ASP.NET keeps its login-cookie keys in ~/.aspnet, so logins survive restarts.
-User=klasly
-WorkingDirectory=/opt/klasly/web
-ExecStart=/opt/klasly/web/Klasly.Web
+# Runs as klasly, whose home holds ~/.aspnet: the login-cookie keys survive restarts.
+WorkingDirectory=%h/klasly/web
+ExecStart=%h/klasly/web/Klasly.Web
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=ASPNETCORE_URLS=http://127.0.0.1:5001
 Environment=ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
-EnvironmentFile=/etc/klasly/klasly.env
+EnvironmentFile=%h/klasly/klasly.env
 Restart=always
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

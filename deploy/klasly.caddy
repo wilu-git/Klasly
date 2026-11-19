@@ -1,0 +1,14 @@
+# Klasly site for the server's existing Caddy. Replace klasly.example.com, then (as root):
+#   cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.pre-klasly
+#   cp klasly.caddy /etc/caddy/klasly.caddy && echo 'import /etc/caddy/klasly.caddy' >> /etc/caddy/Caddyfile
+#   caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
+# Caddy gets the HTTPS certificate itself once the domain's A record points here, and sends X-Forwarded-Proto.
+klasly.example.com {
+	@api path /api /api/*
+	handle @api {
+		reverse_proxy 127.0.0.1:5000
+	}
+	handle {
+		reverse_proxy 127.0.0.1:5001
+	}
+}

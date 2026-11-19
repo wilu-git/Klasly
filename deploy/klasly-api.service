@@ -1,19 +1,19 @@
-# Klasly Web API. Install: sudo cp deploy/klasly-api.service /etc/systemd/system/ && sudo systemctl enable --now klasly-api
+# Klasly Web API, a systemd *user* service of the klasly login user (no root needed after a one-time `sudo loginctl enable-linger klasly`).
+# Install: cp ~/klasly/deploy/klasly-*.service ~/.config/systemd/user/ && systemctl --user daemon-reload && systemctl --user enable --now klasly-api
 [Unit]
 Description=Klasly Web API
-After=network.target docker.service
+After=network-online.target
 
 [Service]
-User=klasly
-WorkingDirectory=/opt/klasly/api
-ExecStart=/opt/klasly/api/Klasly.API
+WorkingDirectory=%h/klasly/api
+ExecStart=%h/klasly/api/Klasly.API
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
-# nginx terminates HTTPS; this makes the app trust its X-Forwarded-* headers without a code change.
+# Caddy terminates HTTPS; this makes the app trust its X-Forwarded-* headers without a code change.
 Environment=ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
-EnvironmentFile=/etc/klasly/klasly.env
+EnvironmentFile=%h/klasly/klasly.env
 Restart=always
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
