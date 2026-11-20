@@ -82,7 +82,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseStatusCodePages();
+// Error status codes with no body (404 from a bad id, 400 from a stale form) re-run /Home/StatusCode inside the layout; the original code is kept.
+app.UseStatusCodePagesWithReExecute("/Home/StatusCode", "?code={0}");
 app.UseHttpsRedirection();
 app.UseRouting();
 

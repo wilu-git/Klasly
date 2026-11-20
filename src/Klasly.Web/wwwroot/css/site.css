@@ -359,6 +359,12 @@ h3.h6 {
   border-bottom-width: 0;
 }
 
+/* ---------- Message page (Error, Not found, Access denied, Server unavailable) ---------- */
+.k-message {
+  max-width: 36rem;
+  padding-block: 2rem 3rem;
+}
+
 /* ---------- Badges (statuses only; rendered by _StatusBadge) ---------- */
 .badge {
   --bs-badge-font-weight: 600;
