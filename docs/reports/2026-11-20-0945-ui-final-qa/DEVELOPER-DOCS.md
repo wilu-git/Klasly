@@ -44,7 +44,7 @@ None.
 - **impeccable detect:** `site.css` clean. On saved rendered teacher pages, one heuristic remains: `cramped-padding` on `.table-responsive` (the table fills its white panel by design; cell text is inset 16 px from 576 px, 8 px on phones). It can't be suppressed by value; left standing.
 
 ## Known limits / TODO
-- The Android icon still needs `./gradlew assembleDebug` by a teammate (no JDK here).
+- Android: `./gradlew assembleDebug testDebugUnitTest` passed with the new icon (JDK at `D:Android Studiojbr`); not checked on a device.
 - No automated UI tests (Playwright would be a new package).
 - `/review` was done as a self-review of the 36-line server diff and the view diffs, not by a separate reviewer agent.
 - PR into `dev` only after the demo, on the team's go-ahead.

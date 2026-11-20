@@ -45,3 +45,6 @@ None.
 - The app-icon concept has square-cut strokes; the Android icon uses the rounded mark so web and phone match.
 - The standalone logo SVGs use `<text>`, so they show the system font when Inter isn't installed (an `<img>` can't load web fonts). The web navbar uses inline SVG + HTML text (M2), so it always gets Inter.
 - `favicon.ico` stays until M2, where `_Layout` links `favicon.svg` (removing it now would only cause 404s).
+
+## Follow-up (2026-11-20)
+The JDK at `D:\Android Studio\jbr` exists after all. `./gradlew assembleDebug testDebugUnitTest` with the new launcher drawables: **BUILD SUCCESSFUL** (unit tests pass). The icon was not checked on a device.
