@@ -4,19 +4,21 @@
     ViewData["Title"] = "Failed emails";
 }
 
-<div class="mb-3">
+<div class="mb-4">
     <h1 class="h3 mb-1">Failed emails</h1>
     <p class="text-body-secondary mb-0">
-        Parent alerts that Brevo refused or that ran out of retries. Check the address in Accounts; new alerts are sent as usual.
+        Parent alerts that the email service refused or that ran out of retries.
+        Check the address in <a asp-controller="Accounts" asp-action="Index" asp-route-role="Parent">parent accounts</a>; new alerts are sent as usual.
     </p>
 </div>
 
 @if (Model.Count == 0)
 {
-    <p class="text-body-secondary">No failed emails. Every alert reached Brevo.</p>
+    <p class="text-body-secondary">No failed emails. Every alert reached the email service.</p>
 }
 else
 {
+    @* Every column matters here, so on phones the table scrolls inside its box instead of hiding columns. *@
     <div class="table-responsive">
         <table class="table align-middle">
             <thead>
@@ -50,6 +52,6 @@ else
     </div>
     @if (Model.Count == 100)
     {
-        <p class="small text-body-secondary">Showing the newest 100.</p>
+        <p class="small text-body-secondary mt-2">Showing the newest 100.</p>
     }
 }

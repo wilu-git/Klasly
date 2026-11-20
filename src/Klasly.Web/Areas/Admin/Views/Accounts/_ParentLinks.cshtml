@@ -1,8 +1,12 @@
 @model ParentLinksViewModel
 
-<section class="mt-5 col-12 col-lg-10" aria-labelledby="linked-students">
+@* Its own panel, apart from the account form: Link and Unlink save straight away and don't use the form's Save button. *@
+<section class="k-panel mt-5 col-12 col-lg-10" aria-labelledby="linked-students">
     <h2 id="linked-students" class="h5">Linked students</h2>
-    <p class="text-body-secondary small">This parent sees these children's attendance and grades, and gets their alerts if "Receives alerts" is on.</p>
+    <p class="text-body-secondary small mb-3">
+        This parent sees these children's attendance and grades, and gets their alerts if "Receives alerts" is on.
+        <strong>Changes here are saved immediately.</strong>
+    </p>
 
     @if (Model.Linked.Count == 0)
     {
@@ -10,14 +14,14 @@
     }
     else
     {
-        <div class="table-responsive">
+        <div class="table-responsive mb-4">
             <table class="table align-middle">
                 <thead>
                     <tr>
-                        <th scope="col">Student no.</th>
+                        <th scope="col" class="d-none d-sm-table-cell">Student no.</th>
                         <th scope="col">Name</th>
-                        <th scope="col">Relationship</th>
-                        <th scope="col">Receives alerts</th>
+                        <th scope="col" class="d-none d-md-table-cell">Relationship</th>
+                        <th scope="col" class="d-none d-md-table-cell">Receives alerts</th>
                         <th scope="col"><span class="visually-hidden">Actions</span></th>
                     </tr>
                 </thead>
@@ -25,14 +29,17 @@
                     @foreach (var s in Model.Linked)
                     {
                         <tr>
-                            <td>@s.StudentNumber</td>
-                            <td>@s.StudentName</td>
-                            <td>@(s.Relationship ?? "—")</td>
-                            <td>@(s.ReceivesAlerts ? "Yes" : "No")</td>
+                            <td class="d-none d-sm-table-cell text-nowrap">@s.StudentNumber</td>
+                            <td>
+                                @s.StudentName
+                                <span class="d-block d-md-none small text-body-secondary">@(s.Relationship ?? "No relationship") · @(s.ReceivesAlerts ? "Receives alerts" : "No alerts")</span>
+                            </td>
+                            <td class="d-none d-md-table-cell">@(s.Relationship ?? "—")</td>
+                            <td class="d-none d-md-table-cell">@(s.ReceivesAlerts ? "Yes" : "No")</td>
                             <td class="text-end">
-                                <form asp-action="UnlinkStudent" asp-route-id="@Model.ParentUserId" asp-route-studentId="@s.StudentId" method="post"
+                                <form asp-action="UnlinkStudent" asp-route-id="@Model.ParentUserId" asp-route-studentId="@s.StudentId" method="post" class="d-inline"
                                       data-confirm="Unlink @s.StudentName from this parent?">
-                                    <button type="submit" class="btn btn-sm btn-link link-danger">Unlink</button>
+                                    <button type="submit" class="btn btn-sm btn-link link-danger">Unlink<span class="visually-hidden"> @s.StudentName</span></button>
                                 </form>
                             </td>
                         </tr>
@@ -42,10 +49,10 @@
         </div>
     }
 
-    <h3 class="h6 mt-4">Link a student</h3>
+    <h3 class="h6">Link a student</h3>
     @if (Model.StudentOptions.Count == 0)
     {
-        <p class="text-body-secondary">Every active student is already linked to this parent.</p>
+        <p class="text-body-secondary mb-0">Every active student is already linked to this parent.</p>
     }
     else
     {
@@ -56,18 +63,18 @@
                     <option value="">Choose a student…</option>
                 </select>
             </div>
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-sm-6 col-md-3">
                 <label for="relationship" class="form-label">Relationship</label>
                 <input id="relationship" name="relationship" class="form-control" maxlength="30" placeholder="Mother" />
             </div>
-            <div class="col-12 col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <div class="form-check mb-2">
                     <input id="receivesAlerts" name="receivesAlerts" type="checkbox" value="true" class="form-check-input" checked />
                     <label for="receivesAlerts" class="form-check-label">Receives alerts</label>
                 </div>
             </div>
             <div class="col-12 col-md-2">
-                <button type="submit" class="btn btn-outline-primary w-100">Link</button>
+                <button type="submit" class="btn btn-outline-primary w-100" data-pending-text="Linking…">Link</button>
             </div>
         </form>
     }

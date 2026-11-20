@@ -3,7 +3,7 @@
     ViewData["Title"] = "Subjects";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
     <h1 class="h3 mb-0">Subjects</h1>
     <a asp-action="Create" class="btn btn-primary">New subject</a>
 </div>
@@ -20,7 +20,7 @@ else
                 <tr>
                     <th scope="col">Code</th>
                     <th scope="col">Title</th>
-                    <th scope="col" class="text-end">Units</th>
+                    <th scope="col" class="text-end d-none d-sm-table-cell">Units</th>
                     <th scope="col"><span class="visually-hidden">Actions</span></th>
                 </tr>
             </thead>
@@ -28,11 +28,11 @@ else
                 @foreach (var subject in Model)
                 {
                     <tr>
-                        <td class="fw-semibold">@subject.Code</td>
-                        <td>@subject.Title</td>
-                        <td class="text-end">@subject.Units</td>
+                        <td class="fw-semibold text-nowrap">@subject.Code</td>
+                        <td>@subject.Title<span class="d-block d-sm-none small text-body-secondary">@subject.Units @(subject.Units == 1 ? "unit" : "units")</span></td>
+                        <td class="text-end d-none d-sm-table-cell">@subject.Units</td>
                         <td class="text-end">
-                            <a asp-action="Edit" asp-route-id="@subject.SubjectId" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a asp-action="Edit" asp-route-id="@subject.SubjectId" class="btn btn-sm btn-outline-secondary">Edit<span class="visually-hidden"> @subject.Code</span></a>
                         </td>
                     </tr>
                 }

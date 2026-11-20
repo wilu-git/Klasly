@@ -1,34 +1,56 @@
 @model ClassFormViewModel
 @{
     var isNew = Model.Id is null;
-    ViewData["Title"] = isNew ? "New class" : "Edit class";
+    // "CODE – Title" from the subject list, so the Edit heading names the class being changed.
+    var subjectText = Model.SubjectOptions.FirstOrDefault(o => o.Value == Model.SubjectId?.ToString())?.Text;
+    var subjectCode = subjectText?.Split(" – ")[0];
+    var className = $"{subjectCode} – {Model.Section}";
+    ViewData["Title"] = isNew ? "New class" : $"Edit class: {className}";
+    // The saved teacher's account was deactivated, so it isn't in the list and the select shows the placeholder.
+    var teacherMissing = Model.TeacherId is { } teacherId && !Model.TeacherOptions.Any(o => o.Value == teacherId.ToString());
 }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Classes</a></li>
+        @if (isNew)
+        {
+            <li class="breadcrumb-item active" aria-current="page">New class</li>
+        }
+        else
+        {
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.Id">@className</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+        }
+    </ol>
+</nav>
 
 <h1 class="h3 mb-4">@ViewData["Title"]</h1>
 
+@* Term first, matching the term filter on the Classes list. *@
 <form asp-action="@(isNew ? "Create" : "Edit")" asp-route-id="@Model.Id" method="post" class="col-12 col-md-8 col-lg-6">
     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
     <div class="mb-3">
-        <label asp-for="SubjectId" class="form-label"></label>
-        <select asp-for="SubjectId" asp-items="Model.SubjectOptions" class="form-select">
-            <option value="">Choose a subject…</option>
+        <label asp-for="TermId" class="form-label"></label>
+        <select asp-for="TermId" asp-items="Model.TermOptions" class="form-select">
+            <option value="">Choose a term…</option>
         </select>
-        <span asp-validation-for="SubjectId" class="text-danger small"></span>
+        <span asp-validation-for="TermId" class="text-danger small"></span>
     </div>
 
     <div class="row">
-        <div class="col-sm-6 mb-3">
+        <div class="col-sm-8 mb-3">
+            <label asp-for="SubjectId" class="form-label"></label>
+            <select asp-for="SubjectId" asp-items="Model.SubjectOptions" class="form-select">
+                <option value="">Choose a subject…</option>
+            </select>
+            <span asp-validation-for="SubjectId" class="text-danger small"></span>
+        </div>
+        <div class="col-sm-4 mb-3">
             <label asp-for="Section" class="form-label"></label>
             <input asp-for="Section" class="form-control" placeholder="A" />
             <span asp-validation-for="Section" class="text-danger small"></span>
-        </div>
-        <div class="col-sm-6 mb-3">
-            <label asp-for="TermId" class="form-label"></label>
-            <select asp-for="TermId" asp-items="Model.TermOptions" class="form-select">
-                <option value="">Choose a term…</option>
-            </select>
-            <span asp-validation-for="TermId" class="text-danger small"></span>
         </div>
     </div>
 
@@ -38,7 +60,14 @@
             <option value="">Choose a teacher…</option>
         </select>
         <span asp-validation-for="TeacherId" class="text-danger small"></span>
-        <div class="form-text">Only active teacher accounts are listed.</div>
+        @if (teacherMissing)
+        {
+            <div class="form-text text-warning-emphasis">The previous teacher's account is inactive. Pick a new teacher.</div>
+        }
+        else
+        {
+            <div class="form-text">Only active teacher accounts are listed.</div>
+        }
     </div>
 
     <div class="row">
@@ -54,7 +83,7 @@
         </div>
     </div>
 
-    <div class="d-flex gap-2">
+    <div class="d-grid d-sm-flex gap-2 mt-2">
         <button type="submit" class="btn btn-primary">Save</button>
         <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
     </div>
