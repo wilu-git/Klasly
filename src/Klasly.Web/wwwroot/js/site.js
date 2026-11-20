@@ -39,6 +39,11 @@ document.addEventListener('input', function (event) {
     if (form && form.hasAttribute('data-warn-unsaved')) form.dataset.dirty = 'true';
 });
 
+// A form that came back from the server with errors still holds the typed values, which aren't saved yet.
+document.querySelectorAll('form[data-warn-unsaved]').forEach(function (form) {
+    if (form.querySelector('.field-validation-error, .validation-summary-errors')) form.dataset.dirty = 'true';
+});
+
 window.addEventListener('beforeunload', function (event) {
     if (document.querySelector('form[data-warn-unsaved][data-dirty]:not([data-submitted])')) {
         event.preventDefault();

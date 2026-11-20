@@ -13,7 +13,7 @@
 <form asp-action="Index" method="get" class="d-flex flex-wrap align-items-end gap-2 mb-4">
     <div>
         <label for="termId" class="form-label mb-1">Term</label>
-        <select id="termId" name="termId" class="form-select" asp-items="Model.TermOptions" onchange="this.form.requestSubmit()"></select>
+        <select id="termId" name="termId" class="form-select" asp-items="Model.TermOptions" onchange="this.form.submit()"></select>
     </div>
     <noscript><button type="submit" class="btn btn-outline-secondary">Show</button></noscript>
 </form>
