@@ -1,40 +1,42 @@
 @model ClassListViewModel
 @{
     ViewData["Title"] = "Classes";
+    var allTerms = Model.SelectedTermId == 0;
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
     <h1 class="h3 mb-0">Classes</h1>
     <a asp-action="Create" class="btn btn-primary">New class</a>
 </div>
 
-<form asp-action="Index" method="get" class="d-flex flex-wrap align-items-end gap-2 mb-3">
+@* Changing the term shows it straight away; the Show button stays for browsers without JavaScript. *@
+<form asp-action="Index" method="get" class="d-flex flex-wrap align-items-end gap-2 mb-4">
     <div>
-        <label for="termId" class="form-label small mb-1">Term</label>
-        <select id="termId" name="termId" class="form-select" asp-items="Model.TermOptions"></select>
+        <label for="termId" class="form-label mb-1">Term</label>
+        <select id="termId" name="termId" class="form-select" asp-items="Model.TermOptions" onchange="this.form.submit()"></select>
     </div>
-    <button type="submit" class="btn btn-outline-secondary">Show</button>
+    <noscript><button type="submit" class="btn btn-outline-secondary">Show</button></noscript>
 </form>
 
 @if (Model.Classes.Count == 0)
 {
-    <p class="text-body-secondary">No classes in this term yet.</p>
+    <p class="text-body-secondary">@(allTerms ? "No classes yet." : "No classes in this term yet.") <a asp-action="Create">Create a class</a>.</p>
 }
 else
 {
+    @* The class name opens its students page; schedule and room move under it on phones. *@
     <div class="table-responsive">
         <table class="table align-middle">
             <thead>
                 <tr>
-                    <th scope="col">Subject</th>
-                    <th scope="col">Section</th>
-                    <th scope="col">Teacher</th>
-                    <th scope="col">Schedule</th>
-                    <th scope="col">Room</th>
+                    <th scope="col">Class</th>
+                    <th scope="col" class="d-none d-sm-table-cell">Teacher</th>
+                    <th scope="col" class="d-none d-md-table-cell">Schedule</th>
+                    <th scope="col" class="d-none d-md-table-cell">Room</th>
                     <th scope="col" class="text-end">Enrolled</th>
-                    @if (Model.SelectedTermId == 0)
+                    @if (allTerms)
                     {
-                        <th scope="col">Term</th>
+                        <th scope="col" class="d-none d-lg-table-cell">Term</th>
                     }
                     <th scope="col"><span class="visually-hidden">Actions</span></th>
                 </tr>
@@ -43,19 +45,21 @@ else
                 @foreach (var c in Model.Classes)
                 {
                     <tr>
-                        <td><span class="fw-semibold">@c.SubjectCode</span> <span class="text-body-secondary">@c.SubjectTitle</span></td>
-                        <td>@c.Section</td>
-                        <td>@c.TeacherName</td>
-                        <td>@(c.Schedule ?? "—")</td>
-                        <td>@(c.Room ?? "—")</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@c.ClassId" class="fw-semibold">@c.SubjectCode – @c.Section</a>
+                            <span class="d-block small text-body-secondary">@c.SubjectTitle</span>
+                            <span class="d-block d-md-none small text-body-secondary"><span class="d-sm-none">@c.TeacherName · </span>@(c.Schedule ?? "No schedule")@(c.Room is null ? "" : $" · {c.Room}")</span>
+                        </td>
+                        <td class="d-none d-sm-table-cell">@c.TeacherName</td>
+                        <td class="d-none d-md-table-cell">@(c.Schedule ?? "—")</td>
+                        <td class="d-none d-md-table-cell">@(c.Room ?? "—")</td>
                         <td class="text-end">@c.ActiveEnrollmentCount</td>
-                        @if (Model.SelectedTermId == 0)
+                        @if (allTerms)
                         {
-                            <td>@c.TermName</td>
+                            <td class="d-none d-lg-table-cell">@c.TermName</td>
                         }
-                        <td class="text-end text-nowrap">
-                            <a asp-action="Details" asp-route-id="@c.ClassId" class="btn btn-sm btn-outline-primary">Students</a>
-                            <a asp-action="Edit" asp-route-id="@c.ClassId" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        <td class="text-end">
+                            <a asp-action="Edit" asp-route-id="@c.ClassId" class="btn btn-sm btn-outline-secondary">Edit<span class="visually-hidden"> @c.SubjectCode @c.Section</span></a>
                         </td>
                     </tr>
                 }

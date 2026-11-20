@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-20T01:02:24.673Z",
+        "reason": "Team brand direction (SPEC.md B3, Decision 9) specifies Inter, bundled locally; user supplied the typography spec"
+      }
+    ]
+  }
+}

@@ -6,28 +6,41 @@
     var myUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
     <h1 class="h3 mb-0">Accounts</h1>
-    <div class="d-flex flex-wrap gap-2" aria-label="Create an account">
-        @foreach (var role in new[] { "Teacher", "Student", "Parent", "Admin" })
-        {
-            <a asp-action="Create" asp-route-role="@role" class="btn btn-sm @(role == "Teacher" ? "btn-primary" : "btn-outline-primary")">New @role.ToLowerInvariant()</a>
-        }
-    </div>
+    @* One create control. With a role filter on it's that role; otherwise a menu in the same order as the filter pills. *@
+    @if (selected is not null)
+    {
+        <a asp-action="Create" asp-route-role="@selected" class="btn btn-primary">New @selected.ToLowerInvariant()</a>
+    }
+    else
+    {
+        <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">New account</button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                @foreach (var role in AccountsController.Roles)
+                {
+                    <li><a class="dropdown-item" asp-action="Create" asp-route-role="@role">@role</a></li>
+                }
+            </ul>
+        </div>
+    }
 </div>
 
-<ul class="nav nav-pills mb-3">
-    <li class="nav-item">
-        <a class="nav-link @(selected is null ? "active" : "")" aria-current="@(selected is null ? "page" : null)" asp-action="Index">All</a>
-    </li>
-    @foreach (var role in AccountsController.Roles)
-    {
+<nav aria-label="Filter by role">
+    <ul class="nav nav-pills mb-3">
         <li class="nav-item">
-            <a class="nav-link @(selected == role ? "active" : "")" aria-current="@(selected == role ? "page" : null)"
-               asp-action="Index" asp-route-role="@role">@role</a>
+            <a class="nav-link @(selected is null ? "active" : "")" aria-current="@(selected is null ? "page" : null)" asp-action="Index">All</a>
         </li>
-    }
-</ul>
+        @foreach (var role in AccountsController.Roles)
+        {
+            <li class="nav-item">
+                <a class="nav-link @(selected == role ? "active" : "")" aria-current="@(selected == role ? "page" : null)"
+                   asp-action="Index" asp-route-role="@role">@role</a>
+            </li>
+        }
+    </ul>
+</nav>
 
 @if (Model.Count == 0)
 {
@@ -35,45 +48,59 @@
 }
 else
 {
+    @* On phones, email and ID no. move under the name; the Role column only shows on "All" (a filter makes it repeat). *@
     <div class="table-responsive">
         <table class="table align-middle">
             <thead>
                 <tr>
                     <th scope="col">Name</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Role</th>
-                    <th scope="col">ID no.</th>
-                    <th scope="col">Status</th>
+                    <th scope="col" class="d-none d-lg-table-cell">Email</th>
+                    @if (selected is null)
+                    {
+                        <th scope="col" class="d-none d-md-table-cell">Role</th>
+                    }
+                    <th scope="col" class="d-none d-lg-table-cell">ID no.</th>
+                    <th scope="col" class="d-none d-sm-table-cell">Status</th>
                     <th scope="col"><span class="visually-hidden">Actions</span></th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var a in Model)
                 {
+                    var idNo = a.StudentNumber ?? a.EmployeeNo;
                     <tr class="@(a.IsActive ? "" : "text-body-secondary")">
-                        <td>@a.FullName</td>
-                        <td>@a.Email</td>
-                        <td>@a.Role</td>
-                        <td>@(a.StudentNumber ?? a.EmployeeNo ?? "—")</td>
                         <td>
-                            <span class="badge @(a.IsActive ? "text-bg-success" : "text-bg-secondary")">@(a.IsActive ? "Active" : "Inactive")</span>
+                            <span class="fw-semibold">@a.FullName</span>
+                            <span class="d-block d-lg-none small text-body-secondary text-break">@a.Email@(idNo is null ? "" : $" · {idNo}")<span class="d-md-none">@(selected is null ? $" · {a.Role}" : "")</span></span>
+                            <span class="d-block d-sm-none mt-1"><partial name="_StatusBadge" model='a.IsActive ? ("Active", "success") : ("Inactive", "secondary")' /></span>
                         </td>
-                        <td class="text-end text-nowrap">
-                            <a asp-action="Edit" asp-route-id="@a.UserId" class="btn btn-sm btn-outline-secondary">Edit</a>
-                            @if (a.Role == "Student")
-                            {
-                                <form asp-action="ResetDevice" asp-route-id="@a.UserId" asp-route-role="@selected" method="post" class="d-inline"
-                                      data-confirm="Reset @a.FullName's phone? Their next login on the app registers the phone they use.">
-                                    <button type="submit" class="btn btn-sm btn-link">Reset phone</button>
-                                </form>
-                            }
-                            @if (a.IsActive && a.UserId.ToString() != myUserId)
-                            {
-                                <form asp-action="Deactivate" asp-route-id="@a.UserId" asp-route-role="@selected" method="post" class="d-inline"
-                                      data-confirm="Deactivate @a.FullName? They will no longer be able to log in.">
-                                    <button type="submit" class="btn btn-sm btn-link link-danger">Deactivate</button>
-                                </form>
-                            }
+                        <td class="d-none d-lg-table-cell">@a.Email</td>
+                        @if (selected is null)
+                        {
+                            <td class="d-none d-md-table-cell">@a.Role</td>
+                        }
+                        <td class="d-none d-lg-table-cell text-nowrap">@(idNo ?? "—")</td>
+                        <td class="d-none d-sm-table-cell">
+                            <partial name="_StatusBadge" model='a.IsActive ? ("Active", "success") : ("Inactive", "secondary")' />
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex flex-wrap justify-content-end align-items-center gap-1">
+                                <a asp-action="Edit" asp-route-id="@a.UserId" class="btn btn-sm btn-outline-secondary">Edit<span class="visually-hidden"> @a.FullName</span></a>
+                                @if (a.Role == "Student")
+                                {
+                                    <form asp-action="ResetDevice" asp-route-id="@a.UserId" asp-route-role="@selected" method="post" class="d-inline"
+                                          data-confirm="Reset @a.FullName's phone? Their next login on the app registers the phone they use.">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap">Reset phone<span class="visually-hidden"> for @a.FullName</span></button>
+                                    </form>
+                                }
+                                @if (a.IsActive && a.UserId.ToString() != myUserId)
+                                {
+                                    <form asp-action="Deactivate" asp-route-id="@a.UserId" asp-route-role="@selected" method="post" class="d-inline"
+                                          data-confirm="Deactivate @a.FullName? They will no longer be able to log in.">
+                                        <button type="submit" class="btn btn-sm btn-link link-danger">Deactivate<span class="visually-hidden"> @a.FullName</span></button>
+                                    </form>
+                                }
+                            </div>
                         </td>
                     </tr>
                 }

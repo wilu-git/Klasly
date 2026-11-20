@@ -1,6 +1,10 @@
+@* Flash messages. Success can be dismissed; an error stays until the next page so it isn't missed. *@
 @if (TempData["Success"] is string success)
 {
-    <div class="alert alert-success" role="status">@success</div>
+    <div class="alert alert-success alert-dismissible fade show" role="status">
+        @success
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Dismiss"></button>
+    </div>
 }
 @if (TempData["Error"] is string error)
 {

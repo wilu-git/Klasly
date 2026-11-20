@@ -1,9 +1,20 @@
 @{
     ViewData["Title"] = "Access denied";
+    // The API's reason (e.g. "You can only view your own children") shows as this page's text, not as a second red alert.
+    ViewData["AlertsInPage"] = true;
+    var reason = TempData["Error"] as string;
 }
 
-<section class="py-5">
-    <h1 class="h3">You don't have access to that page.</h1>
-    <p class="text-body-secondary">It belongs to another account. If you think this is wrong, ask the school admin.</p>
-    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary">Go to my home page</a>
+<section class="k-message">
+    <h1 class="h3">You can't open that page.</h1>
+    @if (reason is not null)
+    {
+        <p class="text-body-secondary mb-2">@reason</p>
+        <p class="text-body-secondary">If you think this is wrong, ask the school admin.</p>
+    }
+    else
+    {
+        <p class="text-body-secondary">Your account doesn't have access to it. If you think this is wrong, ask the school admin.</p>
+    }
+    <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-primary">Go to my home page</a>
 </section>

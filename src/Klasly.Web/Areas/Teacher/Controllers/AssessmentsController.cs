@@ -27,6 +27,7 @@ public class AssessmentsController(IAssessmentService assessments, ISessionServi
             catch (ApiException ex) when (ex.IsFormError)
             {
                 AddFormErrors(ex, model);
+                ModelState.MoveSummaryErrorsTo("assessment"); // shown only in the Add assessment form, not in Start a session
             }
         }
 

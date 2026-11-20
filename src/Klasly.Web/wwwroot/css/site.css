@@ -1,43 +1,285 @@
-html {
-  font-size: 14px;
+/* Klasly design system on top of Bootstrap 5.3.3. Order: font, tokens, base, components, page helpers.
+   Source of the values: SPEC.md section B and DESIGN.md. Views use Bootstrap classes and these tokens only. */
+
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
+/* ---------- Tokens ---------- */
+:root {
+  --k-teal: #126b64;           /* primary actions, links, logo, focus ring (6.3:1 on white) */
+  --k-teal-hover: #0e5650;
+  --k-teal-subtle: #e8f3f1;    /* selection and context highlights */
+  --k-navy: #17324d;           /* headings, strong text, nav links */
+  --k-canvas: #f5f7f8;         /* page background */
+  --k-surface: #ffffff;        /* navbar, forms, tables, panels */
+  --k-text: #263746;
+  --k-text-muted: #5a6a80;     /* 5.5:1 on white, 5.1:1 on canvas */
+  --k-border: #dce3e8;         /* dividers and panel edges */
+  --k-border-control: #8696a7; /* input outlines, 3:1 (WCAG 1.4.11) */
+
+  --bs-body-font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --bs-primary: var(--k-teal);
+  --bs-primary-rgb: 18, 107, 100;
+  --bs-primary-text-emphasis: #0b403c;
+  --bs-primary-bg-subtle: var(--k-teal-subtle);
+  --bs-primary-border-subtle: #a9d0ca;
+  --bs-link-color: var(--k-teal);
+  --bs-link-color-rgb: 18, 107, 100;
+  --bs-link-hover-color: var(--k-teal-hover);
+  --bs-link-hover-color-rgb: 14, 86, 80;
+  --bs-heading-color: var(--k-navy);
+  --bs-emphasis-color: var(--k-navy);
+  --bs-emphasis-color-rgb: 23, 50, 77;
+  --bs-body-bg: var(--k-canvas);
+  --bs-body-bg-rgb: 245, 247, 248;
+  --bs-body-color: var(--k-text);
+  --bs-body-color-rgb: 38, 55, 70;
+  --bs-secondary-color: var(--k-text-muted);
+  --bs-secondary-color-rgb: 90, 106, 128;
+  --bs-border-color: var(--k-border);
+  --bs-border-radius-lg: 0.5rem;
+  --bs-focus-ring-color: rgba(18, 107, 100, 0.35);
+}
+
+/* ---------- Base ---------- */
+/* Body text stays 16 px at every width (inputs below 16 px make iOS zoom on focus). */
+:focus-visible {
+  outline: 2px solid var(--k-teal);
+  outline-offset: 2px;
+}
+
+#main:focus {
+  outline: none; /* focus lands here from the skip link; no ring around the whole page */
+}
+
+main#main {
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
+}
+
+.container {
+  --bs-gutter-x: 2rem;
+}
+
+/* Bootstrap's 1320 px xxl container is too wide for tables and forms. */
+@media (min-width: 1400px) {
+  .container {
+    max-width: 1200px;
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-select:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  font-weight: 600;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+h1.h3 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
-body {
-  margin-bottom: 60px;
+@media (min-width: 992px) {
+  h1.h3 {
+    font-size: 2rem;
+  }
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+h2.h5 {
+  font-size: 1.25rem;
+  line-height: 1.3;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+h3.h6 {
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
-/* Same-width digits so ID numbers, dates and counts line up in columns. */
-.table {
+.form-label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+/* Same-width digits so percentages, grades, dates and student numbers line up. */
+.table,
+.num {
   font-variant-numeric: tabular-nums;
 }
 
-/* Parent overview: expandable tables get a full-size tap target on phones. */
-.overview-toggle {
-  padding-block: 0.75rem;
+/* ---------- Skip link ---------- */
+.k-skip:focus {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1080;
+  padding: 0.5rem 1rem;
+  background: var(--k-surface);
+  border: 2px solid var(--k-teal);
+  border-radius: 0.375rem;
+  color: var(--k-teal);
+  font-weight: 600;
+}
+
+/* ---------- Navbar ---------- */
+.navbar {
+  --bs-navbar-color: var(--k-navy);
+  --bs-navbar-hover-color: var(--k-teal);
+  --bs-navbar-active-color: var(--k-teal);
+  --bs-navbar-brand-color: var(--k-navy);
+  --bs-navbar-brand-hover-color: var(--k-navy);
+  --bs-navbar-toggler-focus-width: 0;
+  min-height: 3.5rem;
+}
+
+.navbar-brand {
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.k-mark {
+  color: var(--k-teal);
+  flex: none;
+}
+
+.navbar .nav-link {
+  font-weight: 500;
+  border-radius: 0.375rem;
+}
+
+.navbar .nav-link.active {
+  background: var(--k-teal-subtle);
+}
+
+/* Collapsed menu: room between the links and the name/Log out row. */
+.navbar-collapse .navbar-nav {
+  margin-block: 0.5rem;
+}
+
+@media (min-width: 576px) {
+  .navbar-expand-sm .navbar-collapse .navbar-nav {
+    margin-block: 0;
+  }
+
+  .navbar-expand-sm .navbar-nav .nav-link {
+    padding-inline: 0.75rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .navbar-expand-lg .navbar-collapse .navbar-nav {
+    margin-block: 0;
+  }
+
+  .navbar-expand-lg .navbar-nav .nav-link {
+    padding-inline: 0.75rem;
+  }
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  --bs-btn-font-size: 0.9375rem;
+  --bs-btn-font-weight: 600;
+}
+
+.btn-sm {
+  --bs-btn-font-size: 0.875rem;
+}
+
+.btn:focus-visible {
+  box-shadow: none;
+  outline: 2px solid var(--k-teal);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn.disabled {
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--k-teal);
+  --bs-btn-border-color: var(--k-teal);
+  --bs-btn-hover-bg: var(--k-teal-hover);
+  --bs-btn-hover-border-color: var(--k-teal-hover);
+  --bs-btn-active-bg: var(--k-teal-hover);
+  --bs-btn-active-border-color: var(--k-teal-hover);
+  --bs-btn-disabled-bg: var(--k-teal);
+  --bs-btn-disabled-border-color: var(--k-teal);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--k-teal);
+  --bs-btn-border-color: var(--k-teal);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--k-teal);
+  --bs-btn-hover-border-color: var(--k-teal);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--k-teal-hover);
+  --bs-btn-active-border-color: var(--k-teal-hover);
+  --bs-btn-disabled-color: var(--k-teal);
+  --bs-btn-disabled-border-color: var(--k-teal);
+}
+
+/* Secondary actions stay quiet: dark text, control-grey outline, pale hover instead of solid grey. */
+.btn-outline-secondary {
+  --bs-btn-color: var(--k-text);
+  --bs-btn-border-color: var(--k-border-control);
+  --bs-btn-hover-color: var(--k-navy);
+  --bs-btn-hover-bg: #edf1f4;
+  --bs-btn-hover-border-color: var(--k-border-control);
+  --bs-btn-active-color: var(--k-navy);
+  --bs-btn-active-bg: #e2e8ed;
+  --bs-btn-active-border-color: var(--k-border-control);
+  --bs-btn-disabled-color: var(--k-text-muted);
+  --bs-btn-disabled-border-color: var(--k-border);
+}
+
+/* ---------- Nav pills (filters, child switcher) ---------- */
+.nav-pills {
+  --bs-nav-link-color: var(--k-navy);
+  --bs-nav-link-hover-color: var(--k-teal);
+  --bs-nav-pills-link-active-color: var(--k-teal);
+  --bs-nav-pills-link-active-bg: var(--k-teal-subtle);
+}
+
+.nav-pills .nav-link.active {
+  font-weight: 600;
+}
+
+/* ---------- Forms ---------- */
+.form-control,
+.form-select {
+  background-color: var(--k-surface);
+  border-color: var(--k-border-control);
+}
+
+.form-check-input {
+  border-color: var(--k-border-control);
+}
+
+.form-check-input:checked {
+  background-color: var(--k-teal);
+  border-color: var(--k-teal);
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: var(--k-teal);
+  box-shadow: none;
+  outline: 2px solid var(--k-teal);
+  outline-offset: 0;
+}
+
+/* jQuery Validation marks bad fields with this class (not Bootstrap's .is-invalid). */
+.input-validation-error {
+  border-color: var(--bs-form-invalid-border-color);
 }
 
 /* The validation summary box only shows when it has messages. */
@@ -50,10 +292,181 @@ body {
   padding-left: 1.25rem;
 }
 
-/* Check-in QR: at least 320 px, black on white whatever surrounds it, so phone cameras can read it. */
+/* ---------- Surfaces: panels, cards, lists, tables ---------- */
+/* Bootstrap paints these with --bs-body-bg, which is now the grey canvas; content surfaces stay white, no shadow. */
+.k-panel,
+.card {
+  background: var(--k-surface);
+  border: 1px solid var(--k-border);
+  border-radius: var(--bs-border-radius-lg);
+}
+
+.k-panel {
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  .k-panel {
+    padding: 1.5rem;
+  }
+}
+
+.card {
+  --bs-card-bg: var(--k-surface);
+  --bs-card-border-color: var(--k-border);
+  --bs-card-border-radius: var(--bs-border-radius-lg);
+  --bs-card-cap-bg: var(--k-surface);
+}
+
+.list-group {
+  --bs-list-group-bg: var(--k-surface);
+  --bs-list-group-border-color: var(--k-border);
+  --bs-list-group-border-radius: var(--bs-border-radius-lg);
+  --bs-list-group-action-hover-bg: var(--k-canvas);
+  --bs-list-group-action-hover-color: var(--k-navy);
+}
+
+.dropdown-menu {
+  --bs-dropdown-bg: var(--k-surface);
+  --bs-dropdown-border-color: var(--k-border);
+  --bs-dropdown-link-active-bg: var(--k-teal);
+}
+
+.table {
+  --bs-table-bg: var(--k-surface);
+  --bs-table-border-color: var(--k-border);
+  font-size: 0.9375rem;
+}
+
+.table > thead th {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--k-text-muted);
+}
+
+/* A table sits on one white panel; the panel scrolls sideways only when a table truly needs every column. */
+.table-responsive {
+  position: relative; /* containing block for .visually-hidden labels in cells, so they can't widen the page past the scroll box */
+  background: var(--k-surface);
+  border: 1px solid var(--k-border);
+  border-radius: var(--bs-border-radius-lg);
+}
+
+.table-responsive > .table {
+  margin-bottom: 0;
+}
+
+.table-responsive > .table > :not(caption) > tr:last-child > * {
+  border-bottom-width: 0;
+}
+
+/* Inset the outer columns so text doesn't sit against the panel's border (also for .table-sm).
+   From 576 px only: on phones every pixel goes to the columns, so tables fit without scrolling. */
+@media (min-width: 576px) {
+  .table-responsive > .table > :not(caption) > tr > :first-child {
+    padding-left: 1rem;
+  }
+
+  .table-responsive > .table > :not(caption) > tr > :last-child {
+    padding-right: 1rem;
+  }
+}
+
+/* ---------- Message page (Error, Not found, Access denied, Server unavailable) ---------- */
+.k-message {
+  max-width: 36rem;
+  padding-block: 2rem 3rem;
+}
+
+/* ---------- Teacher: live-session strip, checked-in count, grade sheet save bar ---------- */
+/* Class page: an open session sits above everything else, on pale teal (selection/context colour, not a status). */
+.k-live {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--k-teal-subtle);
+  border: 1px solid var(--bs-primary-border-subtle);
+  border-radius: var(--bs-border-radius-lg);
+}
+
+/* <summary> styled as a button ("Start another session"): no disclosure triangle. */
+.k-summary-btn {
+  list-style: none;
+}
+
+.k-summary-btn::-webkit-details-marker {
+  display: none;
+}
+
+.k-count {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--k-navy);
+}
+
+.k-count-total {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--k-text-muted);
+}
+
+.k-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--k-surface);
+  border: 1px solid var(--k-border);
+  border-radius: var(--bs-border-radius-lg);
+}
+
+/* ---------- Parent overview ---------- */
+/* The one-line answer under the child's name: the first thing a parent reads. */
+.k-answer {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+/* Four labelled attendance numbers side by side, wrapping on narrow phones. */
+.k-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+}
+
+/* ---------- Badges (statuses only; rendered by _StatusBadge) ---------- */
+.badge {
+  --bs-badge-font-weight: 600;
+  --bs-badge-border-radius: 0.25rem;
+}
+
+/* A status next to a page title stays badge-sized instead of scaling with the 32 px heading. */
+h1 .badge {
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+/* ---------- Page helpers (kept from before the redesign) ---------- */
+/* Parent overview: expandable tables get a full-size tap target on phones. */
+.overview-toggle {
+  padding-block: 0.75rem;
+}
+
+/* Check-in QR: at least 320 px (or the full width on a 320 px phone), black on white whatever surrounds it, so phone cameras can read it. */
 .qr-code {
   width: 100%;
-  min-width: 320px;
+  min-width: min(320px, 100%);
   max-width: 440px;
   margin-inline: auto;
   background: #fff;

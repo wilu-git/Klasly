@@ -1,9 +1,10 @@
 @model List<TermResponse>
 @{
     ViewData["Title"] = "Terms";
+    var activeTerm = Model.FirstOrDefault(t => t.IsActive);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
     <h1 class="h3 mb-0">Terms</h1>
     <a asp-action="Create" class="btn btn-primary">New term</a>
 </div>
@@ -19,8 +20,8 @@ else
             <thead>
                 <tr>
                     <th scope="col">Name</th>
-                    <th scope="col">Start</th>
-                    <th scope="col">End</th>
+                    <th scope="col" class="d-none d-sm-table-cell">Start</th>
+                    <th scope="col" class="d-none d-sm-table-cell">End</th>
                     <th scope="col">Status</th>
                     <th scope="col"><span class="visually-hidden">Actions</span></th>
                 </tr>
@@ -28,31 +29,36 @@ else
             <tbody>
                 @foreach (var term in Model)
                 {
+                    var dates = $"{term.StartDate:MMM d, yyyy} – {term.EndDate:MMM d, yyyy}";
                     <tr>
-                        <td>@term.Name</td>
-                        <td>@term.StartDate.ToString("MMM d, yyyy")</td>
-                        <td>@term.EndDate.ToString("MMM d, yyyy")</td>
                         <td>
-                            @if (term.IsActive)
-                            {
-                                <span class="badge text-bg-success">Active</span>
-                            }
+                            <span class="@(term.IsActive ? "fw-semibold" : "")">@term.Name</span>
+                            <span class="d-block d-sm-none small text-body-secondary">@dates</span>
                         </td>
-                        <td class="text-end text-nowrap">
-                            <a asp-action="Edit" asp-route-id="@term.TermId" class="btn btn-sm btn-outline-secondary">Edit</a>
-                            @if (term.IsActive)
-                            {
-                                <form asp-action="Deactivate" asp-route-id="@term.TermId" method="post" class="d-inline"
-                                      data-confirm="Deactivate @term.Name? No term will be active.">
-                                    <button type="submit" class="btn btn-sm btn-link link-danger">Deactivate</button>
-                                </form>
-                            }
-                            else
-                            {
-                                <form asp-action="Activate" asp-route-id="@term.TermId" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-outline-primary">Make active</button>
-                                </form>
-                            }
+                        <td class="d-none d-sm-table-cell text-nowrap">@term.StartDate.ToString("MMM d, yyyy")</td>
+                        <td class="d-none d-sm-table-cell text-nowrap">@term.EndDate.ToString("MMM d, yyyy")</td>
+                        <td>
+                            <partial name="_StatusBadge" model='term.IsActive ? ("Active", "success") : ("Inactive", "secondary")' />
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex flex-wrap justify-content-end align-items-center gap-1">
+                                <a asp-action="Edit" asp-route-id="@term.TermId" class="btn btn-sm btn-outline-secondary">Edit<span class="visually-hidden"> @term.Name</span></a>
+                                @if (term.IsActive)
+                                {
+                                    <form asp-action="Deactivate" asp-route-id="@term.TermId" method="post" class="d-inline"
+                                          data-confirm="Deactivate @term.Name? No term will be active.">
+                                        <button type="submit" class="btn btn-sm btn-link link-danger">Deactivate<span class="visually-hidden"> @term.Name</span></button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    @* Switching the active term changes what the whole school runs on, so it asks first and names the term it replaces. *@
+                                    <form asp-action="Activate" asp-route-id="@term.TermId" method="post" class="d-inline"
+                                          data-confirm="@(activeTerm is null ? $"Make {term.Name} the active term?" : $"Make {term.Name} the active term? {activeTerm.Name} will be deactivated.")">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Make active<span class="visually-hidden"> @term.Name</span></button>
+                                    </form>
+                                }
+                            </div>
                         </td>
                     </tr>
                 }

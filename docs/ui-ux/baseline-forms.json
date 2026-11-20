@@ -1,0 +1,119 @@
+{
+  "captured": "2026-11-20, unchanged code at f92929a (ui-redesign), site https://localhost:7144, API https://localhost:7256, seed data.",
+  "method": "fetch + DOMParser in the signed-in browser session, per page: [action, method, sorted input names]. Every POST form also carries __RequestVerificationToken (listed).",
+  "scope_note": "Each signed-in page also has the layout Logout form [/Account/Logout, post, [__RequestVerificationToken]]. P1 is anonymous and has no layout form. P6, P16 and P17 have no main-content forms.",
+  "pages": {
+    "P1 /Account/Login (anonymous)": [
+      ["/Account/Login", "post", ["Email", "Password", "ReturnUrl", "__RequestVerificationToken"]]
+    ],
+    "P7 /Admin/Terms": [
+      ["/Admin/Terms/Activate/2", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Terms/Deactivate/1", "post", ["__RequestVerificationToken"]]
+    ],
+    "P8 /Admin/Terms/Create": [
+      ["/Admin/Terms/Create", "post", ["EndDate", "Name", "StartDate", "__Invariant", "__RequestVerificationToken"]]
+    ],
+    "P8 /Admin/Terms/Edit/2": [
+      ["/Admin/Terms/Edit/2", "post", ["EndDate", "Name", "StartDate", "__Invariant", "__RequestVerificationToken"]]
+    ],
+    "P9 /Admin/Subjects": [],
+    "P10 /Admin/Subjects/Create": [
+      ["/Admin/Subjects/Create", "post", ["Code", "Title", "Units", "__Invariant", "__RequestVerificationToken"]]
+    ],
+    "P10 /Admin/Subjects/Edit/3": [
+      ["/Admin/Subjects/Edit/3", "post", ["Code", "Title", "Units", "__Invariant", "__RequestVerificationToken"]]
+    ],
+    "P11 /Admin/Accounts": [
+      ["/Admin/Accounts/ResetDevice/4", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/4", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/ResetDevice/13", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/13", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/ResetDevice/5", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/5", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/ResetDevice/6", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/6", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/ResetDevice/7", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/7", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/ResetDevice/8", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/8", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/ResetDevice/9", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/9", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/14", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/12", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/10", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/3", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/15", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/11", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/2", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/Deactivate/16", "post", ["__RequestVerificationToken"]]
+    ],
+    "P12 /Admin/Accounts/Create?role=Admin": [
+      ["/Admin/Accounts/Create", "post", ["Email", "FullName", "Password", "Role", "__RequestVerificationToken"]]
+    ],
+    "P12 /Admin/Accounts/Create?role=Teacher": [
+      ["/Admin/Accounts/Create", "post", ["Department", "Email", "EmployeeNo", "FullName", "Password", "Role", "__RequestVerificationToken"]]
+    ],
+    "P12 /Admin/Accounts/Create?role=Student": [
+      ["/Admin/Accounts/Create", "post", ["Email", "FullName", "Password", "Program", "Role", "StudentNumber", "YearLevel", "__Invariant", "__RequestVerificationToken"]]
+    ],
+    "P12 /Admin/Accounts/Create?role=Parent": [
+      ["/Admin/Accounts/Create", "post", ["ContactEmail", "ContactNumber", "Email", "FullName", "Password", "Role", "__RequestVerificationToken"]]
+    ],
+    "P12 /Admin/Accounts/Edit/12 (Parent)": [
+      ["/Admin/Accounts/Edit/12", "post", ["ContactEmail", "ContactNumber", "Email", "FullName", "IsActive", "NewPassword", "Role", "__RequestVerificationToken"]],
+      ["/Admin/Accounts/UnlinkStudent/12?studentId=5", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/UnlinkStudent/12?studentId=6", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Accounts/LinkStudent/12", "post", ["__RequestVerificationToken", "receivesAlerts", "relationship", "studentId"]]
+    ],
+    "P12 /Admin/Accounts/Edit/4 (Student)": [
+      ["/Admin/Accounts/Edit/4", "post", ["Email", "FullName", "IsActive", "NewPassword", "Program", "Role", "StudentNumber", "YearLevel", "__Invariant", "__RequestVerificationToken"]]
+    ],
+    "P12 /Admin/Accounts/Edit/14 (Teacher)": [
+      ["/Admin/Accounts/Edit/14", "post", ["Department", "Email", "EmployeeNo", "FullName", "IsActive", "NewPassword", "Role", "__RequestVerificationToken"]]
+    ],
+    "P13 /Admin/Classes": [
+      ["/Admin/Classes", "get", ["termId"]]
+    ],
+    "P14 /Admin/Classes/Create": [
+      ["/Admin/Classes/Create", "post", ["Room", "Schedule", "Section", "SubjectId", "TeacherId", "TermId", "__RequestVerificationToken"]]
+    ],
+    "P14 /Admin/Classes/Edit/3": [
+      ["/Admin/Classes/Edit/3", "post", ["Room", "Schedule", "Section", "SubjectId", "TeacherId", "TermId", "__RequestVerificationToken"]]
+    ],
+    "P15 /Admin/Classes/Details/3": [
+      ["/Admin/Classes/Drop/3?enrollmentId=10", "post", ["__RequestVerificationToken"]],
+      ["/Admin/Classes/Enroll/3", "post", ["__RequestVerificationToken", "studentId"]]
+    ],
+    "P18 /Teacher/Classes/Details/1": [
+      ["/Teacher/Sessions/Start", "post", ["ClassId", "EndTime", "LateAfterMinutes", "__Invariant", "__RequestVerificationToken"]],
+      ["/Teacher/Assessments/Create", "post", ["ClassId", "MaxScore", "Title", "Type", "WeightPercent", "__Invariant", "__RequestVerificationToken"]]
+    ],
+    "P19 /Teacher/Sessions/Details/2 (open session)": [
+      ["/Teacher/Sessions/Close/2", "post", ["__RequestVerificationToken"]]
+    ],
+    "P19 /Teacher/Sessions/Details/1019 (ended session)": [
+      ["/Teacher/Sessions/Correct/1019?studentId=1", "post", ["__RequestVerificationToken", "currentStatus", "status"]],
+      ["/Teacher/Sessions/Correct/1019?studentId=2", "post", ["__RequestVerificationToken", "currentStatus", "status"]],
+      ["/Teacher/Sessions/Correct/1019?studentId=3", "post", ["__RequestVerificationToken", "currentStatus", "status"]],
+      ["/Teacher/Sessions/Correct/1019?studentId=4", "post", ["__RequestVerificationToken", "currentStatus", "status"]],
+      ["/Teacher/Sessions/Correct/1019?studentId=5", "post", ["__RequestVerificationToken", "currentStatus", "status"]],
+      ["/Teacher/Sessions/Correct/1019?studentId=6", "post", ["__RequestVerificationToken", "currentStatus", "status"]]
+    ],
+    "P19 /Teacher/Sessions/Details/1 (ended session)": [
+      ["/Teacher/Sessions/Correct/1?studentId=1", "post", ["__RequestVerificationToken", "currentStatus", "status"]],
+      ["/Teacher/Sessions/Correct/1?studentId=2", "post", ["__RequestVerificationToken", "currentStatus", "status"]],
+      ["/Teacher/Sessions/Correct/1?studentId=3", "post", ["__RequestVerificationToken", "currentStatus", "status"]],
+      ["/Teacher/Sessions/Correct/1?studentId=4", "post", ["__RequestVerificationToken", "currentStatus", "status"]],
+      ["/Teacher/Sessions/Correct/1?studentId=5", "post", ["__RequestVerificationToken", "currentStatus", "status"]],
+      ["/Teacher/Sessions/Correct/1?studentId=6", "post", ["__RequestVerificationToken", "currentStatus", "status"]]
+    ],
+    "P20 /Teacher/Assessments/Details/1": [
+      ["/Teacher/Assessments/SaveGrades/1", "post", ["Grades[0].Score", "Grades[0].StudentId", "Grades[1].Score", "Grades[1].StudentId", "Grades[2].Score", "Grades[2].StudentId", "Grades[3].Score", "Grades[3].StudentId", "Grades[4].Score", "Grades[4].StudentId", "Grades[5].Score", "Grades[5].StudentId", "__Invariant", "__RequestVerificationToken"]],
+      ["/Teacher/Assessments/Edit/1", "post", ["ClassId", "MaxScore", "Title", "Type", "WeightPercent", "__Invariant", "__RequestVerificationToken"]]
+    ],
+    "P20 /Teacher/Assessments/Details/2": [
+      ["/Teacher/Assessments/SaveGrades/2", "post", ["Grades[0].Score", "Grades[0].StudentId", "Grades[1].Score", "Grades[1].StudentId", "Grades[2].Score", "Grades[2].StudentId", "Grades[3].Score", "Grades[3].StudentId", "Grades[4].Score", "Grades[4].StudentId", "Grades[5].Score", "Grades[5].StudentId", "__Invariant", "__RequestVerificationToken"]],
+      ["/Teacher/Assessments/Edit/2", "post", ["ClassId", "MaxScore", "Title", "Type", "WeightPercent", "__Invariant", "__RequestVerificationToken"]]
+    ]
+  }
+}

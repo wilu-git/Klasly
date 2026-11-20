@@ -1,8 +1,15 @@
 @model SubjectFormViewModel
 @{
     var isNew = Model.Id is null;
-    ViewData["Title"] = isNew ? "New subject" : "Edit subject";
+    ViewData["Title"] = isNew ? "New subject" : $"Edit subject: {Model.Code}";
 }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Subjects</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@(isNew ? "New subject" : Model.Code)</li>
+    </ol>
+</nav>
 
 <h1 class="h3 mb-4">@ViewData["Title"]</h1>
 
@@ -28,7 +35,7 @@
         <span asp-validation-for="Title" class="text-danger small"></span>
     </div>
 
-    <div class="d-flex gap-2">
+    <div class="d-grid d-sm-flex gap-2 mt-2">
         <button type="submit" class="btn btn-primary">Save</button>
         <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
     </div>
