@@ -18,7 +18,8 @@ plugins {
 val localProperties = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
 }
-val apiBaseUrl: String = localProperties.getProperty("klasly.apiBaseUrl") ?: "http://10.0.2.2:5201/api/"
+// Retrofit throws at startup unless the base URL ends in "/", so add it if local.properties left it off.
+val apiBaseUrl: String = (localProperties.getProperty("klasly.apiBaseUrl") ?: "http://10.0.2.2:5201/api/").trimEnd('/') + "/"
 
 android {
     namespace = "com.klasly.app"
