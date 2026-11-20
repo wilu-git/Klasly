@@ -6,6 +6,11 @@
 
     static string Percent(decimal? rate) => rate is { } r ? (r * 100).ToString("0.#", CultureInfo.InvariantCulture) + "%" : "—";
     static string Number(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    // At-risk classes first so a parent on a phone sees them without scrolling; OrderBy is stable, so the API order stays within each group.
+    var classes = o.Classes.OrderByDescending(c => c.IsAtRisk == true).ToList();
+    var atRisk = classes.Where(c => c.IsAtRisk == true).ToList();
+    var anyComputed = classes.Any(c => c.IsAtRisk is not null);
 }
 
 @if (Model.Children.Count > 1)
@@ -18,7 +23,7 @@
     </nav>
 }
 
-<div class="mb-4">
+<div class="mb-3">
     <h1 class="h3 mb-1">@o.FullName</h1>
     <p class="text-body-secondary mb-0">@o.StudentNumber@(o.TermName is null ? "" : $" · {o.TermName}")</p>
 </div>
@@ -39,12 +44,37 @@
     </nav>
 }
 
-@if (o.Classes.Count == 0)
+@if (classes.Count == 0)
 {
     <p class="text-body-secondary">No classes this term.</p>
 }
+else
+{
+    @* The one-line answer to "Is my child OK?", built only from the cards below. *@
+    @if (atRisk.Count > 0)
+    {
+        var lead = classes.Count == 1 ? "This class needs attention:"
+            : atRisk.Count == classes.Count ? $"All {classes.Count} classes need attention:"
+            : $"{atRisk.Count} of {classes.Count} classes {(atRisk.Count == 1 ? "needs" : "need")} attention:";
+        <p class="k-answer text-danger-emphasis">
+            @lead
+            @for (var i = 0; i < atRisk.Count; i++)
+            {
+                <a href="#class-@atRisk[i].ClassId" class="text-danger-emphasis">@atRisk[i].SubjectCode</a>@(i < atRisk.Count - 1 ? ", " : ".")
+            }
+        </p>
+    }
+    else if (anyComputed)
+    {
+        <p class="k-answer">@(classes.Count == 1 ? "The class is on track." : $"All {classes.Count} classes are on track.")</p>
+    }
+    else
+    {
+        <p class="k-answer">The early-warning check hasn't run yet this term.</p>
+    }
+}
 
-@foreach (var c in o.Classes)
+@foreach (var c in classes)
 {
     var headingId = $"class-{c.ClassId}";
     <section class="card mb-4" aria-labelledby="@headingId">
@@ -57,24 +87,31 @@
                 @switch (c.IsAtRisk)
                 {
                     case true:
-                        <span class="badge text-bg-danger fs-6">At risk</span>
+                        <partial name="_StatusBadge" model='("At risk", "danger-strong")' />
                         break;
                     case false:
-                        <span class="badge text-bg-success fs-6">On track</span>
+                        <partial name="_StatusBadge" model='("On track", "success")' />
                         break;
                     default:
-                        <span class="badge text-bg-secondary fs-6">Not computed yet</span>
+                        <partial name="_StatusBadge" model='("Not computed yet", "secondary")' />
                         break;
                 }
             </div>
 
             <dl class="row mb-2">
                 <dt class="col-sm-4 col-lg-3">Attendance</dt>
-                <dd class="col-sm-8 col-lg-9">Present @c.Present · Late @c.Late · Absent @c.Absent · Excused @c.Excused</dd>
+                <dd class="col-sm-8 col-lg-9">
+                    <ul class="k-stats list-unstyled mb-0">
+                        <li><span class="num fw-semibold">@c.Present</span> Present</li>
+                        <li><span class="num fw-semibold">@c.Late</span> Late</li>
+                        <li class="@(c.Absent > 0 ? "text-danger-emphasis fw-semibold" : "")"><span class="num fw-semibold">@c.Absent</span> Absent</li>
+                        <li><span class="num fw-semibold">@c.Excused</span> Excused</li>
+                    </ul>
+                </dd>
                 <dt class="col-sm-4 col-lg-3">Absence rate</dt>
-                <dd class="col-sm-8 col-lg-9">@Percent(c.AbsenceRate)</dd>
+                <dd class="col-sm-8 col-lg-9 num">@Percent(c.AbsenceRate)</dd>
                 <dt class="col-sm-4 col-lg-3">Weighted average</dt>
-                <dd class="col-sm-8 col-lg-9">@(c.WeightedAverage is { } avg ? Number(avg) : "No grades yet")</dd>
+                <dd class="col-sm-8 col-lg-9 num">@(c.WeightedAverage is { } avg ? Number(avg) : "No grades yet")</dd>
             </dl>
 
             @if (c.RiskComputedAtUtc is { } computed)

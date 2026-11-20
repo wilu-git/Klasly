@@ -3,7 +3,7 @@
     ViewData["Title"] = "My children";
 }
 
-<h1 class="h3 mb-3">My children</h1>
+<h1 class="h3 mb-4">My children</h1>
 
 @if (Model.Count == 0)
 {
@@ -11,17 +11,18 @@
 }
 else
 {
-    <ul class="list-group">
+    @* The whole row is the link and its text starts with the child's name (WCAG 2.5.3 label in name). *@
+    <div class="list-group">
         @foreach (var c in Model)
         {
-            <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
-                <div>
-                    <span class="fw-semibold">@c.StudentName</span>
-                    <span class="text-body-secondary small d-block">@c.StudentNumber</span>
-                </div>
-                <a asp-action="Details" asp-route-id="@c.StudentId" class="btn btn-sm btn-outline-primary"
-                   aria-label="Attendance and grades for @c.StudentName">View</a>
-            </li>
+            <a asp-action="Details" asp-route-id="@c.StudentId"
+               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-3 py-3">
+                <span>
+                    <span class="fw-semibold d-block">@c.StudentName</span>
+                    <span class="text-body-secondary small">Student no. @c.StudentNumber</span>
+                </span>
+                <span class="text-body-secondary small text-end">Attendance and grades</span>
+            </a>
         }
-    </ul>
+    </div>
 }

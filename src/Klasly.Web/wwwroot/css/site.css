@@ -418,6 +418,21 @@ h3.h6 {
   border-radius: var(--bs-border-radius-lg);
 }
 
+/* ---------- Parent overview ---------- */
+/* The one-line answer under the child's name: the first thing a parent reads. */
+.k-answer {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+/* Four labelled attendance numbers side by side, wrapping on narrow phones. */
+.k-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+}
+
 /* ---------- Badges (statuses only; rendered by _StatusBadge) ---------- */
 .badge {
   --bs-badge-font-weight: 600;
