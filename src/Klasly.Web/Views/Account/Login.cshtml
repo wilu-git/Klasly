@@ -1,31 +1,43 @@
 @model LoginViewModel
 @{
     ViewData["Title"] = "Log in";
+    // Flash messages (e.g. "Your session ended, please log in again.") line up with this narrow column instead of the full page.
+    ViewData["AlertsInPage"] = true;
+    ViewData["HideHeader"] = true; // the panel below carries the logo; signed-out users have no menu anyway
 }
 
-<div class="row justify-content-center py-5">
-    <div class="col-12 col-sm-9 col-md-6 col-lg-4">
-        <h1 class="h3 mb-1">Log in to Klasly</h1>
-        <p class="text-body-secondary mb-4">For admins, teachers and parents.</p>
-
-        <form asp-action="Login" method="post" novalidate>
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-            <input type="hidden" asp-for="ReturnUrl" />
-
-            <div class="mb-3">
-                <label asp-for="Email" class="form-label">Email</label>
-                <input asp-for="Email" class="form-control" autocomplete="username" autofocus />
-                <span asp-validation-for="Email" class="text-danger small"></span>
+<div class="row justify-content-center py-4 py-md-5">
+    <div class="col-12 col-sm-9 col-md-6 col-lg-5 col-xl-4">
+        <div class="k-panel">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <svg class="k-mark" width="36" height="36" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.1 2.5v18.9" /><path d="M3.1 13.25 19.25 3.8" /><path d="M7.2 15.1 14.2 21.5 20.75 14.5" /></g></svg>
+                <span class="fs-4 fw-semibold text-body-emphasis">Klasly</span>
             </div>
+            <h1 class="h3 mb-1">Log in</h1>
+            <p class="text-body-secondary mb-4">Attendance and grades for your classes.</p>
 
-            <div class="mb-4">
-                <label asp-for="Password" class="form-label">Password</label>
-                <input asp-for="Password" class="form-control" autocomplete="current-password" />
-                <span asp-validation-for="Password" class="text-danger small"></span>
-            </div>
+            <partial name="_Alerts" />
 
-            <button type="submit" class="btn btn-primary w-100">Log in</button>
-        </form>
+            <form asp-action="Login" method="post" novalidate>
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                <input type="hidden" asp-for="ReturnUrl" />
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label">Email</label>
+                    <input asp-for="Email" class="form-control" autocomplete="username" autofocus />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Password" class="form-label">Password</label>
+                    <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100" data-pending-text="Logging in…">Log in</button>
+            </form>
+        </div>
+        <p class="text-body-secondary small text-center mt-3 mb-0">For admins, teachers and parents. Students use the Klasly app.</p>
     </div>
 </div>
 
