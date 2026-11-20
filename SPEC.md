@@ -372,7 +372,8 @@ There are no automated UI tests for `Klasly.Web`, and this work adds none (Playw
 7. **Failed emails page:** user-facing text says "the email service" instead of "Brevo" (docs and code names keep "Brevo").
 8. **Contrast (approved 2026-11-20):** muted text `#5A6A80` instead of `#64748B` (which is 4.4 : 1 on the canvas), and `#8696A7` for form-control outlines only (3.0 : 1).
 9. **Inter (approved 2026-11-20):** bundle `InterVariable.woff2` (v4.1) and `OFL.txt` from the official rsms/inter GitHub release, about 340 KB. The system stack stays as the fallback.
-10. **Android icon (approved 2026-11-20):** add adaptive-icon vector drawables (monogram foreground, teal background). This PC has no JDK, so a teammate runs `./gradlew assembleDebug` after the change.
+10. **Android icon (approved 2026-11-20):** add adaptive-icon vector drawables (monogram foreground, teal background). *(Update: a JDK exists at `D:\Android Studio\jbr`; `./gradlew assembleDebug testDebugUnitTest` passed with the new icon.)*
+11. **Merge timing changed (2026-11-20):** at the team's request, `ui-redesign` was merged into `dev` (merge commit `a0dcefa`) before the demo, replacing the "after the demo" part of Decision 1. Not deployed to klasly.site and not merged into `master`.
 
 ## Open questions
 
