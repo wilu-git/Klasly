@@ -46,6 +46,11 @@ else if (Model.Live is null)
 }
 else
 {
+    @if (s.Status == "Open" && !s.IsLive)
+    {
+        @* Past its end time but still open: corrections only appear once it's closed (End session, or the Worker within ~5 min). *@
+        <p class="alert alert-info py-2">Press <strong>End session</strong> to close it and correct results.</p>
+    }
     <p id="live-status" class="alert alert-warning py-2" role="status" hidden>Reconnecting… The QR and list below may be out of date.</p>
     <p id="live-announcer" class="visually-hidden" aria-live="polite"></p>
     <div id="live-panel">

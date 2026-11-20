@@ -366,10 +366,68 @@ h3.h6 {
   padding-block: 2rem 3rem;
 }
 
+/* ---------- Teacher: live-session strip, checked-in count, grade sheet save bar ---------- */
+/* Class page: an open session sits above everything else, on pale teal (selection/context colour, not a status). */
+.k-live {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--k-teal-subtle);
+  border: 1px solid var(--bs-primary-border-subtle);
+  border-radius: var(--bs-border-radius-lg);
+}
+
+/* <summary> styled as a button ("Start another session"): no disclosure triangle. */
+.k-summary-btn {
+  list-style: none;
+}
+
+.k-summary-btn::-webkit-details-marker {
+  display: none;
+}
+
+.k-count {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--k-navy);
+}
+
+.k-count-total {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--k-text-muted);
+}
+
+.k-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--k-surface);
+  border: 1px solid var(--k-border);
+  border-radius: var(--bs-border-radius-lg);
+}
+
 /* ---------- Badges (statuses only; rendered by _StatusBadge) ---------- */
 .badge {
   --bs-badge-font-weight: 600;
   --bs-badge-border-radius: 0.25rem;
+}
+
+/* A status next to a page title stays badge-sized instead of scaling with the 32 px heading. */
+h1 .badge {
+  font-size: 0.875rem;
+  vertical-align: middle;
 }
 
 /* ---------- Page helpers (kept from before the redesign) ---------- */

@@ -30,6 +30,7 @@ public class SessionsController(ISessionService sessions) : Controller
             catch (ApiException ex) when (ex.IsFormError)
             {
                 ModelState.AddApiErrors(ex, model);
+                ModelState.MoveSummaryErrorsTo("start"); // shown only in _StartSession, not in the Add assessment form
             }
         }
 
@@ -63,7 +64,8 @@ public class SessionsController(ISessionService sessions) : Controller
             TempData["Error"] = ex.Message;
         }
 
-        return RedirectToAction(nameof(Details), new { id });
+        // Land back on the corrected student's row (roster rows have id="row-{studentId}").
+        return RedirectToAction(nameof(Details), null, new { id }, $"row-{studentId}");
     }
 
     // 400/409 (e.g. already closed in another tab) → the API's message on the same page.

@@ -7,7 +7,7 @@
 - [x] M1 ui-brand: K + check mark, **logo gate** (user approves), other SVGs, Inter, Android icon drawables
 - [x] M2 ui-foundation: tokens, type, spacing, layout/nav, alerts, `_StatusBadge`, `site.js`, `DESIGN.md`, **review gate**
 - [x] M3 ui-message-pages: StatusCode re-execute, Not found, Error, ApiUnavailable, AccessDenied
-- [ ] M4 ui-teacher: error-key split, correction row anchor, class/session/grade pages, **review gate**
+- [x] M4 ui-teacher: error-key split, correction row anchor, class/session/grade pages, **review gate**
 - [ ] M5 ui-parent: whole-row links, summary line, at-risk first, labelled numbers
 - [ ] M6a ui-admin lists, M6b ui-admin forms
 - [ ] M7 ui-auth-polish: login

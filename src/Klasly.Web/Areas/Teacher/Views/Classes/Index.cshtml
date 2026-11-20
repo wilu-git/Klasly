@@ -3,7 +3,7 @@
     ViewData["Title"] = "My classes";
 }
 
-<h1 class="h3 mb-3">My classes</h1>
+<h1 class="h3 mb-4">My classes</h1>
 
 @if (Model.Count == 0)
 {
@@ -11,33 +11,31 @@
 }
 else
 {
+    @* The class name opens the class page. On phones, term/schedule/room move under the name instead of their own columns. *@
     <div class="table-responsive">
         <table class="table align-middle">
             <thead>
                 <tr>
-                    <th scope="col">Subject</th>
-                    <th scope="col">Section</th>
-                    <th scope="col">Term</th>
-                    <th scope="col">Schedule</th>
-                    <th scope="col">Room</th>
+                    <th scope="col">Class</th>
+                    <th scope="col" class="d-none d-md-table-cell">Term</th>
+                    <th scope="col" class="d-none d-md-table-cell">Schedule</th>
+                    <th scope="col" class="d-none d-md-table-cell">Room</th>
                     <th scope="col" class="text-end">Enrolled</th>
-                    <th scope="col"><span class="visually-hidden">Actions</span></th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var c in Model)
                 {
                     <tr>
-                        <td><span class="fw-semibold">@c.SubjectCode</span> <span class="text-body-secondary">@c.SubjectTitle</span></td>
-                        <td>@c.Section</td>
-                        <td>@c.TermName</td>
-                        <td>@(c.Schedule ?? "—")</td>
-                        <td>@(c.Room ?? "—")</td>
-                        <td class="text-end">@c.ActiveEnrollmentCount</td>
-                        <td class="text-end">
-                            <a asp-action="Details" asp-route-id="@c.ClassId" class="btn btn-sm btn-outline-primary"
-                               aria-label="Sessions for @c.SubjectCode @c.Section">Sessions</a>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@c.ClassId" class="fw-semibold">@c.SubjectCode – @c.Section</a>
+                            <span class="d-block small text-body-secondary">@c.SubjectTitle</span>
+                            <span class="d-block d-md-none small text-body-secondary">@c.TermName@(c.Schedule is null ? "" : $" · {c.Schedule}")@(c.Room is null ? "" : $" · {c.Room}")</span>
                         </td>
+                        <td class="d-none d-md-table-cell">@c.TermName</td>
+                        <td class="d-none d-md-table-cell">@(c.Schedule ?? "—")</td>
+                        <td class="d-none d-md-table-cell">@(c.Room ?? "—")</td>
+                        <td class="text-end">@c.ActiveEnrollmentCount</td>
                     </tr>
                 }
             </tbody>

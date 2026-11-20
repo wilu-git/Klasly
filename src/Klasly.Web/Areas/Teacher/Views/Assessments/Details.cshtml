@@ -23,7 +23,7 @@
 </div>
 
 <h2 class="h5">Grades</h2>
-<p class="mb-2"><strong>@Model.Graded of @Model.Grades.Count</strong> graded. Leave a score blank if it isn't graded yet. A student's phone is notified when their first grade is saved.</p>
+<p class="mb-3">Leave a score blank if it isn't graded yet.</p>
 
 @if (Model.Grades.Count == 0)
 {
@@ -31,7 +31,8 @@
 }
 else
 {
-    <form asp-action="SaveGrades" asp-route-id="@a.AssessmentId" method="post">
+    @* data-warn-unsaved: site.js asks before leaving with typed, unsaved scores. *@
+    <form asp-action="SaveGrades" asp-route-id="@a.AssessmentId" method="post" data-warn-unsaved id="grade-form">
         <div class="table-responsive">
             <table class="table table-sm align-middle">
                 <thead>
@@ -68,8 +69,12 @@ else
                 </tbody>
             </table>
         </div>
-        @Html.ValidationMessage("grades", new { @class = "d-block text-danger mb-2" })
-        <button type="submit" class="btn btn-primary">Save grades</button>
+        @Html.ValidationMessage("grades", new { @class = "d-block text-danger mt-2" })
+        @* Sticky so Save is always reachable on a long class list; the count updates as scores are typed. *@
+        <div class="k-savebar">
+            <span><strong class="num" id="graded-count">@Model.Graded</strong> of @Model.Grades.Count graded</span>
+            <button type="submit" class="btn btn-primary" data-pending-text="Saving grades…">Save grades</button>
+        </div>
     </form>
 }
 
@@ -83,4 +88,15 @@ else
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Live "N of M graded": counts score boxes that aren't blank (saved or just typed).
+        (() => {
+            const form = document.getElementById('grade-form');
+            const count = document.getElementById('graded-count');
+            if (!form || !count) return;
+            form.addEventListener('input', () => {
+                count.textContent = [...form.querySelectorAll('.score-input')].filter(i => i.value.trim() !== '').length;
+            });
+        })();
+    </script>
 }

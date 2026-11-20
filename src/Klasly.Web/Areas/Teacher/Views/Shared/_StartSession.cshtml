@@ -1,4 +1,6 @@
 @model StartSessionViewModel
+@* Form-level errors live under the "start" key (SessionsController.Start), so they never show in the Add assessment form. *@
+@{ var formErrors = ViewData.ModelState.TryGetValue("start", out var entry) ? entry.Errors : null; }
 
 <section class="card mb-4" aria-labelledby="start-heading">
     <div class="card-body">
@@ -6,7 +8,15 @@
         <p class="text-body-secondary small">It starts now and shows a QR code students scan to check in. Times are Manila time.</p>
 
         <form asp-controller="Sessions" asp-action="Start" method="post" class="row g-3 align-items-end">
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger col-12" role="alert"></div>
+            @if (formErrors is { Count: > 0 })
+            {
+                <div class="alert alert-danger col-12 mb-0" role="alert">
+                    @foreach (var error in formErrors)
+                    {
+                        <div>@error.ErrorMessage</div>
+                    }
+                </div>
+            }
             <input type="hidden" asp-for="ClassId" />
 
             <div class="col-12 col-md-5">
@@ -20,7 +30,7 @@
                 <span asp-validation-for="LateAfterMinutes" class="text-danger small"></span>
             </div>
             <div class="col-12 col-md-3">
-                <button type="submit" class="btn btn-primary w-100">Start session</button>
+                <button type="submit" class="btn btn-primary w-100" data-pending-text="Starting…">Start session</button>
             </div>
         </form>
     </div>

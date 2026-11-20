@@ -1,5 +1,6 @@
 @model SessionLiveViewModel
 @* Swapped into #live-panel every 5 s while the session is open. data-closed tells the page script to stop polling. *@
+@* Keep exactly one root element: the page script reads panel.firstElementChild.dataset. *@
 @* Once the session has ended there is no QR, so the roster takes the full width (it has the Correct column then). *@
 <div class="row g-4" data-closed="@(Model.IsClosed ? "true" : "false")" data-summary="@(Model.IsClosed ? "This session has ended. " : "")@Model.Summary">
     <div class="@(Model.IsClosed ? "col-12" : "col-12 col-lg-5")">
@@ -23,7 +24,9 @@
 
     <div class="@(Model.IsClosed ? "col-12" : "col-12 col-lg-7")">
         <h2 class="visually-hidden">Attendance</h2>
-        <p class="fw-semibold mb-2">@Model.Summary</p>
+        @* The checked-in count is the number a teacher glances at from the front of the room; the breakdown is secondary. *@
+        <p class="mb-1"><span class="k-count num">@Model.CheckedIn<span class="k-count-total"> / @Model.Roster.Count</span></span> <span class="fw-semibold">checked in</span></p>
+        <p class="text-body-secondary small mb-3 num">@Model.Present Present · @Model.Late Late@(Model.IsClosed ? $" · {Model.Absent} Absent · {Model.Excused} Excused" : "")</p>
 
         @if (Model.Roster.Count == 0)
         {
@@ -50,20 +53,22 @@
                     <tbody>
                         @foreach (var r in Model.Roster)
                         {
-                            var css = r.Status switch
+                            var variant = r.Status switch
                             {
-                                "Present" => "text-bg-success",
-                                "Late" => "text-bg-warning",
-                                "Absent" => "text-bg-danger",
-                                "Excused" => "text-bg-info",
-                                _ => "text-bg-light border"
+                                "Present" => "success",
+                                "Late" => "warning",
+                                "Absent" => "danger",
+                                "Excused" => "info",
+                                _ => "secondary" // not scanned yet
                             };
+                            var label = r.Status ?? "Not yet";
                             var source = r.Source switch { "Scan" => "Scan", "Auto" => "Auto", "Manual" => "Corrected", _ => "—" };
-                            <tr>
+                            @* id lets a correction redirect land back on this row (SessionsController.Correct). *@
+                            <tr id="row-@r.StudentId">
                                 <td class="d-none d-md-table-cell text-nowrap">@r.StudentNumber</td>
                                 <td>@r.FullName</td>
                                 <td>
-                                    <span class="badge @css">@(r.Status ?? "Not yet")</span>
+                                    <partial name="_StatusBadge" model="(label, variant)" />
                                     @if (r.Source is not null)
                                     {
                                         <span class="d-block d-sm-none small text-body-secondary">@source</span>
@@ -89,7 +94,7 @@
                                                     <option selected="@(option == r.Status)">@option</option>
                                                 }
                                             </select>
-                                            <button type="submit" class="btn btn-sm btn-outline-primary">Save<span class="visually-hidden"> for @r.FullName</span></button>
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Save<span class="visually-hidden"> for @r.FullName</span></button>
                                         </form>
                                     </td>
                                 }
