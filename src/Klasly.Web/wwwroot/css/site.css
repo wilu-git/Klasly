@@ -346,6 +346,7 @@ h3.h6 {
 
 /* A table sits on one white panel; the panel scrolls sideways only when a table truly needs every column. */
 .table-responsive {
+  position: relative; /* containing block for .visually-hidden labels in cells, so they can't widen the page past the scroll box */
   background: var(--k-surface);
   border: 1px solid var(--k-border);
   border-radius: var(--bs-border-radius-lg);

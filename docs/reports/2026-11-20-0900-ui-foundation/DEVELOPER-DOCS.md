@@ -52,3 +52,6 @@ None.
 - Badges other than the session badge still use their old classes until their page milestone (M4 teacher roster, M5 parent risk, M6 admin).
 - "Saving…" is the default pending text; pages set better text where it matters (Start session, Log in) in M4/M7.
 - Before-redesign screenshots were viewed in the browser but not saved as files.
+
+## Follow-up fix (2026-11-20, start of M4)
+`.table-responsive { position: relative; }`: the visually hidden "Actions" header labels were absolutely positioned against the page, not the scroll box, and widened every page with a table on phones. After the fix, teacher My classes, class page and session pages fit at 320 and 375 px (admin pages to be re-checked in M6).
