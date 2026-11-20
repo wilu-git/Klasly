@@ -360,6 +360,18 @@ h3.h6 {
   border-bottom-width: 0;
 }
 
+/* Inset the outer columns so text doesn't sit against the panel's border (also for .table-sm).
+   From 576 px only: on phones every pixel goes to the columns, so tables fit without scrolling. */
+@media (min-width: 576px) {
+  .table-responsive > .table > :not(caption) > tr > :first-child {
+    padding-left: 1rem;
+  }
+
+  .table-responsive > .table > :not(caption) > tr > :last-child {
+    padding-right: 1rem;
+  }
+}
+
 /* ---------- Message page (Error, Not found, Access denied, Server unavailable) ---------- */
 .k-message {
   max-width: 36rem;

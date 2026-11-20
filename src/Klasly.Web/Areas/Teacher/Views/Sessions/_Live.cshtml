@@ -80,7 +80,7 @@
                                 {
                                     <td>
                                         <form asp-action="Correct" asp-route-id="@Model.SessionId" asp-route-studentId="@r.StudentId"
-                                              method="post" class="d-flex gap-2 m-0">
+                                              method="post" class="d-flex flex-wrap gap-2 m-0">
                                             @* Lets the controller say "no change" instead of a false "updated". *@
                                             <input type="hidden" name="currentStatus" value="@r.Status" />
                                             <label class="visually-hidden" for="status-@r.StudentId">New status for @r.FullName</label>

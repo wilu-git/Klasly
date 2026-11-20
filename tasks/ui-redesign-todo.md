@@ -11,4 +11,4 @@
 - [x] M5 ui-parent: whole-row links, summary line, at-risk first, labelled numbers
 - [x] M6a ui-admin lists, M6b ui-admin forms
 - [x] M7 ui-auth-polish: login
-- [ ] M8 Final QA, /impeccable finish review, /review, SPEC criteria ticked, summary report
+- [x] M8 Final QA, /impeccable finish review, /review, SPEC criteria ticked, summary report

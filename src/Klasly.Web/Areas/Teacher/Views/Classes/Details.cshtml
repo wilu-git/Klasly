@@ -69,8 +69,8 @@ else
                 <tr>
                     <th scope="col">Title</th>
                     <th scope="col" class="d-none d-sm-table-cell">Type</th>
-                    <th scope="col" class="text-end text-nowrap">Max score</th>
-                    <th scope="col" class="text-end">Weight</th>
+                    <th scope="col" class="d-none d-sm-table-cell text-end text-nowrap">Max score</th>
+                    <th scope="col" class="d-none d-sm-table-cell text-end">Weight</th>
                     <th scope="col">Graded</th>
                     <th scope="col"><span class="visually-hidden">Actions</span></th>
                 </tr>
@@ -79,10 +79,13 @@ else
                 @foreach (var a in Model.Assessments)
                 {
                     <tr>
-                        <td>@a.Title</td>
+                        <td>
+                            @a.Title
+                            <span class="d-block d-sm-none small text-body-secondary">@a.MaxScore.ToString("0.##") pts · @a.WeightPercent.ToString("0.##")%</span>
+                        </td>
                         <td class="d-none d-sm-table-cell">@a.Type</td>
-                        <td class="text-end">@a.MaxScore.ToString("0.##")</td>
-                        <td class="text-end">@a.WeightPercent.ToString("0.##")%</td>
+                        <td class="d-none d-sm-table-cell text-end">@a.MaxScore.ToString("0.##")</td>
+                        <td class="d-none d-sm-table-cell text-end">@a.WeightPercent.ToString("0.##")%</td>
                         <td class="text-nowrap">@a.GradedCount of @a.ActiveCount</td>
                         <td class="text-end">
                             <a asp-controller="Assessments" asp-action="Details" asp-route-id="@a.AssessmentId"
@@ -115,7 +118,7 @@ else
             <thead>
                 <tr>
                     <th scope="col">Date</th>
-                    <th scope="col">Time (Manila)</th>
+                    <th scope="col" class="d-none d-sm-table-cell">Time (Manila)</th>
                     <th scope="col">Status</th>
                     <th scope="col"><span class="visually-hidden">Actions</span></th>
                 </tr>
@@ -124,8 +127,11 @@ else
                 @foreach (var s in Model.Sessions)
                 {
                     <tr>
-                        <td class="text-nowrap">@ManilaTime.ToLocal(s.StartTimeUtc).ToString("ddd, MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture)</td>
-                        <td class="text-nowrap">@ManilaTime.FormatTime(s.StartTimeUtc) – @ManilaTime.FormatTime(s.EndTimeUtc)</td>
+                        <td>
+                            <span>@ManilaTime.ToLocal(s.StartTimeUtc).ToString("ddd, MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture)</span>
+                            <span class="d-block d-sm-none small text-body-secondary">@ManilaTime.FormatTime(s.StartTimeUtc) – @ManilaTime.FormatTime(s.EndTimeUtc)</span>
+                        </td>
+                        <td class="d-none d-sm-table-cell text-nowrap">@ManilaTime.FormatTime(s.StartTimeUtc) – @ManilaTime.FormatTime(s.EndTimeUtc)</td>
                         <td><partial name="_SessionStatusBadge" model="s" /></td>
                         <td class="text-end">
                             <a asp-controller="Sessions" asp-action="Details" asp-route-id="@s.SessionId"

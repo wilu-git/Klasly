@@ -337,26 +337,26 @@ There are no automated UI tests for `Klasly.Web`, and this work adds none (Playw
 
 ## Success criteria
 
-- [ ] Logo symbol approved by the team from screenshots; three SVG variants and `favicon.svg` exist; legible at 16 px.
-- [ ] Inter is served from `wwwroot/fonts` (no third-party request) with `OFL.txt` alongside; the system stack takes over if the font fails to load.
-- [ ] `site.css` defines the B1 tokens; no hex colors in any `.cshtml`; `_Layout.cshtml.css` is gone.
-- [ ] Measured contrast meets B1 on white and canvas (muted text ≥ 4.5 : 1 on both).
-- [ ] Base font is 16 px at 320 px and at 1440 px; page titles are 28 px on phones and 32 px on desktop.
-- [ ] At 320/375/768/1440 px, no page scrolls sideways except inside the two allowed tables; the navbar is one row with a working toggler where B6 says it collapses.
-- [ ] "My classes" is highlighted on every `/Teacher/*` page.
-- [ ] Every status in B2 renders through `_StatusBadge` with the listed variant; no teal badges.
-- [ ] Form-contract and anti-forgery checks pass on every page with a form (P1, P7–P15, P18–P20).
-- [ ] A valid submit disables its button with pending text; a cancelled confirm or a failed client validation does not.
-- [ ] Leaving the grade sheet with typed, unsaved scores warns; saving does not.
-- [ ] The teacher class page with an open session shows the live-session strip with "Show QR" above everything else.
-- [ ] The two forms on the teacher class page never show the same error twice.
-- [ ] The Error page has no "Development Mode" text; a bad id (e.g. `/Admin/Classes/Details/999999`) shows a styled Not found page with navigation, still with HTTP 404.
-- [ ] After a correction, the session page opens scrolled to the corrected student's row.
-- [ ] The grade sheet no longer mentions phone notifications; the failed-emails page text no longer says "Brevo".
-- [ ] Session page at 375 px and 1440 px: QR ≥ 320 px wide on white; `Live` polled every ~5 s; the reconnect warning appears when the API stops.
-- [ ] The parent overview shows a one-line answer above the class panels, and at-risk classes come first.
-- [ ] No footer on any page.
-- [ ] `dotnet build` 0 warnings, `dotnet test` all green, `/impeccable` detect clean, reports written for each module.
+- [x] Logo symbol approved by the team from screenshots; three SVG variants and `favicon.svg` exist; legible at 16 px.
+- [x] Inter is served from `wwwroot/fonts` (no third-party request) with `OFL.txt` alongside; the system stack takes over if the font fails to load.
+- [x] `site.css` defines the B1 tokens; no hex colors in any `.cshtml`; `_Layout.cshtml.css` is gone.
+- [x] Measured contrast meets B1 on white and canvas (muted text ≥ 4.5 : 1 on both).
+- [x] Base font is 16 px at 320 px and at 1440 px; page titles are 28 px on phones and 32 px on desktop.
+- [x] At 320/375/768/1440 px, no page scrolls sideways except inside the two allowed tables; the navbar is one row with a working toggler where B6 says it collapses.
+- [x] "My classes" is highlighted on every `/Teacher/*` page.
+- [x] Every status in B2 renders through `_StatusBadge` with the listed variant; no teal badges.
+- [x] Form-contract and anti-forgery checks pass on every page with a form (P1, P7–P15, P18–P20). *(Identical everywhere; Class details lists the same two forms in a new order, Enroll first, as planned.)*
+- [x] A valid submit disables its button with pending text; a cancelled confirm or a failed client validation does not.
+- [x] Leaving the grade sheet with typed, unsaved scores warns; saving does not.
+- [x] The teacher class page with an open session shows the live-session strip with "Show QR" above everything else.
+- [x] The two forms on the teacher class page never show the same error twice.
+- [x] The Error page has no "Development Mode" text; a bad id (e.g. `/Admin/Classes/Details/999999`) shows a styled Not found page with navigation, still with HTTP 404.
+- [x] After a correction, the session page opens scrolled to the corrected student's row.
+- [x] The grade sheet no longer mentions phone notifications; the failed-emails page text no longer says "Brevo".
+- [x] Session page at 375 px and 1440 px: QR ≥ 320 px wide on white; `Live` polled every ~5 s; the reconnect warning appears when the API stops. *(Verified 2026-11-20: QR on white, `Live` polled every ~5 s, "Reconnecting…" shown with the last QR kept when the API was stopped.)*
+- [x] The parent overview shows a one-line answer above the class panels, and at-risk classes come first.
+- [x] No footer on any page.
+- [ ] `dotnet build` 0 warnings, `dotnet test` all green, `/impeccable` detect clean, reports written for each module. *(Build, tests and reports done. impeccable: site.css clean; on rendered pages one heuristic remains, "cramped-padding" on `.table-responsive` (the table fills its panel; cell text is inset 16 px) — left standing.)*
 
 ## Decisions (answered 2026-11-20)
 

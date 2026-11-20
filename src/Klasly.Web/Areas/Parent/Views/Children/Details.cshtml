@@ -161,16 +161,16 @@ else
                                 <tr>
                                     <th scope="col">Assessment</th>
                                     <th scope="col" class="text-end">Score</th>
-                                    <th scope="col" class="text-end">Weight</th>
+                                    <th scope="col" class="d-none d-sm-table-cell text-end">Weight</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var g in c.Grades)
                                 {
                                     <tr>
-                                        <td>@g.Title <span class="text-body-secondary small">@g.Type</span></td>
+                                        <td>@g.Title <span class="text-body-secondary small">@g.Type<span class="d-sm-none"> · @Number(g.WeightPercent)% of the grade</span></span></td>
                                         <td class="text-end text-nowrap @(g.Score is null ? "text-body-secondary" : "")">@(g.Score is { } s ? $"{Number(s)} / {Number(g.MaxScore)}" : "Not graded yet")</td>
-                                        <td class="text-end">@Number(g.WeightPercent)%</td>
+                                        <td class="d-none d-sm-table-cell text-end">@Number(g.WeightPercent)%</td>
                                     </tr>
                                 }
                             </tbody>
