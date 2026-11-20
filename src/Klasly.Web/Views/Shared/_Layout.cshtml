@@ -4,61 +4,76 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Klasly</title>
-    <script type="importmap"></script>
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Klasly.Web.styles.css" asp-append-version="true" />
 </head>
 <body>
+    <a class="visually-hidden-focusable k-skip" href="#main">Skip to content</a>
+    @{
+        var navArea = User.IsInRole("Admin") ? "Admin" : User.IsInRole("Teacher") ? "Teacher" : User.IsInRole("Parent") ? "Parent" : null;
+        var navItems = navArea switch
+        {
+            "Admin" => new[] { ("Terms", "Terms"), ("Subjects", "Subjects"), ("Accounts", "Accounts"), ("Classes", "Classes"), ("FailedEmails", "Failed emails") },
+            "Teacher" => new[] { ("Classes", "My classes") },
+            "Parent" => new[] { ("Children", "My children") },
+            _ => []
+        };
+        // Area-aware highlight: every Teacher page (class, session, grade sheet) belongs to "My classes"; every Parent page to "My children".
+        var currentArea = ViewContext.RouteData.Values["area"]?.ToString();
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+        var activeItem = currentArea != navArea ? null : navArea switch
+        {
+            "Teacher" => "Classes",
+            "Parent" => "Children",
+            _ => currentController
+        };
+        var signedIn = User.Identity?.IsAuthenticated == true;
+        // Admin has five items, so its menu collapses below lg; Teacher and Parent have one and collapse only below sm.
+        var breakpoint = navArea == "Admin" ? "lg" : "sm";
+    }
     <header>
-        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-@breakpoint bg-white border-bottom" aria-label="Main">
             <div class="container">
-                <a class="navbar-brand fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">Klasly</a>
-                @{
-                    var navArea = User.IsInRole("Admin") ? "Admin" : User.IsInRole("Teacher") ? "Teacher" : User.IsInRole("Parent") ? "Parent" : null;
-                    var navItems = navArea switch
-                    {
-                        "Admin" => new[] { ("Terms", "Terms"), ("Subjects", "Subjects"), ("Accounts", "Accounts"), ("Classes", "Classes"), ("FailedEmails", "Failed emails") },
-                        "Teacher" => new[] { ("Classes", "My classes") },
-                        "Parent" => new[] { ("Children", "My children") },
-                        _ => []
-                    };
-                    var current = ViewContext.RouteData.Values["controller"]?.ToString();
-                }
-                @if (navItems.Length > 0)
+                <a class="navbar-brand d-flex align-items-center gap-2 me-4" asp-area="" asp-controller="Home" asp-action="Index" aria-label="Klasly home">
+                    <svg class="k-mark" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.1 2.5v18.9" /><path d="M3.1 13.25 19.25 3.8" /><path d="M7.2 15.1 14.2 21.5 20.75 14.5" /></g></svg>
+                    <span class="d-none d-sm-inline">Klasly</span>
+                </a>
+                @if (signedIn)
                 {
-                    <ul class="navbar-nav flex-row gap-3 me-auto">
-                        @foreach (var (controller, label) in navItems)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @(current == controller ? "active fw-semibold" : "")" aria-current="@(current == controller ? "page" : null)"
-                                   asp-area="@navArea" asp-controller="@controller" asp-action="Index">@label</a>
-                            </li>
-                        }
-                    </ul>
-                }
-                @if (User.Identity?.IsAuthenticated == true)
-                {
-                    <div class="d-flex align-items-center gap-3 ms-auto">
-                        <span class="text-body-secondary small">@User.Identity.Name</span>
-                        <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="m-0">
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">Log out</button>
-                        </form>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-nav"
+                            aria-controls="main-nav" aria-expanded="false" aria-label="Menu">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="main-nav">
+                        <ul class="navbar-nav me-auto gap-1">
+                            @foreach (var (controller, label) in navItems)
+                            {
+                                var isActive = activeItem == controller;
+                                <li class="nav-item">
+                                    <a class="nav-link @(isActive ? "active" : "")" aria-current="@(isActive ? "page" : null)"
+                                       asp-area="@navArea" asp-controller="@controller" asp-action="Index">@label</a>
+                                </li>
+                            }
+                        </ul>
+                        <div class="d-flex flex-wrap align-items-center gap-3 pb-3 pb-@(breakpoint)-0">
+                            <span class="text-body-secondary small">@User.Identity!.Name</span>
+                            <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" data-pending-text="Logging out…">Log out</button>
+                            </form>
+                        </div>
                     </div>
                 }
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+    <main id="main" class="container" tabindex="-1">
+        @if (ViewData["AlertsInPage"] is not true)
+        {
             <partial name="_Alerts" />
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">&copy; 2026 Klasly</div>
-    </footer>
+        }
+        @RenderBody()
+    </main>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

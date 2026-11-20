@@ -1,0 +1,9 @@
+@model (string Text, string Variant)
+@* One badge for every status (SPEC B2). Variant: success, warning, danger, info, secondary — or "danger-strong",
+   the only filled badge, for "At risk" so a parent can't miss it. Always text, never colour alone. *@
+@{
+    var css = Model.Variant == "danger-strong"
+        ? "text-bg-danger"
+        : $"bg-{Model.Variant}-subtle text-{Model.Variant}-emphasis border border-{Model.Variant}-subtle";
+}
+<span class="badge @css">@Model.Text</span>

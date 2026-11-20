@@ -1,11 +1,11 @@
 @model SessionResponse
 @{
-    var css = Model.DisplayStatus switch
+    var variant = Model.DisplayStatus switch
     {
-        "Open" => "text-bg-success",
-        "Scheduled" => "text-bg-primary",
-        "Cancelled" => "text-bg-danger",
-        _ => "text-bg-secondary" // Ended, Closed, Finalized
+        "Open" => "success",
+        "Scheduled" => "info",
+        "Cancelled" => "danger",
+        _ => "secondary" // Ended, Closed, Finalized
     };
 }
-<span class="badge @css">@Model.DisplayStatus</span>
+<partial name="_StatusBadge" model="(Model.DisplayStatus, variant)" />
